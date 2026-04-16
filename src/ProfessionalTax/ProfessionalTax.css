@@ -1,0 +1,96 @@
+/* ------------------------------------
+   CLEAN ANTD LOOK — NO BLUE GRADIENTS
+--------------------------------------*/
+
+.pt-layout {
+    min-height: 100vh;
+    background: #ffffff !important;
+    /* light gray like HRMS pages */
+    padding: 16px;
+}
+
+/* ---------- HEADER ---------- */
+.pt-header {
+    background: #ffffff !important;
+    padding: 10px 16px;
+    border-bottom: 1px solid #d9d9d9 !important;
+    box-shadow: none !important;
+}
+
+.pt-header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pt-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+
+.pt-content {
+    padding: 0;
+}
+
+/* ---------- MAIN CARD ---------- */
+.pt-card {
+    background: #ffffff !important;
+    border: 1px solid #e5e5e5 !important;
+    /* soft border like ANTD card */
+    border-radius: 6px;
+    box-shadow: none !important;
+    /* remove blue tone shadows */
+    padding: 20px !important;
+}
+
+/* ---------- SELECT ---------- */
+.pt-state-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 8px;
+}
+
+.pt-state-select {
+    min-width: 260px;
+}
+
+.pt-select-readonly .ant-select-selector {
+    background: #fafafa !important;
+    cursor: default !important;
+}
+
+/* ---------- TABLE ---------- */
+.pt-table .ant-table-container {
+    border-radius: 6px !important;
+    border: 1px solid #e5e5e5 !important;
+}
+
+.pt-table .ant-table-thead>tr>th {
+    background: #fafafa !important;
+    font-weight: 600;
+    font-size: 13px;
+    color: #444;
+}
+
+.pt-table .ant-table-tbody>tr>td {
+    padding: 6px 8px;
+}
+
+/* ---------- INPUT READONLY ---------- */
+.pt-input {
+    width: 100%;
+}
+
+.pt-input-readonly input {
+    background: #fafafa !important;
+    cursor: default !important;
+    pointer-events: none !important;
+}
+
+.pt-input-readonly .ant-input-number-handler-wrap {
+    display: none !important;
+}

@@ -1,0 +1,213 @@
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card_div {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  width: 10rem;
+  height: 5rem;
+  padding: 1rem;
+
+  background: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 500;
+  color: #333;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 1rem;
+  overflow: hidden;
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.card_label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.card_value {
+  font-size: 1.25rem;
+  color: #1a1a1a;
+}
+
+/* Arched top “bar” */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 4px;
+  background: #61a3b3;
+  border-top-left-radius: 100% 80%;
+  border-top-right-radius: 100% 80%;
+}
+
+/* Optional bottom divider if you still need .card_line */
+/* .card_line {
+  position: absolute;
+  bottom: 0;
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(to right, #61a3b3, #85c4cf);
+  border-bottom-left-radius: 50% 100%;
+  border-bottom-right-radius: 50% 100%;
+  margin-bottom: 0.5rem;
+} */
+
+/* page shell */
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* bump spacing on larger screens */
+@media (min-width: 768px) {
+  .pageWrap {
+    gap: 16px;
+    padding: 16px 20px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .pageWrap {
+    gap: 20px;
+    padding: 20px 28px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
+/* cards */
+.cardsSection {
+  /* in case your Card component stretches, keep it tidy */
+  width: 100%;
+}
+
+/* filters */
+.filtersSection {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-elevated, #fff);
+  padding: 8px 0;
+  /* a subtle divider on mobile when filters stick */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 768px) {
+  .filtersSection {
+    position: static;
+    padding: 0;
+    border-bottom: none;
+  }
+}
+
+/* table */
+.tableSection {
+  width: 100%;
+}
+
+/* the key piece for mobile: allow horizontal scroll instead of header wrapping */
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg-elevated, #fff);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* keep a sensible min width so columns like “Payable Salary” don’t break lines */
+.tableContainer>* {
+  min-width: 720px;
+}
+
+/* on tablet/desktop let the table fill naturally */
+@media (min-width: 768px) {
+  .tableContainer>* {
+    min-width: initial;
+  }
+}
+
+/* optional: tighten table cell padding on small screens if your DataTable inherits Ant styles */
+:global(.ant-table-wrapper .ant-table.ant-table-small) td,
+:global(.ant-table-wrapper .ant-table.ant-table-small) th {
+  white-space: nowrap;
+  /* prevents column titles from breaking into multiple lines */
+}
+
+.pageWrap {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  /* prevent margin:auto centering */
+  padding: 16px 20px;
+  display: block;
+  /* avoid inheriting flex centering */
+  box-sizing: border-box;
+}
+
+.leftAlign {
+  text-align: left;
+  /* ensure headings/sections left aligned */
+}
+
+.pageWrapFix {
+  align-self: stretch;
+  /* resist parent flex centering */
+  justify-self: stretch;
+}
+
+.cardsSection,
+.filtersSection,
+.tableSection {
+  width: 100%;
+  margin: 12px 0;
+}
+
+/* Table container stretches and allows horizontal scroll on small screens */
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Make Ant Table take full width of container */
+.tableContainer :global(.ant-table) {
+  width: 100%;
+}
+
+/* Optional: normalize heading text alignment inside this page */
+.pageWrap :global(h1),
+.pageWrap :global(h2),
+.pageWrap :global(.ant-typography) {
+  text-align: left;
+}

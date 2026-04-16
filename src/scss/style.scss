@@ -1,0 +1,346 @@
+@use '@coreui/coreui/scss/coreui' as * with (
+  $enable-deprecation-messages: false
+);
+@use '@coreui/chartjs/scss/coreui-chartjs';
+@use 'vendors/simplebar';
+
+// body {
+//   background-color: var(--cui-tertiary-bg);
+// }
+body {
+  zoom: 80%;
+}
+
+.wrapper {
+  width: 100%;
+  padding-inline: var(--cui-sidebar-occupy-start, 0) var(--cui-sidebar-occupy-end, 0);
+  will-change: auto;
+  @include transition(padding 0.15s);
+}
+
+// .css-dev-only-do-not-override-tjsggz{
+//   text-align: center !important;
+
+// }
+
+.header > .container-fluid,
+.sidebar-header {
+  max-height: calc(4rem + 1px); // stylelint-disable-line function-disallowed-list
+}
+
+.sidebar-brand-full {
+  margin-left: 3px;
+}
+
+.sidebar-header {
+  .nav-underline-border {
+    --cui-nav-underline-border-link-padding-x: 1rem;
+    --cui-nav-underline-border-gap: 0;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: calc(4rem + 1px); // stylelint-disable-line function-disallowed-list
+  }
+}
+
+.sidebar-toggler {
+  margin-inline-start: auto;
+}
+
+.sidebar-narrow,
+.sidebar-narrow-unfoldable:not(:hover) {
+  .sidebar-toggler {
+    margin-inline-end: auto;
+    background-color: red;
+  }
+}
+
+.border-end:hover .ab {
+  display: none;
+}
+
+.header > .container-fluid + .container-fluid {
+  min-height: 3rem;
+}
+
+.footer {
+  min-height: calc(3rem + 1px); // stylelint-disable-line function-disallowed-list
+}
+
+@include color-mode(dark) {
+  body {
+    background-color: var(--cui-dark-bg-subtle);
+  }
+
+  .footer {
+    --cui-footer-bg: var(--cui-body-bg);
+  }
+}
+
+//////////////////////////////////////////
+///
+
+.employee-form-card {
+  max-width: 800px;
+  margin: auto;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.employee-form {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.upload-section {
+  text-align: center;
+}
+
+.upload-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-pic {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.ant-btn-primary {
+  background-color: #1890ff;
+  border: none;
+  font-size: 16px;
+}
+
+.ant-btn-primary:hover {
+  background-color: #40a9ff;
+}
+
+/////////////////////////
+///
+.nav-item .bg-info {
+  background-color: #5256d6 !important;
+}
+
+.breadcrumb-item a {
+  color: #5256d6 !important;
+}
+
+.sidebar-nav .nav-link.active {
+  background-color: #696cff29 !important;
+  color: #696cff;
+}
+
+/////////////////////////////
+.ant-descriptions-item-content {
+  padding: 7px 24px !important;
+}
+
+.ant-modal-mask,
+.ant-modal-wrap {
+  z-index: 1035 !important;
+}
+
+.container-lg {
+  padding-top: 1.5rem;
+}
+
+//////rohti css ///////
+///
+/* 1) WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 4px !important;
+  height: 6px !important;
+  /* for horizontal scrollbars */
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f0f0f0 !important;
+  border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #1890ff !important;
+  border-radius: 8px !important;
+  border: 2px solid #f0f0f0 !important;
+}
+
+/* 2) Firefox */
+
+/* 3) If you need to target specific containers (optional):
+e.g. AntD table bodies, custom scroll wrappers, etc. */
+.ant-modal-body,
+.ant-table-body,
+.your-custom-scroll-container {
+  /* fallback for browsers that need explicit overrides */
+  scrollbar-width: thin !important;
+  scrollbar-color: #1890ff #f0f0f0 !important;
+}
+
+.attendence-table {
+  thead,
+  tbody,
+  tfoot,
+  tr,
+  td,
+  th {
+    padding: 0 !important;
+    font-size: 12px;
+  }
+}
+
+.ant-statistic-content-value {
+  font-size: 16px;
+}
+
+.user-info {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+  .user-info {
+    max-width: 150px;
+    /* or a % based on container */
+    display: block;
+  }
+}
+
+.custom-row .ant-table-cell {
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+
+.even-row {
+  background-color: #fafafa; /* light gray */
+}
+
+.odd-row {
+  background-color: #ffffff; /* white */
+}
+
+.highlight-bold-row {
+  // background-color: #d6f5d6 !important;
+  font-weight: bold;
+}
+
+.app-scale-wrapper {
+  transform: scale(0.8);
+  transform-origin: top left;
+  width: 125vw; /* 100 / 0.8 = 125 */
+  height: 125vh;
+  overflow: hidden;
+}
+
+// salary control panel
+.custom-tabss .ant-tabs-nav {
+  margin: 0 !important;
+}
+
+.custom-tabss .ant-tabs-tab {
+  flex: 1;
+  justify-content: center;
+  margin: 0 !important;
+  width: 100%;
+  text-align: center;
+}
+
+.custom-tabss .ant-tabs-nav-list {
+  display: flex !important;
+  width: 100%;
+}
+
+.custom-tabss .ant-tabs-tab-btn {
+  width: 100%;
+}
+
+// .mod_salry > .ant-modal-content{
+//   padding: 0px;
+// }
+
+/* Only apply to the draggable salary modal */
+.mod_salry .ant-modal-wrap {
+  overflow: visible !important;
+  align-items: flex-start !important;
+}
+
+.mod_salry .ant-modal {
+  margin-top: 0 !important;
+  top: 0 !important;
+}
+
+.head_sal_btn .ant-space-item {
+  flex: 1;
+}
+
+/* For WebKit-based browsers (Chrome, Safari, Edge) */
+.scroll-container::-webkit-scrollbar {
+  width: 6px; /* Reduced scrollbar width */
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 3px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+// attendance table
+.strong-ui-table {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  background-color: #fefefe;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Header */
+// .strong-ui-table .ant-table-thead > tr > th {
+//   background: #1f2937;
+//   color: #ffffff;
+//   font-weight: 600;
+//   text-transform: uppercase;
+//   font-size: 13px;
+//   letter-spacing: 0.5px;
+//   border-bottom: 1px solid #1f2937;
+// }
+
+/* Table cells */
+.strong-ui-table .ant-table-tbody > tr > td {
+  background: #ffffff;
+  color: #1e1e1e; /* almost black */
+  border-bottom: 1px solid #d1d5db;
+}
+
+/* Hover effect */
+.strong-ui-table .ant-table-tbody > tr:hover > td {
+  background-color: #e0f2fe !important; /* light blue */
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Alternating rows */
+.dark-row:nth-child(odd) {
+  background-color: #f9fafb;
+}
+
+/* Selected row (optional) */
+.strong-ui-table .ant-table-row-selected > td {
+  background-color: #2563eb !important;
+  color: #fff;
+}
+
+.strong-ui-table .ant-table-cell {
+  text-align: center !important;
+}
+
+//attendance table

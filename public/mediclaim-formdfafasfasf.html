@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insurance Form</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: #f4f4f4;
+        font-size: 14px;
+        font-weight: normal;
+      }
+      .form-container {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 500px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.9em;
+        font-weight: normal;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-weight: normal;
+        transition: border-color 0.2s;
+      }
+      input.error,
+      select.error {
+        border-color: lightcoral;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+      }
+      .error-message {
+        color: crimson;
+        font-size: 0.8em;
+        margin-top: 4px;
+        display: none;
+      }
+      .error-message.active {
+        display: block;
+      }
+      .btn,
+      .btn-reset {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      .btn {
+        background: #28a745;
+        color: #fff;
+      }
+      .btn-reset {
+        background: #e03105;
+        color: #fff;
+      }
+      .btn:disabled,
+      .btn-reset:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+      }
+      @media (max-width: 600px) {
+        .form-container {
+          padding: 15px;
+        }
+        input,
+        select,
+        .btn,
+        .btn-reset {
+          font-size: 0.8em;
+        }
+        label {
+          font-size: 0.8em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="form-container">
+      <h2 style="font-size: 1.2em; font-weight: normal">Insurance Enrollment</h2>
+      <form id="insuranceForm" novalidate>
+        <div class="form-group">
+          <label for="name">Name of Insured</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div class="form-group">
+          <label for="empId">Employee ID</label>
+          <input type="text" id="empId" name="empId" required />
+        </div>
+        <div class="form-group">
+          <label for="relation">Relation</label>
+          <input type="text" id="relation" name="relation" required />
+        </div>
+        <div class="form-group">
+          <label for="sex">Sex</label>
+          <select id="sex" name="sex" required>
+            <option value="">--Select--</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dob">D.O.B.</label>
+          <input type="date" id="dob" name="dob" required />
+        </div>
+        <div class="form-group">
+          <label for="doj">D.O.J.</label>
+          <input type="date" id="doj" name="doj" required />
+        </div>
+        <div class="form-group">
+          <label for="salary">Gross Salary</label>
+          <input type="number" id="salary" name="salary" required />
+          <div id="salaryError" class="error-message">Gross salary cannot be less than 0.</div>
+        </div>
+        <button type="reset" class="btn-reset">Reset</button>
+        <button type="submit" class="btn" id="submitBtn">Submit</button>
+      </form>
+    </div>
+
+    <script>
+      const form = document.getElementById('insuranceForm')
+      const salaryField = form.querySelector('#salary')
+      const salaryError = document.getElementById('salaryError')
+      const submitBtn = document.getElementById('submitBtn')
+      let loading = false
+
+      function setLoading(state) {
+        loading = state
+        submitBtn.disabled = state
+        submitBtn.textContent = state ? 'Loading...' : 'Submit'
+      }
+
+      // Clear error on input/select change
+      form.querySelectorAll('input, select').forEach((field) => {
+        const eventType = field.tagName.toLowerCase() === 'select' ? 'change' : 'input'
+        field.addEventListener(eventType, () => {
+          if (field.value.trim()) field.classList.remove('error')
+          if (field === salaryField) {
+            const val = parseFloat(field.value)
+            if (!isNaN(val) && val >= 0) salaryError.classList.remove('active')
+          }
+        })
+      })
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        if (loading) return
+
+        form.querySelectorAll('.error').forEach((el) => el.classList.remove('error'))
+        salaryError.classList.remove('active')
+
+        let valid = true
+        form.querySelectorAll('[required]').forEach((field) => {
+          if (!field.value.trim()) {
+            field.classList.add('error')
+            valid = false
+          }
+        })
+
+        const salaryVal = parseFloat(salaryField.value)
+        if (!isNaN(salaryVal) && salaryVal < 0) {
+          salaryField.classList.add('error')
+          salaryError.classList.add('active')
+          valid = false
+        }
+        if (!valid) return
+
+        const data = {
+          nameofInsured: form.name.value.trim(),
+          employeeId: form.empId.value.trim(),
+          relation: form.relation.value.trim(),
+          gender: form.sex.value,
+          dateOfBirth: form.dob.value,
+          dateOfJoin: form.doj.value,
+          grossSalary: salaryVal,
+        }
+
+        try {
+          setLoading(true)
+          const response = await fetch('http://192.168.151.24:8383/api/InsuranceEnrollment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          })
+          // console.log('response: ', response)
+          if (response.ok) {
+            alert('Form submitted successfully!')
+            form.reset()
+          } else {
+            alert('Submission failed. Please try again.')
+          }
+        } catch (err) {
+          console.error(err)
+          alert('An error occurred.')
+        } finally {
+          setLoading(false)
+        }
+      })
+    </script>
+  </body>
+</html>

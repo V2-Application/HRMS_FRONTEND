@@ -1,0 +1,2699 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Openings</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    .card {
+      background: #fff;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 10px;
+      min-height: 100vh;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 2px solid #f0f0f0;
+      border-radius: 10px;
+      padding: 10px;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+    }
+
+    .form-logo {
+      height: 50px;
+    }
+
+    .job-list,
+    .job-details,
+    .job-form {
+      margin-bottom: 20px;
+    }
+
+    .job-list ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .job-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+
+    .job-list li:hover {
+      background: #f9f9f9;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .col {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .upload-preview img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 16px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn:hover {
+      background: #0056b3;
+    }
+
+    .small-link {
+      display: block;
+      text-align: right;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+
+    <div class="form-header">
+      <img src="https://v2retail.com/wp-content/uploads/2024/10/V2-Logo-1.png" alt="Logo" class="form-logo" />
+      <div style="font-size: 20px; font-weight: 600;">Job Openings</div>
+    </div>
+
+    <div class="row">
+      <!-- Job List -->
+      <div class="col job-list" id="job-list">
+        <h3>Available Jobs</h3>
+        <ul id="jobListContainer"></ul>
+
+      </div>
+
+      <!-- Job Description -->
+      <div class="col job-details" id="jobDetails" style="display:none;">
+        <div class="vp_2">
+          <h3 id="jobTitle">Job Description</h3>
+          <button onclick="applyjob()" style="padding: 8px 20px; background: #f5f5f5; border: 1px solid #ccc; border-radius: 6px; cursor: pointer;">Apply Job</button>
+        </div>
+
+        <p>
+        <div>Experience:</div> <span id="jobExperience"></span></p>
+        <p>
+        <div>Location:</div> <span id="jobLocation"></span>
+        </p>
+        <p>
+        <div>Key Responsibilities:</div>
+        </p>
+        <ul id="responsibilitiesList"></ul>
+        <p>
+        <div>Preferred Skills:</div>
+        </p>
+        <ul id="skillsList"></ul>
+      </div>
+
+
+      <!-- Job Application Form -->
+      <div class="col job-form" id="job-form"
+        style="font-family: Arial, sans-serif; padding: 30px; background-color: #fff; border-radius: 12px; max-width: 900px; margin: auto;">
+
+        <div class="vp_2"
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+          <h3 style="margin: 0;">Apply Now</h3>
+          <button onclick="goBack()"
+            style="padding: 8px 20px; background: #f5f5f5; border: 1px solid #ccc; border-radius: 6px; cursor: pointer;">Back</button>
+        </div>
+
+        <form onsubmit="submitForm(event)">
+          <div class="row" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- <div class="col" style="flex: 1; min-width: 250px;">
+              <div id="uploadPreview" class="uploadPreview"
+                style="height: 100px; width: 100px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px;">
+              </div>
+              <input type="file" name="profilePhoto" accept="image/*" onchange="previewImage(event)"
+                style="margin-top: 10px;" />
+            </div> -->
+
+            <div class="col" style="flex: 2; min-width: 250px;">
+              <div class="form-group" style="margin-bottom: 15px;">
+                <label>Job Position</label>
+                <select name="jobPosition" id="jobPosition" required
+                  style="width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc;">
+                  <option value="">Select</option>
+
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 15px;">
+                <label>Current Location</label>
+                <!-- <input type="text" name="location" required
+                  style="width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc;" /> -->
+                <select name="locationPosition" id="locationPosition" required
+                  style="width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc;">
+                  <option value="">Select</option>
+
+                </select>
+                </div>
+
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label>Full Name</label>
+            <input type="text" name="fullName" required
+              style="width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc;" />
+          </div>
+
+          <div class="row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Age</label>
+              <input type="number" name="age" required
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Phone</label>
+              <input type="text" name="phone" required
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Email</label>
+              <input type="email" name="email" required
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Previous Company</label>
+              <input type="text" name="previousCompany"
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Previous Designation</label>
+              <input type="text" name="previousDesignation"
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Previous Salary</label>
+              <input type="text" name="previousSalary"
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Total Experience (Years)</label>
+              <input type="number" name="experience"
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+            <div class="col form-group" style="flex: 1; min-width: 200px;">
+              <label>Salary Expectation</label>
+              <input type="text" name="expectedSalary"
+                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin: 20px 0;">
+            <label>Cover Letter / Notes</label>
+            <textarea name="coverLetter" rows="4"
+              style="width: 100%; padding: 12px; resize: vertical; border-radius: 6px; border: 1px solid #ccc;"></textarea>
+          </div>
+
+          <div class="form-group" style="margin: 20px 0;">
+            <label>Upload Resume</label>
+            <input type="file" name="ResumeAttachment" style="margin-top: 8px;" />
+          </div>
+
+          <div class="form-group" style="margin: 20px 0;">
+            <label>
+              <p style="text-align: center;">
+                <input type="checkbox" name="agreement" required style="margin-right: 8px;" />
+                I agree to the storage and handling of my data.
+              </p>
+            </label>
+          </div>
+
+          <button class="btn" type="submit"
+            style="padding: 14px 28px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Submit</button>
+        </form>
+      </div>
+
+    </div>
+
+
+
+  </div>
+
+  <style>
+    li {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .vp_2 {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .job-form {
+      display: none;
+    }
+
+    .uploadPreview img {
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <script>
+    function showJobDetails(title, location, experience, qualification, responsibilities, skills, Designation, Locations) {
+      // console.log('test---------->', title, location, experience, qualification, responsibilities, skills);
+
+      // document.getElementById('jobDetails').style.display = 'block';
+      document.getElementById('jobDetails').style.display = 'block';
+      document.getElementById('job-form').style.display = 'none';
+      document.getElementById('jobTitle').innerText = title;
+      document.getElementById('jobLocation').innerText = location;
+      document.getElementById('jobExperience').innerText = experience;
+      // document.getElementById('jobQualification').innerText = qualification;
+
+      const respList = document.getElementById('responsibilitiesList');
+      respList.innerHTML = '';
+      responsibilities?.forEach(item => {
+        const li = document.createElement('li');
+        li.innerText = item;
+        respList.appendChild(li);
+      });
+
+
+      const skillList = document.getElementById('skillsList');
+      skillList.innerHTML = '';
+      skills?.forEach(item => {
+        const li = document.createElement('li');
+        li.innerText = item;
+        skillList.appendChild(li);
+      });
+
+
+      const select = document.getElementById('jobPosition');
+
+      Designation?.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.designationId;
+        option.textContent = item.designationName;
+        select.appendChild(option);
+      });
+
+      const selectt = document.getElementById('locationPosition');
+
+      Locations?.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.locationId;
+        option.textContent = item.locationName;
+        selectt.appendChild(option);
+      });
+
+      
+
+
+    }
+
+    function previewImage(event) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const img = document.createElement('img');
+        img.src = reader.result;
+        const container = document.getElementById('uploadPreview');
+        container.innerHTML = '';
+        container.appendChild(img);
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    function submitForm(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const formData = new FormData(form);
+      formData.append("IsApplicant", true);
+      formData.append("isResumeAttachmentUploaded", true)
+
+      // for (let [key, value] of formData.entries()) {
+      //   if (value instanceof File) {
+      //     console.log(`📎 File field: ${key}`);
+      //     console.log(`   ▶ Name: ${value.name}`);
+      //     console.log(`   ▶ Type: ${value.type}`);
+      //     console.log(`   ▶ Size: ${value.size} bytes`);
+      //     console.log(`   ▶ File object:`, value);
+      //   } else {
+      //     console.log(`${key}: ${value}`);
+      //   }
+      // }
+
+      fetch('https://v2parivar.v2retail.com:9987/api/Applicant', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => response.json())
+        .then(data => {
+          // console.log('Success:', data);
+          alert('Form submitted successfully!');
+          form.reset(); // clear form after success
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error submitting form. Please try again.');
+        });
+    }
+
+    function applyjob() {
+      document.getElementById('jobDetails').style.display = 'none';
+      document.getElementById('job-form').style.display = 'block';
+      document.getElementById('job-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function goBack() {
+      document.getElementById('jobDetails').style.display = 'block';
+      document.getElementById('job-list').style.display = 'block';
+      document.getElementById('job-form').style.display = 'none';
+    }
+
+    function fetchJobs() {
+      fetch('https://v2parivar.v2retail.com:9987/api/JobOpening') // Use your actual API URL here
+        .then(response => response.json())
+        .then(data => populateJobList(data))
+        .catch(error => {
+          console.error("Failed to fetch jobs:", error);
+          populateJobList(mockJobs); // fallback to mock
+        });
+    }
+
+    function populateJobList(jobs) {
+      const container = document.getElementById('jobListContainer');
+      container.innerHTML = '';
+
+      jobs.forEach((job, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+        <div>${job.designationName}</div>
+        <small style="color: #007bff;">Apply Now →</small>
+      `;
+        li.onclick = () => showJobDetails(
+          job.designationName,
+          job.locationName,
+          job.experience || "5 years",
+          job.qualification || '12th',
+          job.responsibilities || [
+            "Develop and maintain web applications using React and Node.js",
+            "Collaborate with UI/UX designers to implement design into code",
+            "Write clean, scalable, and efficient code",
+            "Participate in code reviews and provide constructive feedback",
+            "Troubleshoot, debug, and upgrade existing software",
+            "Stay up to date with emerging technologies and frameworks"
+          ],
+          job.skills || [
+            "JavaScript",
+            "React",
+            "Node.js",
+            "CSS3",
+            "HTML5",
+            "Git",
+            "REST APIs",
+            "TypeScript"
+          ],
+          Designation,
+          Locations
+
+        );
+        container.appendChild(li);
+      });
+    }
+
+
+
+    const Designation = [
+      {
+        designationId: 37,
+        designationName: '0002-EXECUTIVE'
+      },
+      {
+        designationId: 156,
+        designationName: '18'
+      },
+      {
+        designationId: 5,
+        designationName: 'AC TECHNICIAN'
+      },
+      {
+        designationId: 38,
+        designationName: 'AC TECNICIAN'
+      },
+      {
+        designationId: 39,
+        designationName: 'APPRENTICE'
+      },
+      {
+        designationId: 40,
+        designationName: 'AREA COORDINATOR'
+      },
+      {
+        designationId: 7,
+        designationName: 'AREA LOSS PREVENTION OFFICER'
+      },
+      {
+        designationId: 41,
+        designationName: 'AREA LP'
+      },
+      {
+        designationId: 19,
+        designationName: 'AREA MANAGER'
+      },
+      {
+        designationId: 42,
+        designationName: 'ASSISTANT GENERAL MANAGER'
+      },
+      {
+        designationId: 14,
+        designationName: 'ASSISTANT MANAGER'
+      },
+      {
+        designationId: 43,
+        designationName: 'ASSISTANT MERCHANDISER'
+      },
+      {
+        designationId: 3,
+        designationName: 'ASSISTANT STORE MANAGER'
+      },
+      {
+        designationId: 44,
+        designationName: 'ASSISTANT TEAM LEADER'
+      },
+      {
+        designationId: 45,
+        designationName: 'ASSISTANT TO RM'
+      },
+      {
+        designationId: 17,
+        designationName: 'ASSOCIATE'
+      },
+      {
+        designationId: 46,
+        designationName: 'ASST. BUYER'
+      },
+      {
+        designationId: 47,
+        designationName: 'ASST. STORE MANAGER'
+      },
+      {
+        designationId: 48,
+        designationName: 'ASST.MANAGER'
+      },
+      {
+        designationId: 49,
+        designationName: 'ASST.TO RM'
+      },
+      {
+        designationId: 50,
+        designationName: 'BUYER'
+      },
+      {
+        designationId: 51,
+        designationName: 'CAHSIER'
+      },
+      {
+        designationId: 27,
+        designationName: 'CASHIER'
+      },
+      {
+        designationId: 52,
+        designationName: 'CASIER'
+      },
+      {
+        designationId: 53,
+        designationName: 'CATEGORY HEAD'
+      },
+      {
+        designationId: 54,
+        designationName: 'CCTV TECHNICIAN'
+      },
+      {
+        designationId: 55,
+        designationName: 'CEO'
+      },
+      {
+        designationId: 56,
+        designationName: 'CHIEF FINANCE OFFICER'
+      },
+      {
+        designationId: 57,
+        designationName: 'CITY BUYER'
+      },
+      {
+        designationId: 58,
+        designationName: 'CLUSTER MANAGER'
+      },
+      {
+        designationId: 59,
+        designationName: 'CLUSTER PLANNER'
+      },
+      {
+        designationId: 157,
+        designationName: 'CONSULTANT'
+      },
+      {
+        designationId: 60,
+        designationName: 'CS'
+      },
+      {
+        designationId: 61,
+        designationName: 'CSD'
+      },
+      {
+        designationId: 62,
+        designationName: 'CUSTOMER CARE EXECUTIVE'
+      },
+      {
+        designationId: 29,
+        designationName: 'CUSTOMER SERVICE ASSOCIATE'
+      },
+      {
+        designationId: 63,
+        designationName: 'DC EXECUTIVE'
+      },
+      {
+        designationId: 64,
+        designationName: 'DC HEAD'
+      },
+      {
+        designationId: 65,
+        designationName: 'DC HEAD (STORE)'
+      },
+      {
+        designationId: 66,
+        designationName: 'DC HEAD(STORE)'
+      },
+      {
+        designationId: 67,
+        designationName: 'DC LOBM'
+      },
+      {
+        designationId: 68,
+        designationName: 'DCH'
+      },
+      {
+        designationId: 20,
+        designationName: 'DEPARTMENT MANAGER'
+      },
+      {
+        designationId: 69,
+        designationName: 'DEPUTY MANAGER'
+      },
+      {
+        designationId: 8,
+        designationName: 'DEPUTY STORE MANAGER'
+      },
+      {
+        designationId: 158,
+        designationName: 'Designation'
+      },
+      {
+        designationId: 70,
+        designationName: 'DESIGNER'
+      },
+      {
+        designationId: 71,
+        designationName: 'DIRECTOR'
+      },
+      {
+        designationId: 72,
+        designationName: 'DRIVER'
+      },
+      {
+        designationId: 73,
+        designationName: 'ELCTRICIAN'
+      },
+      {
+        designationId: 74,
+        designationName: 'ELECTICIAN'
+      },
+      {
+        designationId: 75,
+        designationName: 'ELECTRICAN'
+      },
+      {
+        designationId: 10,
+        designationName: 'ELECTRICIAN'
+      },
+      {
+        designationId: 76,
+        designationName: 'ELETRICIAN'
+      },
+      {
+        designationId: 4,
+        designationName: 'EXECUTIVE'
+      },
+      {
+        designationId: 77,
+        designationName: 'EXECUTIVE ASSISTANT'
+      },
+      {
+        designationId: 78,
+        designationName: 'EXECUTIVE LOSS PREVENTION'
+      },
+      {
+        designationId: 79,
+        designationName: 'FABRIC INCHARGE'
+      },
+      {
+        designationId: 80,
+        designationName: 'FASHION DESIGNER'
+      },
+      {
+        designationId: 81,
+        designationName: 'FLOOR MANAGER'
+      },
+      {
+        designationId: 82,
+        designationName: 'GATE KEEPER'
+      },
+      {
+        designationId: 83,
+        designationName: 'GENERAL MANAGER'
+      },
+      {
+        designationId: 84,
+        designationName: 'GRAPHIC DESIGNER'
+      },
+      {
+        designationId: 85,
+        designationName: 'HEAD'
+      },
+      {
+        designationId: 86,
+        designationName: 'HEAD CASHIER'
+      },
+      {
+        designationId: 21,
+        designationName: 'HEAD LOSS PREVENTION'
+      },
+      {
+        designationId: 87,
+        designationName: 'HELPER'
+      },
+      {
+        designationId: 88,
+        designationName: 'HO REPRESENTATIVE'
+      },
+      {
+        designationId: 89,
+        designationName: 'HOUSE KEEPING'
+      },
+      {
+        designationId: 31,
+        designationName: 'HR EXECUTIVE'
+      },
+      {
+        designationId: 90,
+        designationName: 'INTERNAL'
+      },
+      {
+        designationId: 91,
+        designationName: 'INTERNAL SECURITY'
+      },
+      {
+        designationId: 92,
+        designationName: 'IRON MAN'
+      },
+      {
+        designationId: 93,
+        designationName: 'JR. EXECUTIVE'
+      },
+      {
+        designationId: 94,
+        designationName: 'JUNIOR EXECUTIVE'
+      },
+      {
+        designationId: 95,
+        designationName: 'KNIT-HEAD'
+      },
+      {
+        designationId: 36,
+        designationName: 'LOB'
+      },
+      {
+        designationId: 1,
+        designationName: 'LOB MEMBER'
+      },
+      {
+        designationId: 96,
+        designationName: 'LOBM'
+      },
+      {
+        designationId: 97,
+        designationName: 'LOCAL CLUSTER MANAGER'
+      },
+      {
+        designationId: 16,
+        designationName: 'LOP'
+      },
+      {
+        designationId: 33,
+        designationName: 'LOSS PREVENTION EXECUTIVE'
+      },
+      {
+        designationId: 23,
+        designationName: 'LOSS PREVENTION OFFICER'
+      },
+      {
+        designationId: 98,
+        designationName: 'LP'
+      },
+      {
+        designationId: 2,
+        designationName: 'LPO'
+      },
+      {
+        designationId: 99,
+        designationName: 'MANAGEMENT TRAINEE'
+      },
+      {
+        designationId: 25,
+        designationName: 'MANAGER'
+      },
+      {
+        designationId: 100,
+        designationName: 'MECHANIC'
+      },
+      {
+        designationId: 101,
+        designationName: 'MERCHANDISER'
+      },
+      {
+        designationId: 102,
+        designationName: 'NETWORK ENGINEER'
+      },
+      {
+        designationId: 103,
+        designationName: 'NSO MEMBER'
+      },
+      {
+        designationId: 104,
+        designationName: 'OFFICE BOY'
+      },
+      {
+        designationId: 32,
+        designationName: 'OPERATIONS MANAGER'
+      },
+      {
+        designationId: 105,
+        designationName: 'OPERATOR'
+      },
+      {
+        designationId: 106,
+        designationName: 'PO COMMITTEE OFFICER'
+      },
+      {
+        designationId: 107,
+        designationName: 'PURCHASE OFFICER'
+      },
+      {
+        designationId: 108,
+        designationName: 'QC'
+      },
+      {
+        designationId: 109,
+        designationName: 'QUALITY ASSURANCE'
+      },
+      {
+        designationId: 110,
+        designationName: 'QUALITY CHECKER'
+      },
+      {
+        designationId: 111,
+        designationName: 'RECEPTIONIST'
+      },
+      {
+        designationId: 112,
+        designationName: 'REGIONAL -LP'
+      },
+      {
+        designationId: 113,
+        designationName: 'REGIONAL MANAGER'
+      },
+      {
+        designationId: 114,
+        designationName: 'RUNNER'
+      },
+      {
+        designationId: 13,
+        designationName: 'SALES ASSOCIATE'
+      },
+      {
+        designationId: 115,
+        designationName: 'SAP ABAP CONSULTANT'
+      },
+      {
+        designationId: 11,
+        designationName: 'SECURITY GUARD'
+      },
+      {
+        designationId: 116,
+        designationName: 'SENIOR DESIGNER'
+      },
+      {
+        designationId: 117,
+        designationName: 'SENIOR EXECUTIVE'
+      },
+      {
+        designationId: 118,
+        designationName: 'SENIOR EXECUTIVE-HR'
+      },
+      {
+        designationId: 119,
+        designationName: 'SENIOR MANAGER'
+      },
+      {
+        designationId: 120,
+        designationName: 'SENIOR MERCHANDISER'
+      },
+      {
+        designationId: 28,
+        designationName: 'SERVICE ASSOCIATE'
+      },
+      {
+        designationId: 121,
+        designationName: 'SITE SUPERVISOR'
+      },
+      {
+        designationId: 122,
+        designationName: 'SOURCING MANAGER'
+      },
+      {
+        designationId: 9,
+        designationName: 'SR. EXECUTIVE'
+      },
+      {
+        designationId: 12,
+        designationName: 'SR. STORE MANAGER'
+      },
+      {
+        designationId: 123,
+        designationName: 'SR.EXECUTIVE'
+      },
+      {
+        designationId: 124,
+        designationName: 'SR.MANAGER'
+      },
+      {
+        designationId: 24,
+        designationName: 'STORE EXECUTIVE'
+      },
+      {
+        designationId: 30,
+        designationName: 'STORE INCHARGE'
+      },
+      {
+        designationId: 6,
+        designationName: 'STORE MANAGER'
+      },
+      {
+        designationId: 125,
+        designationName: 'STORE MANEGER'
+      },
+      {
+        designationId: 34,
+        designationName: 'STORE TRAINEE'
+      },
+      {
+        designationId: 126,
+        designationName: 'SUB-DIVISION HEAD'
+      },
+      {
+        designationId: 18,
+        designationName: 'SUPERVISOR'
+      },
+      {
+        designationId: 127,
+        designationName: 'SUPPORT ENGINEER'
+      },
+      {
+        designationId: 128,
+        designationName: 'T&A & MDM OFFICER'
+      },
+      {
+        designationId: 26,
+        designationName: 'TEAM LEADER'
+      },
+      {
+        designationId: 22,
+        designationName: 'TRAINEE AREA LOSS PREVENTION OFFICER'
+      },
+      {
+        designationId: 15,
+        designationName: 'TRAINEE LOSS PREVENTION'
+      },
+      {
+        designationId: 129,
+        designationName: 'VBA DEVELOPER'
+      },
+      {
+        designationId: 130,
+        designationName: 'VICE PRESIDENT'
+      },
+      {
+        designationId: 131,
+        designationName: 'ZONAL HEAD'
+      }
+    ]
+
+    const Locations = [
+      {
+        locationId: 279,
+        locationName: '13'
+      },
+      {
+        locationId: 417,
+        locationName: 'BERHAMPORE'
+      },
+      {
+        locationId: 430,
+        locationName: 'BETUL'
+      },
+      {
+        locationId: 427,
+        locationName: 'BHILWARA-AJMER ROAD'
+      },
+      {
+        locationId: 419,
+        locationName: 'BIJNOR'
+      },
+      {
+        locationId: 418,
+        locationName: 'BISWANATH CHARLI'
+      },
+      {
+        locationId: 426,
+        locationName: 'BURARI'
+      },
+      {
+        locationId: 428,
+        locationName: 'DEHRADUN -JOGGIWALA'
+      },
+      {
+        locationId: 1,
+        locationName: 'HD22'
+      },
+      {
+        locationId: 74,
+        locationName: 'HEAD OFFICE'
+      },
+      {
+        locationId: 416,
+        locationName: 'ICHALKARANJI'
+      },
+      {
+        locationId: 424,
+        locationName: 'KANGRA'
+      },
+      {
+        locationId: 425,
+        locationName: 'KOPPAL'
+      },
+      {
+        locationId: 280,
+        locationName: 'Location'
+      },
+      {
+        locationId: 421,
+        locationName: 'LUCKNOW (ASHIYANA)'
+      },
+      {
+        locationId: 423,
+        locationName: 'MIDNAPORE'
+      },
+      {
+        locationId: 420,
+        locationName: 'PATHANKOT (OPTION 2)'
+      },
+      {
+        locationId: 422,
+        locationName: 'RAMGARH'
+      },
+      {
+        locationId: 281,
+        locationName: 'S.R. AGARTALA'
+      },
+      {
+        locationId: 282,
+        locationName: 'S.R. AMBIKAPUR'
+      },
+      {
+        locationId: 283,
+        locationName: 'S.R. AQUATICA'
+      },
+      {
+        locationId: 284,
+        locationName: 'S.R. AURANGABAD'
+      },
+      {
+        locationId: 285,
+        locationName: 'S.R. AZAMGARH'
+      },
+      {
+        locationId: 286,
+        locationName: 'S.R. BAGAICHOT-2'
+      },
+      {
+        locationId: 287,
+        locationName: 'S.R. BALASORE'
+      },
+      {
+        locationId: 288,
+        locationName: 'S.R. BANAGLORE LEGACY MALL'
+      },
+      {
+        locationId: 289,
+        locationName: 'S.R. BAREILLY - 3, GURUDWARA ROAD (PRABHA TOWER)'
+      },
+      {
+        locationId: 290,
+        locationName: 'S.R. BARGARH'
+      },
+      {
+        locationId: 291,
+        locationName: 'S.R. BARIPADA'
+      },
+      {
+        locationId: 292,
+        locationName: 'S.R. BARIPADA-2'
+      },
+      {
+        locationId: 293,
+        locationName: 'S.R. BARPETA-2'
+      },
+      {
+        locationId: 294,
+        locationName: 'S.R. BARPETA-3'
+      },
+      {
+        locationId: 295,
+        locationName: 'S.R. BELGAUM-2'
+      },
+      {
+        locationId: 296,
+        locationName: 'S.R. BELTIAH'
+      },
+      {
+        locationId: 297,
+        locationName: 'S.R. BHAGALPUR'
+      },
+      {
+        locationId: 298,
+        locationName: 'S.R. BHAGALPUR-2'
+      },
+      {
+        locationId: 299,
+        locationName: 'S.R. BHANGEL-1'
+      },
+      {
+        locationId: 300,
+        locationName: 'S.R. BHILWARA (AJMER ROAD)'
+      },
+      {
+        locationId: 301,
+        locationName: 'S.R. BHOPAL- 2 KOLAR ROAD'
+      },
+      {
+        locationId: 302,
+        locationName: 'S.R. BHUBANESWAR'
+      },
+      {
+        locationId: 303,
+        locationName: 'S.R. BISTUPUR'
+      },
+      {
+        locationId: 304,
+        locationName: 'S.R. BOINAIGACON'
+      },
+      {
+        locationId: 305,
+        locationName: 'S.R. BRAHMAPUR-2'
+      },
+      {
+        locationId: 306,
+        locationName: 'S.R. CHAKARPUR-2'
+      },
+      {
+        locationId: 307,
+        locationName: 'S.R. CHAS'
+      },
+      {
+        locationId: 308,
+        locationName: 'S.R. CHINDWARA'
+      },
+      {
+        locationId: 309,
+        locationName: 'S.R. CHITTORGARH'
+      },
+      {
+        locationId: 310,
+        locationName: 'S.R. CHUTACK'
+      },
+      {
+        locationId: 311,
+        locationName: 'S.R. DARBHANGA'
+      },
+      {
+        locationId: 312,
+        locationName: 'S.R. DEHRADUN- 3 (JOGIWALA)'
+      },
+      {
+        locationId: 313,
+        locationName: 'S.R. DEHRADUN-2'
+      },
+      {
+        locationId: 314,
+        locationName: 'S.R. DEHRI-ON-SONE'
+      },
+      {
+        locationId: 315,
+        locationName: 'S.R. DELHI-2'
+      },
+      {
+        locationId: 316,
+        locationName: 'S.R. DELHI-3'
+      },
+      {
+        locationId: 317,
+        locationName: 'S.R. DHURI (BORO BAZAR)'
+      },
+      {
+        locationId: 318,
+        locationName: 'S.R. DIBRUGARH'
+      },
+      {
+        locationId: 319,
+        locationName: 'S.R. DIPHU'
+      },
+      {
+        locationId: 320,
+        locationName: 'S.R. DUMKA'
+      },
+      {
+        locationId: 321,
+        locationName: 'S.R. FARIDABAD'
+      },
+      {
+        locationId: 322,
+        locationName: 'S.R. GAUWAHKA'
+      },
+      {
+        locationId: 323,
+        locationName: 'S.R. GHAZIABAD (TIGRI)'
+      },
+      {
+        locationId: 324,
+        locationName: 'S.R. GHAZIPUR'
+      },
+      {
+        locationId: 325,
+        locationName: 'S.R. GOA- 2 BICHOLIM'
+      },
+      {
+        locationId: 326,
+        locationName: 'S.R. GONDA'
+      },
+      {
+        locationId: 327,
+        locationName: 'S.R. GORAKHPUR- 4'
+      },
+      {
+        locationId: 328,
+        locationName: 'S.R. GORAKHPUR-2'
+      },
+      {
+        locationId: 329,
+        locationName: 'S.R. GURUDASPUR'
+      },
+      {
+        locationId: 330,
+        locationName: 'S.R. GUWAHATI-3'
+      },
+      {
+        locationId: 331,
+        locationName: 'S.R. GWALIOR'
+      },
+      {
+        locationId: 332,
+        locationName: 'S.R. HAJIPUR'
+      },
+      {
+        locationId: 333,
+        locationName: 'S.R. HALDWANI-2'
+      },
+      {
+        locationId: 334,
+        locationName: 'S.R. HARDA'
+      },
+      {
+        locationId: 335,
+        locationName: 'S.R. HAZARIBAGH'
+      },
+      {
+        locationId: 336,
+        locationName: 'S.R. HUBLI-2'
+      },
+      {
+        locationId: 337,
+        locationName: 'S.R. ICHAKARANJI'
+      },
+      {
+        locationId: 338,
+        locationName: 'S.R. ITARSI'
+      },
+      {
+        locationId: 339,
+        locationName: 'S.R. JABALPUR'
+      },
+      {
+        locationId: 340,
+        locationName: 'S.R. JAHANKIR'
+      },
+      {
+        locationId: 341,
+        locationName: 'S.R. JAMMU JAI PRAKASH CHOWK'
+      },
+      {
+        locationId: 342,
+        locationName: 'S.R. JAMSHEDPUR-2'
+      },
+      {
+        locationId: 343,
+        locationName: 'S.R. JAMSHEDPUR-3 MANGO'
+      },
+      {
+        locationId: 344,
+        locationName: 'S.R. JAMSHEDPUR-5 GAMHARIA'
+      },
+      {
+        locationId: 345,
+        locationName: 'S.R. JAUNPUR'
+      },
+      {
+        locationId: 346,
+        locationName: 'S.R. JEYPORE'
+      },
+      {
+        locationId: 347,
+        locationName: 'S.R. JHARSUGUDA-2'
+      },
+      {
+        locationId: 348,
+        locationName: 'S.R. JORHAT'
+      },
+      {
+        locationId: 349,
+        locationName: 'S.R. KALAPANA (BHUBANESWAR)-5'
+      },
+      {
+        locationId: 350,
+        locationName: 'S.R. KANGRRA (LALBANGLA)'
+      },
+      {
+        locationId: 351,
+        locationName: 'S.R. KAPASHERA'
+      },
+      {
+        locationId: 352,
+        locationName: 'S.R. KATHUA'
+      },
+      {
+        locationId: 353,
+        locationName: 'S.R. KATNI (GOLE BAZAR)'
+      },
+      {
+        locationId: 354,
+        locationName: 'S.R. KETAGHARA'
+      },
+      {
+        locationId: 355,
+        locationName: 'S.R. KHALLIKBAD'
+      },
+      {
+        locationId: 356,
+        locationName: 'S.R. KHARGONE'
+      },
+      {
+        locationId: 357,
+        locationName: 'S.R. KHURDHA'
+      },
+      {
+        locationId: 358,
+        locationName: 'S.R. KISHANGARH'
+      },
+      {
+        locationId: 359,
+        locationName: 'S.R. KISHRAI'
+      },
+      {
+        locationId: 360,
+        locationName: 'S.R. KOTDWAR'
+      },
+      {
+        locationId: 361,
+        locationName: 'S.R. LAKHIMPUR'
+      },
+      {
+        locationId: 362,
+        locationName: 'S.R. LALBAGH (CHINHAT)'
+      },
+      {
+        locationId: 363,
+        locationName: 'S.R. LALBAGH (TELIBAGH)'
+      },
+      {
+        locationId: 364,
+        locationName: 'S.R. LUCKNOW-3 (ALAMBAGH)'
+      },
+      {
+        locationId: 365,
+        locationName: 'S.R. LUCKNOW-9 (KURSHI ROAD)'
+      },
+      {
+        locationId: 366,
+        locationName: 'S.R. MADHUBANI'
+      },
+      {
+        locationId: 367,
+        locationName: 'S.R. MAHALPUR-2'
+      },
+      {
+        locationId: 368,
+        locationName: 'S.R. MAHAR ENCLAVE'
+      },
+      {
+        locationId: 369,
+        locationName: 'S.R. MOTHARI'
+      },
+      {
+        locationId: 370,
+        locationName: 'S.R. MUNGER'
+      },
+      {
+        locationId: 371,
+        locationName: 'S.R. MYSORE'
+      },
+      {
+        locationId: 372,
+        locationName: 'S.R. NAJAFGARH-2'
+      },
+      {
+        locationId: 373,
+        locationName: 'S.R. NARALA'
+      },
+      {
+        locationId: 374,
+        locationName: 'S.R. NARMADAPURAM'
+      },
+      {
+        locationId: 375,
+        locationName: 'S.R. NAWADA'
+      },
+      {
+        locationId: 376,
+        locationName: 'S.R. NIMAPADA'
+      },
+      {
+        locationId: 377,
+        locationName: 'S.R. PARADEEP'
+      },
+      {
+        locationId: 378,
+        locationName: 'S.R. PATANCHOT-2'
+      },
+      {
+        locationId: 379,
+        locationName: 'S.R. PATNA (BHUBANESWAR)-3'
+      },
+      {
+        locationId: 380,
+        locationName: 'S.R. PATNA- 4 KHIRJEE'
+      },
+      {
+        locationId: 381,
+        locationName: 'S.R. PATNA- 5 MACHUAOTLI'
+      },
+      {
+        locationId: 382,
+        locationName: 'S.R. PATNA- 6 (GOLA ROAD)'
+      },
+      {
+        locationId: 383,
+        locationName: 'S.R. PATNA- 7 (SAGHIB)'
+      },
+      {
+        locationId: 384,
+        locationName: 'S.R. PATNA- 9 (BHUBANESWAR)-2'
+      },
+      {
+        locationId: 385,
+        locationName: 'S.R. PATNA-2'
+      },
+      {
+        locationId: 386,
+        locationName: 'S.R. PATNA-3'
+      },
+      {
+        locationId: 387,
+        locationName: 'S.R. PRATAPGARH'
+      },
+      {
+        locationId: 388,
+        locationName: 'S.R. PURNIA'
+      },
+      {
+        locationId: 389,
+        locationName: 'S.R. RAEBARLI'
+      },
+      {
+        locationId: 390,
+        locationName: 'S.R. RAICHUR'
+      },
+      {
+        locationId: 391,
+        locationName: 'S.R. RAIPUR'
+      },
+      {
+        locationId: 392,
+        locationName: 'S.R. RAMPURHAT'
+      },
+      {
+        locationId: 393,
+        locationName: 'S.R. RANCHI'
+      },
+      {
+        locationId: 394,
+        locationName: 'S.R. RANCHI- BHUTIA MALL'
+      },
+      {
+        locationId: 395,
+        locationName: 'S.R. RASULGARH (BHUBANESWAR)-4'
+      },
+      {
+        locationId: 396,
+        locationName: 'S.R. REWA'
+      },
+      {
+        locationId: 397,
+        locationName: 'S.R. REWOKOT'
+      },
+      {
+        locationId: 398,
+        locationName: 'S.R. ROURKELA'
+      },
+      {
+        locationId: 399,
+        locationName: 'S.R. RUPNAGAR'
+      },
+      {
+        locationId: 400,
+        locationName: 'S.R. SAGAR- 2 CIVIL LINE'
+      },
+      {
+        locationId: 401,
+        locationName: 'S.R. SAHARSA'
+      },
+      {
+        locationId: 402,
+        locationName: 'S.R. SAMASTIPUR'
+      },
+      {
+        locationId: 403,
+        locationName: 'S.R. SAMASTIPUR-2'
+      },
+      {
+        locationId: 404,
+        locationName: 'S.R. SASARAM'
+      },
+      {
+        locationId: 405,
+        locationName: 'S.R. SILIGURI'
+      },
+      {
+        locationId: 406,
+        locationName: 'S.R. SILIGURI-2'
+      },
+      {
+        locationId: 407,
+        locationName: 'S.R. SITAMARHI'
+      },
+      {
+        locationId: 408,
+        locationName: 'S.R. SITAPUR'
+      },
+      {
+        locationId: 409,
+        locationName: 'S.R. SITAPUR-2'
+      },
+      {
+        locationId: 410,
+        locationName: 'S.R. SIVASAGAR'
+      },
+      {
+        locationId: 411,
+        locationName: 'S.R. SULTANPUR'
+      },
+      {
+        locationId: 412,
+        locationName: 'S.R. UDHAMPUR'
+      },
+      {
+        locationId: 413,
+        locationName: 'S.R. VARANASI-2 (LANKA)'
+      },
+      {
+        locationId: 414,
+        locationName: 'S.R. VARANASI-3'
+      },
+      {
+        locationId: 415,
+        locationName: 'S.R. VARANASI-5 (MALDAHYA)'
+      },
+      {
+        locationId: 2,
+        locationName: 'S/R - AGARTALA'
+      },
+      {
+        locationId: 3,
+        locationName: 'S/R - AKBARPUR'
+      },
+      {
+        locationId: 4,
+        locationName: 'S/R - AMBIKAPUR'
+      },
+      {
+        locationId: 75,
+        locationName: 'S/R - ANGUL'
+      },
+      {
+        locationId: 76,
+        locationName: 'S/R - AQUATICA'
+      },
+      {
+        locationId: 77,
+        locationName: 'S/R - ARRAH'
+      },
+      {
+        locationId: 78,
+        locationName: 'S/R - ASANSOL'
+      },
+      {
+        locationId: 79,
+        locationName: 'S/R - ASANSOL - 2'
+      },
+      {
+        locationId: 80,
+        locationName: 'S/R - AURANGABAD'
+      },
+      {
+        locationId: 5,
+        locationName: 'S/R - AURANGABAD-2'
+      },
+      {
+        locationId: 81,
+        locationName: 'S/R - AZAMGARH'
+      },
+      {
+        locationId: 82,
+        locationName: 'S/R - BADAUN'
+      },
+      {
+        locationId: 83,
+        locationName: 'S/R - BAGALKOT'
+      },
+      {
+        locationId: 84,
+        locationName: 'S/R - BAHRAICH-2'
+      },
+      {
+        locationId: 6,
+        locationName: 'S/R - BALANGIR'
+      },
+      {
+        locationId: 85,
+        locationName: 'S/R - BALASORE'
+      },
+      {
+        locationId: 7,
+        locationName: 'S/R - BALLIA'
+      },
+      {
+        locationId: 86,
+        locationName: 'S/R - BALRAMPUR'
+      },
+      {
+        locationId: 87,
+        locationName: 'S/R - BANAGLORE LEGACY MALL'
+      },
+      {
+        locationId: 8,
+        locationName: 'S/R - BANKA'
+      },
+      {
+        locationId: 9,
+        locationName: 'S/R - BARABANKI'
+      },
+      {
+        locationId: 89,
+        locationName: 'S/R - BAREILLY (PRABHA TOWER)'
+      },
+      {
+        locationId: 88,
+        locationName: 'S/R - BAREILLY - 3 GURUDWARA ROAD'
+      },
+      {
+        locationId: 90,
+        locationName: 'S/R - BARGARH'
+      },
+      {
+        locationId: 91,
+        locationName: 'S/R - BARH'
+      },
+      {
+        locationId: 92,
+        locationName: 'S/R - BARIPADA'
+      },
+      {
+        locationId: 93,
+        locationName: 'S/R - BARIPADA-2'
+      },
+      {
+        locationId: 94,
+        locationName: 'S/R - BARPETA'
+      },
+      {
+        locationId: 95,
+        locationName: 'S/R - BARPETA-2'
+      },
+      {
+        locationId: 96,
+        locationName: 'S/R - BASIRHAT'
+      },
+      {
+        locationId: 10,
+        locationName: 'S/R - BASTI'
+      },
+      {
+        locationId: 97,
+        locationName: 'S/R - BEGUSARAI-3'
+      },
+      {
+        locationId: 98,
+        locationName: 'S/R - BELGAUM'
+      },
+      {
+        locationId: 99,
+        locationName: 'S/R - BELGAUM - 2'
+      },
+      {
+        locationId: 100,
+        locationName: 'S/R - BERHAMPUR'
+      },
+      {
+        locationId: 101,
+        locationName: 'S/R - BETTIAH'
+      },
+      {
+        locationId: 102,
+        locationName: 'S/R - BHABUA'
+      },
+      {
+        locationId: 103,
+        locationName: 'S/R - BHADRAK'
+      },
+      {
+        locationId: 104,
+        locationName: 'S/R - BHAGALPUR'
+      },
+      {
+        locationId: 105,
+        locationName: 'S/R - BHAGALPUR - 2'
+      },
+      {
+        locationId: 106,
+        locationName: 'S/R - BHAJANPURA'
+      },
+      {
+        locationId: 107,
+        locationName: 'S/R - BHANGEL-1'
+      },
+      {
+        locationId: 11,
+        locationName: 'S/R - BHAWANIPATNA'
+      },
+      {
+        locationId: 12,
+        locationName: 'S/R - BHILAI'
+      },
+      {
+        locationId: 108,
+        locationName: 'S/R - BHILWARA (AJMER ROAD)'
+      },
+      {
+        locationId: 109,
+        locationName: 'S/R - BHOPAL'
+      },
+      {
+        locationId: 110,
+        locationName: 'S/R - BHOPAL - 2 KOLAR ROAD'
+      },
+      {
+        locationId: 72,
+        locationName: 'S/R - BHUBANESHWAR'
+      },
+      {
+        locationId: 111,
+        locationName: 'S/R - BHUBANESWAR'
+      },
+      {
+        locationId: 112,
+        locationName: 'S/R - BIHARSHARIF'
+      },
+      {
+        locationId: 113,
+        locationName: 'S/R - BIJAPUR'
+      },
+      {
+        locationId: 13,
+        locationName: 'S/R - BIJNOR'
+      },
+      {
+        locationId: 14,
+        locationName: 'S/R - BILASPUR-2'
+      },
+      {
+        locationId: 114,
+        locationName: 'S/R - BISTUPUR'
+      },
+      {
+        locationId: 1417,
+        locationName: 'S/R - BISWANATH CHARALI'
+      },
+      {
+        locationId: 115,
+        locationName: 'S/R - BONGAIGAON'
+      },
+      {
+        locationId: 116,
+        locationName: 'S/R - BRAHMAPUR-2'
+      },
+      {
+        locationId: 1418,
+        locationName: 'S/R - BURARI'
+      },
+      {
+        locationId: 117,
+        locationName: 'S/R - BURHANPUR'
+      },
+      {
+        locationId: 118,
+        locationName: 'S/R - CHAKRADHARPUR'
+      },
+      {
+        locationId: 15,
+        locationName: 'S/R - CHAPRA'
+      },
+      {
+        locationId: 119,
+        locationName: 'S/R - CHAPRA -2'
+      },
+      {
+        locationId: 120,
+        locationName: 'S/R - CHAS'
+      },
+      {
+        locationId: 71,
+        locationName: 'S/R - CHENNAI'
+      },
+      {
+        locationId: 121,
+        locationName: 'S/R - CHHINDWARA'
+      },
+      {
+        locationId: 122,
+        locationName: 'S/R - CHITTORGARH'
+      },
+      {
+        locationId: 123,
+        locationName: 'S/R - CHUCHURA'
+      },
+      {
+        locationId: 124,
+        locationName: 'S/R - CUTTACK'
+      },
+      {
+        locationId: 125,
+        locationName: 'S/R - DARBHANGA'
+      },
+      {
+        locationId: 126,
+        locationName: 'S/R - DEHRADUN'
+      },
+      {
+        locationId: 127,
+        locationName: 'S/R - DEHRADUN - 2'
+      },
+      {
+        locationId: 128,
+        locationName: 'S/R - DEHRADUN - 3 (JOGIWALA)'
+      },
+      {
+        locationId: 129,
+        locationName: 'S/R - DEHRI-ON-SONE'
+      },
+      {
+        locationId: 130,
+        locationName: 'S/R - DEOGHAR'
+      },
+      {
+        locationId: 131,
+        locationName: 'S/R - DEWAS'
+      },
+      {
+        locationId: 16,
+        locationName: 'S/R - DHANBAD'
+      },
+      {
+        locationId: 132,
+        locationName: 'S/R - DHANBAD -2'
+      },
+      {
+        locationId: 133,
+        locationName: 'S/R - DHARWAD'
+      },
+      {
+        locationId: 134,
+        locationName: 'S/R - DHUBRI (BORO BAZAR)'
+      },
+      {
+        locationId: 135,
+        locationName: 'S/R - DIBRUGARH'
+      },
+      {
+        locationId: 136,
+        locationName: 'S/R - DIPHU'
+      },
+      {
+        locationId: 137,
+        locationName: 'S/R - DUMKA'
+      },
+      {
+        locationId: 17,
+        locationName: 'S/R - DURG'
+      },
+      {
+        locationId: 138,
+        locationName: 'S/R - DURGAPUR'
+      },
+      {
+        locationId: 139,
+        locationName: 'S/R - FARIDABAD'
+      },
+      {
+        locationId: 140,
+        locationName: 'S/R - FARIDABAD - 2'
+      },
+      {
+        locationId: 18,
+        locationName: 'S/R - FATEHPUR'
+      },
+      {
+        locationId: 141,
+        locationName: 'S/R - GAJUWAKA'
+      },
+      {
+        locationId: 19,
+        locationName: 'S/R - GAYA'
+      },
+      {
+        locationId: 142,
+        locationName: 'S/R - GHAZIABAD (TIGRI)'
+      },
+      {
+        locationId: 20,
+        locationName: 'S/R - GHAZIPUR'
+      },
+      {
+        locationId: 143,
+        locationName: 'S/R - GOA'
+      },
+      {
+        locationId: 144,
+        locationName: 'S/R - GOA 2 BICHOLIM'
+      },
+      {
+        locationId: 21,
+        locationName: 'S/R - GONDA'
+      },
+      {
+        locationId: 145,
+        locationName: 'S/R - GOPALGANJ'
+      },
+      {
+        locationId: 22,
+        locationName: 'S/R - GORAKHPUR'
+      },
+      {
+        locationId: 146,
+        locationName: 'S/R - GORAKHPUR - 4'
+      },
+      {
+        locationId: 147,
+        locationName: 'S/R - GORAKHPUR-2'
+      },
+      {
+        locationId: 148,
+        locationName: 'S/R - GULBARGA'
+      },
+      {
+        locationId: 23,
+        locationName: 'S/R - GUMLA'
+      },
+      {
+        locationId: 24,
+        locationName: 'S/R - GUNTUR'
+      },
+      {
+        locationId: 149,
+        locationName: 'S/R - GURDASPUR'
+      },
+      {
+        locationId: 73,
+        locationName: 'S/R - GUWAHATI'
+      },
+      {
+        locationId: 150,
+        locationName: 'S/R - GUWAHATI - 3'
+      },
+      {
+        locationId: 25,
+        locationName: 'S/R - GWALIOR'
+      },
+      {
+        locationId: 1416,
+        locationName: 'S/R - HABRA'
+      },
+      {
+        locationId: 26,
+        locationName: 'S/R - HAJIPUR'
+      },
+      {
+        locationId: 151,
+        locationName: 'S/R - HALDWANI - 2'
+      },
+      {
+        locationId: 27,
+        locationName: 'S/R - HANAMKONDA'
+      },
+      {
+        locationId: 152,
+        locationName: 'S/R - HARDA'
+      },
+      {
+        locationId: 153,
+        locationName: 'S/R - HARDOI'
+      },
+      {
+        locationId: 154,
+        locationName: 'S/R - HAVERI'
+      },
+      {
+        locationId: 28,
+        locationName: 'S/R - HAZARIBAGH'
+      },
+      {
+        locationId: 29,
+        locationName: 'S/R - HOSHANGABAD'
+      },
+      {
+        locationId: 155,
+        locationName: 'S/R - HUBLI'
+      },
+      {
+        locationId: 156,
+        locationName: 'S/R - HUBLI - 2'
+      },
+      {
+        locationId: 30,
+        locationName: 'S/R - HYDERABAD-2'
+      },
+      {
+        locationId: 157,
+        locationName: 'S/R - ICHALKARANJI'
+      },
+      {
+        locationId: 31,
+        locationName: 'S/R - INDORE-2'
+      },
+      {
+        locationId: 69,
+        locationName: 'S/R - ITANAGAR'
+      },
+      {
+        locationId: 158,
+        locationName: 'S/R - JABALPUR'
+      },
+      {
+        locationId: 32,
+        locationName: 'S/R - JAGDALPUR'
+      },
+      {
+        locationId: 33,
+        locationName: 'S/R - JAIPUR-2'
+      },
+      {
+        locationId: 159,
+        locationName: 'S/R - JAJPUR'
+      },
+      {
+        locationId: 160,
+        locationName: 'S/R - JAMALPUR'
+      },
+      {
+        locationId: 161,
+        locationName: 'S/R - JAMKHANDI'
+      },
+      {
+        locationId: 162,
+        locationName: 'S/R - JAMMU (JAI PRAKASH CHOWK)'
+      },
+      {
+        locationId: 34,
+        locationName: 'S/R - JAMMU-2'
+      },
+      {
+        locationId: 35,
+        locationName: 'S/R - JAMSHEDPUR'
+      },
+      {
+        locationId: 163,
+        locationName: 'S/R - JAMSHEDPUR -2'
+      },
+      {
+        locationId: 164,
+        locationName: 'S/R - JAMSHEDPUR -3 MANGO'
+      },
+      {
+        locationId: 165,
+        locationName: 'S/R - JAMSHEDPUR -5 GAMHARIA'
+      },
+      {
+        locationId: 166,
+        locationName: 'S/R - JAMUI'
+      },
+      {
+        locationId: 167,
+        locationName: 'S/R - JAUNPUR'
+      },
+      {
+        locationId: 168,
+        locationName: 'S/R - JEHANABAD'
+      },
+      {
+        locationId: 169,
+        locationName: 'S/R - JEYPORE'
+      },
+      {
+        locationId: 36,
+        locationName: 'S/R - JHANSI'
+      },
+      {
+        locationId: 170,
+        locationName: 'S/R - JHARSUGUDA'
+      },
+      {
+        locationId: 171,
+        locationName: 'S/R - JHARSUGUDA - 2'
+      },
+      {
+        locationId: 172,
+        locationName: 'S/R - JORHAT'
+      },
+      {
+        locationId: 37,
+        locationName: 'S/R - KADAPA'
+      },
+      {
+        locationId: 173,
+        locationName: 'S/R - KALPANA (BHUBANESWAR-5)'
+      },
+      {
+        locationId: 174,
+        locationName: 'S/R - KANGRA'
+      },
+      {
+        locationId: 175,
+        locationName: 'S/R - KANPUR (LALBANGLA)'
+      },
+      {
+        locationId: 38,
+        locationName: 'S/R - KANPUR-2'
+      },
+      {
+        locationId: 176,
+        locationName: 'S/R - KAPASHERA'
+      },
+      {
+        locationId: 177,
+        locationName: 'S/R - KATHUA'
+      },
+      {
+        locationId: 39,
+        locationName: 'S/R - KATIHAR'
+      },
+      {
+        locationId: 178,
+        locationName: 'S/R - KATNI (GOLE BAZAR)'
+      },
+      {
+        locationId: 179,
+        locationName: 'S/R - KEONJHAR'
+      },
+      {
+        locationId: 40,
+        locationName: 'S/R - KHAGARIA'
+      },
+      {
+        locationId: 41,
+        locationName: 'S/R - KHALILABAD'
+      },
+      {
+        locationId: 180,
+        locationName: 'S/R - KHARAGPUR'
+      },
+      {
+        locationId: 181,
+        locationName: 'S/R - KHARGONE'
+      },
+      {
+        locationId: 182,
+        locationName: 'S/R - KHATIMA'
+      },
+      {
+        locationId: 183,
+        locationName: 'S/R - KHORDHA'
+      },
+      {
+        locationId: 184,
+        locationName: 'S/R - KIRARI'
+      },
+      {
+        locationId: 185,
+        locationName: 'S/R - KISHANGARH'
+      },
+      {
+        locationId: 42,
+        locationName: 'S/R - KOLKATA-2'
+      },
+      {
+        locationId: 186,
+        locationName: 'S/R - KOTDWAR'
+      },
+      {
+        locationId: 187,
+        locationName: 'S/R - LAKHIMPUR'
+      },
+      {
+        locationId: 188,
+        locationName: 'S/R - LOHARDAGA'
+      },
+      {
+        locationId: 189,
+        locationName: 'S/R - LUCKNOW - 4'
+      },
+      {
+        locationId: 43,
+        locationName: 'S/R - LUCKNOW-2'
+      },
+      {
+        locationId: 190,
+        locationName: 'S/R - LUCKNOW-5 (CHINHAT)'
+      },
+      {
+        locationId: 191,
+        locationName: 'S/R - LUCKNOW-6 (TELIBAGH)'
+      },
+      {
+        locationId: 192,
+        locationName: 'S/R - LUCKNOW-7 (SITAPUR ROAD)'
+      },
+      {
+        locationId: 193,
+        locationName: 'S/R - LUCKNOW-8 ALAMBAGH'
+      },
+      {
+        locationId: 194,
+        locationName: 'S/R - LUCKNOW-9 (KURSHI ROAD)'
+      },
+      {
+        locationId: 195,
+        locationName: 'S/R - LUDHIANA'
+      },
+      {
+        locationId: 44,
+        locationName: 'S/R - MADHUBANI'
+      },
+      {
+        locationId: 196,
+        locationName: 'S/R - MAHAVIR ENCLAVE'
+      },
+      {
+        locationId: 197,
+        locationName: 'S/R - MAHIPALPUR-2'
+      },
+      {
+        locationId: 198,
+        locationName: 'S/R - MALDA'
+      },
+      {
+        locationId: 45,
+        locationName: 'S/R - MALKANGIRI'
+      },
+      {
+        locationId: 46,
+        locationName: 'S/R - MANDLA'
+      },
+      {
+        locationId: 47,
+        locationName: 'S/R - MANGALORE'
+      },
+      {
+        locationId: 48,
+        locationName: 'S/R - MEERUT-2'
+      },
+      {
+        locationId: 49,
+        locationName: 'S/R - MORADABAD-2'
+      },
+      {
+        locationId: 199,
+        locationName: 'S/R - MOTIHARI'
+      },
+      {
+        locationId: 200,
+        locationName: 'S/R - MUNGER'
+      },
+      {
+        locationId: 50,
+        locationName: 'S/R - MUZAFFARPUR-2'
+      },
+      {
+        locationId: 201,
+        locationName: 'S/R - MYSORE'
+      },
+      {
+        locationId: 51,
+        locationName: 'S/R - NAGPUR-2'
+      },
+      {
+        locationId: 202,
+        locationName: 'S/R - NAJAFGARH - 2'
+      },
+      {
+        locationId: 203,
+        locationName: 'S/R - NALBARI'
+      },
+      {
+        locationId: 52,
+        locationName: 'S/R - NANDYAL'
+      },
+      {
+        locationId: 204,
+        locationName: 'S/R - NARELA'
+      },
+      {
+        locationId: 205,
+        locationName: 'S/R - NARMADAPURAM'
+      },
+      {
+        locationId: 206,
+        locationName: 'S/R - NARSINGHPUR'
+      },
+      {
+        locationId: 207,
+        locationName: 'S/R - NAWADA'
+      },
+      {
+        locationId: 208,
+        locationName: 'S/R - NIMAPADA'
+      },
+      {
+        locationId: 209,
+        locationName: 'S/R - NUAPADA'
+      },
+      {
+        locationId: 210,
+        locationName: 'S/R - PADRAUNA'
+      },
+      {
+        locationId: 211,
+        locationName: 'S/R - PARADEEP'
+      },
+      {
+        locationId: 212,
+        locationName: 'S/R - PATHANKOT - 2'
+      },
+      {
+        locationId: 213,
+        locationName: 'S/R - PATIA (BHUBANESWAR-3)'
+      },
+      {
+        locationId: 214,
+        locationName: 'S/R - PATNA'
+      },
+      {
+        locationId: 215,
+        locationName: 'S/R - PATNA - 2'
+      },
+      {
+        locationId: 216,
+        locationName: 'S/R - PATNA - 3'
+      },
+      {
+        locationId: 217,
+        locationName: 'S/R - PATNA - 4 KHURJEE'
+      },
+      {
+        locationId: 218,
+        locationName: 'S/R - PATNA - 5 AIIMS ROAD'
+      },
+      {
+        locationId: 219,
+        locationName: 'S/R - PATNA - 6 MACHUATOLI'
+      },
+      {
+        locationId: 220,
+        locationName: 'S/R - PATNA - 7 (CITY-2)'
+      },
+      {
+        locationId: 221,
+        locationName: 'S/R - PATNA - 8 (GOLA ROAD)'
+      },
+      {
+        locationId: 222,
+        locationName: 'S/R - PATNA SAHIB'
+      },
+      {
+        locationId: 53,
+        locationName: 'S/R - PATNA-2'
+      },
+      {
+        locationId: 223,
+        locationName: 'S/R - PATRAPADA (BHUBANESWAR-2)'
+      },
+      {
+        locationId: 224,
+        locationName: 'S/R - PRATAPGARH'
+      },
+      {
+        locationId: 225,
+        locationName: 'S/R - PRAYAGRAJ'
+      },
+      {
+        locationId: 54,
+        locationName: 'S/R - PURNEA'
+      },
+      {
+        locationId: 226,
+        locationName: 'S/R - PURNIA'
+      },
+      {
+        locationId: 227,
+        locationName: 'S/R - RAEBARELI'
+      },
+      {
+        locationId: 228,
+        locationName: 'S/R - RAICHUR'
+      },
+      {
+        locationId: 55,
+        locationName: 'S/R - RAIGARH'
+      },
+      {
+        locationId: 229,
+        locationName: 'S/R - RAIPUR'
+      },
+      {
+        locationId: 56,
+        locationName: 'S/R - RAIPUR-2'
+      },
+      {
+        locationId: 70,
+        locationName: 'S/R - RAJAHMUNDRY'
+      },
+      {
+        locationId: 230,
+        locationName: 'S/R - RAJDHANWAR'
+      },
+      {
+        locationId: 231,
+        locationName: 'S/R - RAMPUR'
+      },
+      {
+        locationId: 232,
+        locationName: 'S/R - RAMPURHAT'
+      },
+      {
+        locationId: 233,
+        locationName: 'S/R - RANCHI'
+      },
+      {
+        locationId: 57,
+        locationName: 'S/R - RANCHI-2'
+      },
+      {
+        locationId: 234,
+        locationName: 'S/R - RANCHI-2 BHUTALA MALL'
+      },
+      {
+        locationId: 235,
+        locationName: 'S/R - RANIBAGH'
+      },
+      {
+        locationId: 236,
+        locationName: 'S/R - RASULGARH (BHUBANESWAR-4)'
+      },
+      {
+        locationId: 237,
+        locationName: 'S/R - RENUKOOT'
+      },
+      {
+        locationId: 58,
+        locationName: 'S/R - REWA'
+      },
+      {
+        locationId: 238,
+        locationName: 'S/R - ROORKEE'
+      },
+      {
+        locationId: 239,
+        locationName: 'S/R - ROURKELA'
+      },
+      {
+        locationId: 240,
+        locationName: 'S/R - RUPNAGAR'
+      },
+      {
+        locationId: 241,
+        locationName: 'S/R - SAGAR'
+      },
+      {
+        locationId: 242,
+        locationName: 'S/R - SAGAR - 2 CIVIL LINE'
+      },
+      {
+        locationId: 59,
+        locationName: 'S/R - SAHARSA'
+      },
+      {
+        locationId: 243,
+        locationName: 'S/R - SAMASTIPUR'
+      },
+      {
+        locationId: 244,
+        locationName: 'S/R - SAMASTIPUR -2'
+      },
+      {
+        locationId: 245,
+        locationName: 'S/R - SAMBALPUR'
+      },
+      {
+        locationId: 246,
+        locationName: 'S/R - SASARAM'
+      },
+      {
+        locationId: 60,
+        locationName: 'S/R - SATNA'
+      },
+      {
+        locationId: 61,
+        locationName: 'S/R - SHAHDOL'
+      },
+      {
+        locationId: 62,
+        locationName: 'S/R - SHILLONG'
+      },
+      {
+        locationId: 247,
+        locationName: 'S/R - SILCHAR'
+      },
+      {
+        locationId: 248,
+        locationName: 'S/R - SILCHAR-2'
+      },
+      {
+        locationId: 249,
+        locationName: 'S/R - SILIGURI'
+      },
+      {
+        locationId: 63,
+        locationName: 'S/R - SITAMARHI'
+      },
+      {
+        locationId: 250,
+        locationName: 'S/R - SITAPUR'
+      },
+      {
+        locationId: 251,
+        locationName: 'S/R - SITAPUR - 2'
+      },
+      {
+        locationId: 252,
+        locationName: 'S/R - SIWAN'
+      },
+      {
+        locationId: 253,
+        locationName: 'S/R - SOLAN'
+      },
+      {
+        locationId: 254,
+        locationName: 'S/R - SUNDARGADH'
+      },
+      {
+        locationId: 64,
+        locationName: 'S/R - SURAT-2'
+      },
+      {
+        locationId: 65,
+        locationName: 'S/R - TEZPUR'
+      },
+      {
+        locationId: 255,
+        locationName: 'S/R - TINSUKIA'
+      },
+      {
+        locationId: 256,
+        locationName: 'S/R - UDHAMPUR'
+      },
+      {
+        locationId: 66,
+        locationName: 'S/R - UJJAIN'
+      },
+      {
+        locationId: 68,
+        locationName: 'S/R - VADODARA'
+      },
+      {
+        locationId: 257,
+        locationName: 'S/R - VARANASI -3'
+      },
+      {
+        locationId: 258,
+        locationName: 'S/R - VARANASI -4'
+      },
+      {
+        locationId: 259,
+        locationName: 'S/R - VARANASI -5'
+      },
+      {
+        locationId: 260,
+        locationName: 'S/R - VARANASI -6 MALDAHIYA'
+      },
+      {
+        locationId: 67,
+        locationName: 'S/R - VARANASI-2 (LANKA)'
+      },
+      {
+        locationId: 429,
+        locationName: 'UDHAMPUR'
+      },
+      {
+        locationId: 261,
+        locationName: 'W/H FARRUKHNAGAR'
+      },
+      {
+        locationId: 262,
+        locationName: 'W/H-KAPASHERAH'
+      }
+    ]
+
+
+    window.onload = fetchJobs;
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,79 @@
+.record-resignation-card {
+    margin: 0px auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+
+.ant-form-item {
+    margin-bottom: 16px; 
+}
+
+.ant-divider {
+    font-size: 18px;
+    font-weight: bold;
+    color: #5b5b5b;
+}
+
+.ant-input, .ant-select-selector, .ant-picker {
+    border-radius: 8px !important;
+}
+
+.ant-input-textarea-affix-wrapper {
+    border-radius: 8px !important;
+}
+
+/* ====== Resignation (Others) responsive summary ====== */
+.rr-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    /* stack items on mobile */
+    gap: 10px;
+}
+
+@media (min-width: 768px) {
+    .rr-info-grid {
+        grid-template-columns: 1fr;
+        /* keep single column per side for clarity */
+        gap: 12px;
+    }
+}
+
+.rr-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+}
+
+.rr-info-label {
+    min-width: 150px;
+    /* prevents label from wrapping into value */
+    font-weight: 600;
+    color: #555;
+}
+
+.rr-info-value {
+    flex: 1;
+    color: #1f1f1f;
+    word-break: break-word;
+    /* long names/addresses wrap safely */
+}
+
+/* tighten on very small screens */
+@media (max-width: 575px) {
+    .rr-info-item {
+        padding: 8px 10px;
+    }
+
+    .rr-info-label {
+        min-width: 120px;
+        font-size: 12.5px;
+    }
+
+    .rr-info-value {
+        font-size: 13px;
+    }
+}

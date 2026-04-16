@@ -1,0 +1,20 @@
+.attendance-changelog-page {
+  width: 100%;
+}
+
+.timeline-scroll-wrapper .ant-timeline {
+  position: relative;
+}
+
+.timeline-scroll-wrapper .ant-timeline::before {
+  border-inline-start: none;
+}
+
+.timeline-scroll-wrapper .ant-timeline-item-tail {
+  border-inline-start: 2px solid #e5e5e5;
+}
+
+.timeline-scroll-wrapper .ant-timeline-item-head {
+  background-color: #fafafa;
+  z-index: 1;
+}

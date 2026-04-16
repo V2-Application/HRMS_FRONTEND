@@ -1,0 +1,35 @@
+.filter-arrow-button {
+    position: fixed;
+    top: 50%;
+    right: 8px; /* Shift away from scrollbar */
+    z-index: 1000;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: right center;
+    background-color: #1890ff;
+    color: white;
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .custom-drawer .filter-scroll-area {
+    max-height: calc(100vh - 160px); /* Keeps drawer scrollable */
+    overflow-y: scroll;  /* Keeps content scrollable */
+    padding-right: 4px;
+  }
+  
+  /* Hide scrollbars for Webkit browsers (Chrome, Safari, Edge) */
+  .custom-drawer .filter-scroll-area::-webkit-scrollbar {
+    width: 0 !important; /* Hides the scrollbar */
+    background: transparent; /* Ensures no background is shown */
+  }
+  
+  /* Hide scrollbars for Firefox */
+  .custom-drawer .filter-scroll-area {
+    scrollbar-width: none !important;  /* Firefox */
+  }
+  
+  /* Hide scrollbars for Internet Explorer */
+  .custom-drawer .filter-scroll-area {
+    -ms-overflow-style: none !important;  /* IE 10+ */
+  }
+  

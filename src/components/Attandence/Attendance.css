@@ -1,0 +1,16 @@
+th.center-header {
+  text-align: center !important;
+}
+
+/* scope it to just this table cell */
+.upload-compact .ant-upload-select {
+  display: inline-block;
+  max-height: 40px;
+}
+
+/* optional: ensure the trigger itself doesn’t stretch */
+.upload-compact .ant-upload {
+  max-height: 40px;
+}
+
+

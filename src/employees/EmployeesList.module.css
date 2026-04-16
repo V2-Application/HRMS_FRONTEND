@@ -1,0 +1,13 @@
+.tableSearch {
+  margin-top: 5px;
+  margin-left: 0;
+  width: 100%;
+}
+
+@media (min-width: 641px) {
+  .tableSearch {
+    margin-top: 0;
+    margin-left: 5px;
+    width: 300px;
+  }
+}

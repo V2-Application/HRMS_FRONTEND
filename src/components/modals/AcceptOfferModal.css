@@ -1,0 +1,23 @@
+.offer-modal .ant-modal-content {
+    border-radius: 12px;
+    padding: 24px;
+  }
+  
+  .offer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .offer-text {
+    font-size: 16px;
+    color: #555;
+  }
+  
+  .offer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  
