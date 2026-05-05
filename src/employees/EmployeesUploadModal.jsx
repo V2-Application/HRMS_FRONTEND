@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, Button, Upload, Typography, message } from 'antd'
+import { Modal, Button, Upload, Typography, message, Radio } from 'antd'
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons'
 import axiosInstance from '../services/axiosInstance'
 
@@ -9,6 +9,7 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
   const [fileList, setFileList] = useState([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [mode, setMode] = useState('update') // 'update' or 'insert'
 
   // Validate and add to fileList
   const beforeUpload = (file) => {
@@ -41,16 +42,20 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
     const formData = new FormData()
     formData.append('file', fileList[0].originFileObj)
 
+    const endpoint =
+      mode === 'insert'
+        ? '/api/EmployeeNew/BulkInsertEmployees'
+        : '/api/EmployeeNew/UpdateEmployeeWithExcel'
+
     try {
-      const res = await axiosInstance.post('/api/EmployeeNew/UpdateEmployeeWithExcel', formData, {
+      const res = await axiosInstance.post(endpoint, formData, {
         headers: { Accept: '*/*' },
       })
 
       if (res.status === 200) {
-        // assume success if 2xx
         message.success(res.data?.message || 'File uploaded successfully!')
         refreshData()
-        setFileList([]) // clear selection
+        setFileList([])
         setIsVisible(false)
       }
     } catch (err) {
@@ -87,6 +92,16 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
     >
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ flex: 1 }}>
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Upload Mode:
+            </Text>
+            <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
+              <Radio.Button value="update">Update Existing</Radio.Button>
+              <Radio.Button value="insert">Create New</Radio.Button>
+            </Radio.Group>
+          </div>
+
           <a href="/employee_upload_sample1.xlsx" download>
             <Button icon={<DownloadOutlined />} type="primary">
               Download Sample Sheet
@@ -96,6 +111,13 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
           <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
             * Download, fill out, then upload the sample Excel file.
           </Paragraph>
+
+          {mode === 'insert' && (
+            <Paragraph type="secondary" style={{ fontSize: 12 }}>
+              * For new employees, leave "Employee Code" column empty. It will be auto-generated
+              based on the Company column.
+            </Paragraph>
+          )}
 
           {uploadError && (
             <Paragraph type="danger" style={{ color: 'red' }}>
@@ -118,7 +140,7 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
 
           <div style={{ marginTop: 20 }}>
             <Button type="primary" loading={isUploading} onClick={handleUpload}>
-              {isUploading ? 'Uploading...' : 'Upload'}
+              {isUploading ? 'Uploading...' : mode === 'insert' ? 'Create Employees' : 'Upload'}
             </Button>
           </div>
         </div>
@@ -130,6 +152,16 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
           <Paragraph style={{ marginBottom: 4 }}>
             3. Fill out the downloaded sheet and then upload it here.
           </Paragraph>
+          {mode === 'insert' && (
+            <>
+              <Paragraph style={{ marginBottom: 4 }}>
+                4. Company and Mobile columns are required for new employees.
+              </Paragraph>
+              <Paragraph style={{ marginBottom: 4 }}>
+                5. Employee Code will be auto-generated (e.g., E0001 for Aquatica).
+              </Paragraph>
+            </>
+          )}
         </div>
       </div>
     </Modal>

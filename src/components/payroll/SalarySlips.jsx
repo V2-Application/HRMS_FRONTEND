@@ -351,7 +351,7 @@ const SalarySlips = ({
                   <Option
                     key={m}
                     value={m}
-                    disabled={isYear2026OrAbove && m !== 'January' && m !== 'February' && m !== 'March'}
+                    disabled={isYear2026OrAbove && m !== 'January' && m !== 'February' && m !== 'March'  && m !== 'April'}
                   >
                     {m}
                   </Option>

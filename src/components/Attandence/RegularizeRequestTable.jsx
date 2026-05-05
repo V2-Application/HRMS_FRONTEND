@@ -2262,7 +2262,8 @@ const RegularizeRequestTable = () => {
         messageApi.error('Could not regularize request')
       }
     } catch (error) {
-      messageApi.error('Could not regularize request')
+      const serverMsg = error?.response?.data?.message
+      messageApi.error(serverMsg || 'Could not regularize request')
     } finally {
       await dispatch(set({ loading: false }))
       setInitiateModalOpen(false)

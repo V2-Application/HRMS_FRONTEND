@@ -50,8 +50,6 @@ const getStatusMetaById = (id) => {
     case 0:
     case 4:
       return { label: 'Pending', color: 'gold' }
-    case 16:
-      return { label: 'Manager Approved', color: 'blue' }
     case 1:
       return { label: 'Approved', color: 'green' }
     case 2:
@@ -68,9 +66,7 @@ const getStatusMetaByName = (name) => {
   if (!s) return null
   if (['pending', 'awaiting', 'in review', 'open'].includes(s))
     return { label: 'Pending', color: 'gold' }
-  if (['managerapproved', 'manager approved', 'awaiting master'].includes(s))
-    return { label: 'Manager Approved', color: 'blue' }
-  if (['approved', 'accept', 'accepted', 'success', 'completed'].includes(s))
+  if (['approved', 'accept', 'accepted', 'success', 'completed', 'managerapproved', 'manager approved'].includes(s))
     return { label: 'Approved', color: 'green' }
   if (['rejected', 'declined', 'denied', 'failed', 'cancelled', 'canceled'].includes(s))
     return { label: 'Rejected', color: 'red' }
@@ -463,10 +459,9 @@ const GeofenceRequestTable = () => {
           response?.data?.message || (approved ? 'Approved successfully' : 'Rejected successfully'),
         )
         if (activekey === '1') await fetchData(4)         // Pending
-        if (activekey === '2') await fetchData(16)        // Manager Approved
-        if (activekey === '3') await fetchData(1)         // Fully Approved
-        if (activekey === '4') await fetchData(2)         // Rejected
-        if (activekey === '5') await fetchDataReguliseHistory()
+        if (activekey === '2') await fetchData(1)         // Approved
+        if (activekey === '3') await fetchData(2)         // Rejected
+        if (activekey === '4') await fetchDataReguliseHistory()
       } else {
         message.error(response?.response?.data?.message || 'Error in submitting data')
       }
@@ -535,10 +530,9 @@ const GeofenceRequestTable = () => {
 
   useEffect(() => {
     if (activekey === '1') fetchData(4)         // Pending (awaiting Manager)
-    else if (activekey === '2') fetchData(16)   // Manager Approved (awaiting Master)
-    else if (activekey === '3') fetchData(1)    // Fully Approved
-    else if (activekey === '4') fetchData(2)    // Rejected
-    else if (activekey === '5') fetchDataReguliseHistory()  // My History
+    else if (activekey === '2') fetchData(1)    // Approved
+    else if (activekey === '3') fetchData(2)    // Rejected
+    else if (activekey === '4') fetchDataReguliseHistory()  // My History
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize, activekey, searchText])
 
@@ -703,8 +697,6 @@ const GeofenceRequestTable = () => {
     },
     managerStatusCol,
     managerRemarksCol,
-    masterStatusCol,
-    masterRemarksCol,
     {
       title: 'Total Punches',
       dataIndex: 'punchCount',
@@ -724,12 +716,8 @@ const GeofenceRequestTable = () => {
       render: (_, record) => {
         const roleLower = (role || '').toLowerCase()
         const isSuperAdmin = roleLower === 'superadmin'
-        const isMaster = roleLower === 'master'
-        // Manager can act on Pending (tab 1), Audit on Manager Approved (tab 2), SuperAdmin on both
-        const canAct =
-          isSuperAdmin ||
-          (activekey === '1' && !isMaster) ||
-          (activekey === '2' && isMaster)
+        // Manager, Master, and SuperAdmin can all act on Pending (tab 1)
+        const canAct = isSuperAdmin || activekey === '1'
 
         if (!canAct) return null
         return (
@@ -745,7 +733,7 @@ const GeofenceRequestTable = () => {
                 />
               </Tooltip>
             )}
-            <Tooltip placement="top" title={activekey === '2' ? 'Master Action' : 'Manager Action'}>
+            <Tooltip placement="top" title="Manager Action">
               <StepForwardOutlined style={{ fontSize: 18 }} onClick={() => openActionModal(record)} />
             </Tooltip>
           </Space>
@@ -823,8 +811,6 @@ const GeofenceRequestTable = () => {
     },
     managerStatusCol,
     managerRemarksCol,
-    masterStatusCol,
-    masterRemarksCol,
     {
       title: 'Total Punches',
       dataIndex: 'punchcount',
@@ -996,7 +982,7 @@ const GeofenceRequestTable = () => {
         totalRecords={totalRecords}
         handleSearch={handleSearch}
         activekey={activekey}
-        showBulkActions={activekey === '1' || activekey === '2'}
+        showBulkActions={activekey === '1'}
         setBulkRegularizeModalOpen={setBulkRegularizeModalOpen}
         isMobile={isMobile}
       />
@@ -1017,28 +1003,23 @@ const GeofenceRequestTable = () => {
 
   const tabItems = [
     {
-      label: <span className="custom-tab-label">Pending (Awaiting Manager)</span>,
+      label: <span className="custom-tab-label">Pending</span>,
       key: '1',
       children: renderTable(columnsPendingAll, true),
     },
     {
-      label: <span className="custom-tab-label">Manager Approved (Awaiting Master)</span>,
-      key: '2',
-      children: renderTable(columnsPendingAll, true),
-    },
-    {
       label: <span className="custom-tab-label">Approved</span>,
-      key: '3',
+      key: '2',
       children: renderTable(columnsPendingAll, false),
     },
     {
       label: <span className="custom-tab-label">Rejected</span>,
-      key: '4',
+      key: '3',
       children: renderTable(columnsHistoryAll, false),
     },
     {
       label: <span className="custom-tab-label">My History</span>,
-      key: '5',
+      key: '4',
       children: renderTable(columnsHistoryAll, false),
     },
   ]
@@ -1059,11 +1040,7 @@ const GeofenceRequestTable = () => {
       <Tabs type="card" activeKey={activekey} items={tabItems} onChange={onTabChange} />
 
       <Modal
-        title={
-          activekey === '2'
-            ? 'Master Approval — Geofence Request'
-            : 'Manager Approval — Geofence Request'
-        }
+        title="Manager Approval — Geofence Request"
         open={initiateModalOpen}
         onCancel={() => {
           setInitiateModalOpen(false)
@@ -1089,26 +1066,6 @@ const GeofenceRequestTable = () => {
         ]}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          {/* Show manager approval info when Audit is acting */}
-          {activekey === '2' && currentRecord?.managerRemarks && (
-            <div
-              style={{
-                background: '#f0f5ff',
-                border: '1px solid #adc6ff',
-                borderRadius: 6,
-                padding: '8px 12px',
-                fontSize: 13,
-              }}
-            >
-              <strong>Manager Remarks:</strong> {currentRecord.managerRemarks}
-              {currentRecord.managerApprovalOn && (
-                <div style={{ color: '#666', marginTop: 4, fontSize: 12 }}>
-                  Approved on: {dayjs(currentRecord.managerApprovalOn).format('YYYY-MM-DD HH:mm')}
-                </div>
-              )}
-            </div>
-          )}
-
           <Checkbox
             checked={selectedOption[currentRecord?.employeeId] === 1}
             onChange={() => setSelectedOption((p) => ({ ...p, [currentRecord?.employeeId]: 1 }))}
@@ -1126,8 +1083,7 @@ const GeofenceRequestTable = () => {
 
           <div>
             <div style={{ marginBottom: 6, fontWeight: 500 }}>
-              {activekey === '2' ? 'Master' : 'Manager'} Remark{' '}
-              <span style={{ color: 'red' }}>*</span>
+              Manager Remark <span style={{ color: 'red' }}>*</span>
             </div>
             <TextArea
               value={approverRemark}
