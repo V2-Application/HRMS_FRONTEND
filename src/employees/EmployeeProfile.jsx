@@ -2804,7 +2804,8 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                       label="Bonus Applicable"
                     >
                       <Select placeholder="Select">
-                        <Select.Option value={true}>Yes</Select.Option>
+                        <Select.Option value={true}>STAT</Select.Option>
+                        <Select.Option value={true}>CTC</Select.Option>
                         <Select.Option value={false}>No</Select.Option>
                       </Select>
                     </Form.Item>
