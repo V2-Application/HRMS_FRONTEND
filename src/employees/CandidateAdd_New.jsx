@@ -1411,7 +1411,7 @@ const EmployeeAddNew = () => {
         offerData.benefits?.bonusApplicable !== undefined &&
         currentUser.bonusApplicable === undefined
       ) {
-        updatedData.user.bonusApplicable = Boolean(offerData.benefits.bonusApplicable)
+        updatedData.user.bonusApplicable = (!offerData.benefits.bonusApplicable || offerData.benefits.bonusApplicable === 'No') ? false : offerData.benefits.bonusApplicable
       }
 
       if (
@@ -2467,7 +2467,7 @@ const EmployeeAddNew = () => {
         placeOfBirth: apiData?.placeOfBirth,
         PFApplicable: apiData?.pfApplicable || true,
         ESICApplicable: apiData?.esicApplicable || false,
-        bonusApplicable: apiData?.bonusApplicable || false,
+        bonusApplicable: (!apiData?.bonusApplicable || apiData?.bonusApplicable === 'No') ? false : apiData?.bonusApplicable,
         CompanyId: apiData?.companyId,
         reportingHeadId: apiData?.reportingHeadId,
         isActive: apiData?.isActive,
@@ -2983,19 +2983,13 @@ const EmployeeAddNew = () => {
       // console.log(`Appended ${field} with value:`, numValue)
     })
 
-    // ============= BOOLEAN SALARY FIELDS =============
-    const booleanSalaryFields = ['bonusApplicable']
-
-    booleanSalaryFields.forEach((field) => {
-      let value =
-        values.user?.[field] ??
-        allFormValues.user?.[field] ??
-        form.getFieldValue(['user', field]) ??
-        false
-
-      ef.append(field, Boolean(value))
-      // console.log(`Appended ${field} with value:`, value)
-    })
+    // ============= BONUS APPLICABLE (string: Stat / Ctc / No) =============
+    const bonusVal =
+      values.user?.bonusApplicable ??
+      allFormValues.user?.bonusApplicable ??
+      form.getFieldValue(['user', 'bonusApplicable']) ??
+      false
+    ef.append('bonusApplicable', bonusVal === false ? 'No' : bonusVal)
 
     // DEPARTMENT FIELD - ADD THIS TO PASTE-2.TXT
     const departmentValue =
@@ -4706,7 +4700,8 @@ const EmployeeAddNew = () => {
                       label="Bonus Applicable"
                     >
                       <Select placeholder="Select">
-                        <Select.Option value={true}>Yes</Select.Option>
+                        <Select.Option value="Stat">Stat</Select.Option>
+                        <Select.Option value="Ctc">Ctc</Select.Option>
                         <Select.Option value={false}>No</Select.Option>
                       </Select>
                     </Form.Item>

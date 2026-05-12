@@ -1382,7 +1382,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         placeOfBirth: apiData?.placeOfBirth || '',
         PFApplicable: apiData?.pfApplicable || true,
         ESICApplicable: apiData?.esicApplicable || false,
-        bonusApplicable: apiData?.bonusApplicable || false,
+        bonusApplicable: (!apiData?.bonusApplicable || apiData?.bonusApplicable === 'No') ? false : apiData?.bonusApplicable,
         CompanyId: apiData?.companyId || '',
         reportingHeadId: apiData?.reportingHeadId,
         isActive: apiData?.isActive,
@@ -1763,8 +1763,8 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
 
     if (values.user && typeof values.user === 'object') {
       Object.entries(values.user).forEach(([key, value]) => {
-        // We will control PFApplicable & ESICApplicable ourselves below
-        if (key === 'PFApplicable' || key === 'ESICApplicable') return
+        // We will control PFApplicable, ESICApplicable & bonusApplicable ourselves below
+        if (key === 'PFApplicable' || key === 'ESICApplicable' || key === 'bonusApplicable') return
 
         if (value !== undefined && value !== null) {
           ef.append(`${key}`, value)
@@ -1772,9 +1772,11 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
       })
     }
 
-    // Backend expects PFApplicable & ESICApplicable (camel-case)
+    // Backend expects PFApplicable, ESICApplicable & bonusApplicable (camel-case)
     ef.append('PFApplicable', PFApplicablePayload) // always true
     ef.append('ESICApplicable', ESICApplicablePayload) // true if monthlyGrossCTC <= 21000
+    const bonusVal = values.user?.bonusApplicable ?? form.getFieldValue(['user', 'bonusApplicable']) ?? false
+    ef.append('bonusApplicable', bonusVal === false ? 'No' : bonusVal)
 
     Object.entries(values).forEach(([key, value]) => {
       if (key !== 'user' && value !== undefined && value !== null) {
@@ -2804,8 +2806,8 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                       label="Bonus Applicable"
                     >
                       <Select placeholder="Select">
-                        <Select.Option value={true}>STAT</Select.Option>
-                        <Select.Option value={true}>CTC</Select.Option>
+                                        <Select.Option value="Stat">Stat</Select.Option>
+                        <Select.Option value="Ctc">Ctc</Select.Option>
                         <Select.Option value={false}>No</Select.Option>
                       </Select>
                     </Form.Item>

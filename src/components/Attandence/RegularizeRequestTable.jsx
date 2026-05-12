@@ -2287,9 +2287,11 @@ const RegularizeRequestTable = () => {
       )
 
       if (response?.status === 200) {
-        const filteredData = filterByRequestCycle(response?.data?.data || [])
-        setRegularizeList(filteredData)
-        setTotalRecords(filteredData.length)
+        const allData = response?.data?.data || []
+        // Pending tab (statusId=4): apply cycle filter; Approved/Rejected: show all data
+        const data = statusId === 4 ? filterByRequestCycle(allData) : allData
+        setRegularizeList(data)
+        setTotalRecords(data.length)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -2306,9 +2308,10 @@ const RegularizeRequestTable = () => {
       const response = await myregularizeRequestStatusLists(employeeId)
       console.log('my history:', response)
       if (response?.status === 200) {
-        const filteredData = filterByRequestCycle(response?.data?.data || [])
-        setRegularizeList(filteredData)
-        setTotalRecords(filteredData.length)
+        // History tab: show all data without cycle filter
+        const allData = response?.data?.data || []
+        setRegularizeList(allData)
+        setTotalRecords(allData.length)
       }
     } catch (error) {
       console.error('Error fetching data:', error)

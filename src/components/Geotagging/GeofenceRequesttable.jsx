@@ -33,7 +33,10 @@ import {
   mygeofenceRequestStatusLists,
 } from '../../services/Services'
 import dayjs from 'dayjs'
+import isBetween from 'dayjs/plugin/isBetween'
 import { set } from '../../redux/uiSlice'
+
+dayjs.extend(isBetween)
 import { debounce } from 'lodash'
 import AttendanceRequestModal from '../Attandence/AttendanceRequestModal'
 import BulkUploadRegularizeFormModal from '../Attandence/BulkUploadRegularizeFormModal'
@@ -475,15 +478,33 @@ const GeofenceRequestTable = () => {
     }
   }
 
+  const getRequestCycleRange = () => {
+    const now = dayjs()
+    const cycleStart = now.subtract(1, 'month').date(26).startOf('day')
+    const cycleEnd = now.date(25).endOf('day')
+    return { cycleStart, cycleEnd }
+  }
+
+  const filterByRequestCycle = (list = []) => {
+    const { cycleStart, cycleEnd } = getRequestCycleRange()
+    return list.filter((item) => {
+      const d = dayjs(item?.punchDate || item?.requestDate)
+      return d.isValid() && d.isBetween(cycleStart, cycleEnd, null, '[]')
+    })
+  }
+
   const fetchData = async (statusId) => {
     await dispatch(set({ loading: true }))
     setlocalLoading(true)
     try {
       const response = await GeofenceLists(employeeId, currentPage, pageSize, searchText, statusId)
       if (response?.status === 200) {
-        const rows = addRowKeys(response?.data?.data || [], `p${currentPage}-tab${activekey}`)
+        const allData = response?.data?.data || []
+        // Pending tab (statusId=4): apply cycle filter; Approved/Rejected: show all data
+        const filtered = statusId === 4 ? filterByRequestCycle(allData) : allData
+        const rows = addRowKeys(filtered, `p${currentPage}-tab${activekey}`)
         setRegularizeList(rows)
-        setTotalRecords(response?.data?.totalRecords || rows.length || 0)
+        setTotalRecords(statusId === 4 ? rows.length : (response?.data?.totalRecords || rows.length || 0))
       } else {
         setRegularizeList([])
         setTotalRecords(0)
