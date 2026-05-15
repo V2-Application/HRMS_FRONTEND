@@ -1382,7 +1382,12 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         placeOfBirth: apiData?.placeOfBirth || '',
         PFApplicable: apiData?.pfApplicable || true,
         ESICApplicable: apiData?.esicApplicable || false,
-        bonusApplicable: apiData?.bonusApplicable || false,
+        bonusApplicable:
+          apiData?.bonusApplicable === true || apiData?.bonusApplicable === 'Ctc'
+            ? 'Ctc'
+            : apiData?.bonusApplicable === 'Stat'
+              ? 'Stat'
+              : 'No',
         CompanyId: apiData?.companyId || '',
         reportingHeadId: apiData?.reportingHeadId,
         isActive: apiData?.isActive,
@@ -2804,8 +2809,9 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                       label="Bonus Applicable"
                     >
                       <Select placeholder="Select">
-                        <Select.Option value={true}>Yes</Select.Option>
-                        <Select.Option value={false}>No</Select.Option>
+                        <Select.Option value="Stat">Stat</Select.Option>
+                        <Select.Option value="Ctc">Ctc</Select.Option>
+                        <Select.Option value="No">No</Select.Option>
                       </Select>
                     </Form.Item>
                   )}
