@@ -2725,6 +2725,17 @@ export const toggleShift = async (shiftID) => {
   }
 }
 
+export const bulkAssignShift = async (formData) => {
+  try {
+    const response = await axiosInstance.post('/api/ShiftMap/assign-shift-bulk', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
 export const getEmployeeMultiPunchesChangeLog = (ecode, month) => {
   return axiosInstance.get('/api/EmployeeMultiPunchesChangeLog/GetEmployeeMultiPunchesChangeLog', {
     params: {

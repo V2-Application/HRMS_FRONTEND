@@ -1,8 +1,9 @@
 import { message, Space, Table, Input, Button, Popconfirm, Checkbox, Tag, Switch } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { deleteShift, GetAllShifts, toggleShift } from '../services/Services'
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined, TeamOutlined } from '@ant-design/icons'
 import AddShiftModal from './AddShiftModal'
+import BulkAssignShiftModal from './BulkAssignShiftModal'
 
 const { Search } = Input
 
@@ -16,6 +17,7 @@ const ShiftMasterCrud = () => {
   const [editingShift, setEditingShift] = useState(null)
   const [isStatusToggling, setIsStatusToggling] = useState(false)
   const [togglingShiftId, setTogglingShiftId] = useState(null)
+  const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -214,6 +216,12 @@ const ShiftMasterCrud = () => {
         editingShift={editingShift}
       />
 
+      <BulkAssignShiftModal
+        isOpen={isBulkAssignOpen}
+        setIsOpen={setIsBulkAssignOpen}
+        refreshShifts={fetchData}
+      />
+
       <Space
         style={{
           display: 'flex',
@@ -222,6 +230,14 @@ const ShiftMasterCrud = () => {
           marginBottom: '0.6rem',
         }}
       >
+        <Button
+          icon={<TeamOutlined />}
+          type="primary"
+          onClick={() => setIsBulkAssignOpen(true)}
+        >
+          Bulk Assign Employees
+        </Button>
+
         <Button
           icon={<PlusOutlined />}
           onClick={() => {
