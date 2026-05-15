@@ -1,5 +1,5 @@
-import { UploadOutlined } from '@ant-design/icons'
-import { Space, Input, Table, Button, message, DatePicker } from 'antd'
+import { UploadOutlined, ExportOutlined, DownOutlined } from '@ant-design/icons'
+import { Space, Input, Table, Button, message, DatePicker, Dropdown } from 'antd'
 import { useEffect, useState } from 'react'
 import ProcessSalaryRequestUploader from './ProcessSalaryRequestUploader'
 import { useActionsMap } from '../../utils/useActionsMap'
@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux'
 import axiosInstance from '../../services/axiosInstance'
 import ProcessSalaryRequestColumns from './ProcessSalaryRequestColumns'
 import dayjs from 'dayjs'
+import * as XLSX from 'xlsx'
 import Pageheading from '../shared/Pageheading'
 
 const { Search } = Input
@@ -25,6 +26,7 @@ const ProcessSalaryRequest1 = () => {
   const [isEmpSalDataLoading, setIsEmpSalDataLoading] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [salaryInfo, setSalaryInfo] = useState(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   // 🔵 Fetch list snapshots for month
   const fetchData = async () => {
@@ -152,6 +154,66 @@ const ProcessSalaryRequest1 = () => {
     isInfoLoading: isEmpSalDataLoading,
   })
 
+  const buildExportRows = (rows) => {
+    const exportCols = columns.filter(
+      (c) => c?.dataIndex && c.dataIndex !== 'actions' && c.title !== 'Actions',
+    )
+    return rows.map((r) => {
+      const out = {}
+      for (const c of exportCols) {
+        let v = r[c.dataIndex]
+        if (c.dataIndex === 'runAt' && v) v = String(v).split('T')[0]
+        out[c.title] = v ?? ''
+      }
+      return out
+    })
+  }
+
+  const downloadXlsx = (rows, suffix) => {
+    if (!rows.length) {
+      message.warning('No rows to export')
+      return
+    }
+    const ws = XLSX.utils.json_to_sheet(buildExportRows(rows))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Salaries')
+    const monthStr = monthVal.format('MMM-YY')
+    const ts = dayjs().format('YYYYMMDD_HHmmss')
+    XLSX.writeFile(wb, `Processed_Salary_${suffix}_${monthStr}_${ts}.xlsx`)
+  }
+
+  const runExport = async (compute) => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      // yield so the spinner paints before xlsx blocks the main thread
+      await new Promise((r) => setTimeout(r, 0))
+      compute()
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportAll = () => runExport(() => downloadXlsx(filteredData, 'All'))
+
+  const handleExportLatest = () =>
+    runExport(() => {
+      const latestByEcode = new Map()
+      for (const r of filteredData) {
+        const key = r.ecode ?? r.key
+        const tsNew = r.runAt ? new Date(r.runAt).getTime() : 0
+        const existing = latestByEcode.get(key)
+        const tsOld = existing?.runAt ? new Date(existing.runAt).getTime() : -1
+        if (!existing || tsNew >= tsOld) latestByEcode.set(key, r)
+      }
+      downloadXlsx([...latestByEcode.values()], 'Latest')
+    })
+
+  const exportMenuItems = [
+    { key: 'all', label: 'All salaries', onClick: handleExportAll },
+    { key: 'latest', label: 'Latest salaries', onClick: handleExportLatest },
+  ]
+
   return (
     <>
       <Pageheading title="Processed Salary Requests" />
@@ -184,6 +246,12 @@ const ProcessSalaryRequest1 = () => {
             Upload
           </Button>
         )}
+
+        <Dropdown menu={{ items: exportMenuItems }} trigger={['click']} disabled={isExporting}>
+          <Button icon={<ExportOutlined />} loading={isExporting}>
+            Export <DownOutlined />
+          </Button>
+        </Dropdown>
 
         <Search
           placeholder="Search in table..."

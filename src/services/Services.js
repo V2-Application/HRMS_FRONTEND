@@ -1400,6 +1400,20 @@ export const markEmployeeActiveStatus = async (requestBody) => {
   // }
 }
 
+export const bulkInactivateEmployees = async (formData) => {
+  try {
+    const response = await axiosInstance.post(
+      `api/EmployeeNew/BulkInactivateEmployees`,
+      formData,
+      { headers: { accept: '*/*' } },
+    )
+    return response.data
+  } catch (error) {
+    console.error('Bulk inactivate error:', error)
+    throw error
+  }
+}
+
 export const getEmployeeById = async (id) => {
   try {
     const response = await axiosInstance.get(

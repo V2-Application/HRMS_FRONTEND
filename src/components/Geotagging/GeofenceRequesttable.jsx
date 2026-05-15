@@ -26,6 +26,8 @@ import {
   Skeleton,
   Empty,
   Grid,
+  DatePicker,
+  Select,
 } from 'antd'
 import {
   GeofenceLists,
@@ -41,6 +43,17 @@ import axiosInstance from '../../services/axiosInstance'
 
 const { Search, TextArea } = Input
 const { useBreakpoint } = Grid
+const { RangePicker } = DatePicker
+
+const GEO_STATUS_OPTIONS = [
+  { label: 'All', value: '' },
+  { label: 'Approved', value: 'Approved' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Rejected', value: 'Rejected' },
+  { label: 'ManagerApproved', value: 'ManagerApproved' },
+]
+
+const SUPER_ADMIN_ROLES_GEO = ['superadmin', 'it superadmin', 'master']
 
 /** ======================= Small helpers for status ======================= */
 const getStatusMetaById = (id) => {
@@ -352,6 +365,67 @@ const GeofenceRequestTable = () => {
   const [employeeNameFilterValues, setEmployeeNameFilterValues] = useState([])
   const [ecodeFilterValues, setEcodeFilterValues] = useState([])
   const [bulkRegularizeModalOpen, setBulkRegularizeModalOpen] = useState(false)
+
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exportRange, setExportRange] = useState([
+    dayjs().subtract(1, 'month').startOf('month'),
+    dayjs(),
+  ])
+  const [exportFinalStatus, setExportFinalStatus] = useState('')
+  const [exportManagerStatus, setExportManagerStatus] = useState('')
+  const [exportMasterStatus, setExportMasterStatus] = useState('')
+  const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
+
+  const isSuperAdmin = SUPER_ADMIN_ROLES_GEO.includes(
+    (role || '').trim().toLowerCase(),
+  )
+
+  const handleSuperAdminGeoExport = async () => {
+    if (!exportRange || !exportRange[0] || !exportRange[1]) {
+      message.error('Please select a date range')
+      return
+    }
+    setSuperAdminExportLoading(true)
+    try {
+      const startDate = exportRange[0].format('YYYY-MM-DD')
+      const endDate = exportRange[1].format('YYYY-MM-DD')
+      const params = { startDate, endDate }
+      if (exportFinalStatus) params.finalStatus = exportFinalStatus
+      if (exportManagerStatus) params.managerStatus = exportManagerStatus
+      if (exportMasterStatus) params.masterStatus = exportMasterStatus
+
+      const res = await axiosInstance.get('api/EmpAttendance/geo/export', {
+        params,
+        responseType: 'blob',
+      })
+
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const blobUrl = window.URL.createObjectURL(blob)
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:T.Z]/g, '')
+        .slice(0, 14)
+      const filename = `GeoAttendance_${startDate}_${endDate}_${timestamp}.xlsx`
+
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      link.click()
+      window.URL.revokeObjectURL(blobUrl)
+      message.success('Export downloaded')
+      setExportModalOpen(false)
+    } catch (err) {
+      const msg =
+        err?.response?.status === 403
+          ? 'Only SuperAdmin can export geofence requests.'
+          : err?.response?.data?.message || 'Export failed'
+      message.error(msg)
+    } finally {
+      setSuperAdminExportLoading(false)
+    }
+  }
 
   const [addressCache, setAddressCache] = useState({})
   const abortRef = React.useRef(null)
@@ -1036,6 +1110,81 @@ const GeofenceRequestTable = () => {
     <>
       {contextHolder}
       <ToastContainer position="top-right" autoClose={2000} />
+
+      {isSuperAdmin && (
+        <div style={{ marginBottom: 8, textAlign: 'right' }}>
+          <Button type="primary" onClick={() => setExportModalOpen(true)}>
+            Export Reports
+          </Button>
+        </div>
+      )}
+
+      <Modal
+        title="Export Geofence Requests"
+        open={exportModalOpen}
+        onCancel={() => setExportModalOpen(false)}
+        width={isMobile ? '95%' : 640}
+        footer={[
+          <Button key="cancel" onClick={() => setExportModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="download"
+            type="primary"
+            loading={superAdminExportLoading}
+            onClick={handleSuperAdminGeoExport}
+          >
+            Download Report
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Date Range</div>
+            <RangePicker
+              style={{ width: '100%' }}
+              value={exportRange}
+              onChange={(v) => setExportRange(v || [null, null])}
+              format="YYYY-MM-DD"
+              allowClear={false}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Final Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportFinalStatus}
+              onChange={setExportFinalStatus}
+              options={GEO_STATUS_OPTIONS}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Manager Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportManagerStatus}
+              onChange={setExportManagerStatus}
+              options={GEO_STATUS_OPTIONS}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Master Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportMasterStatus}
+              onChange={setExportMasterStatus}
+              options={GEO_STATUS_OPTIONS}
+            />
+          </div>
+          <div style={{ fontSize: 12, color: '#888' }}>
+            Tip: Use Manager Status = Approved + Master Status = Pending to find rows approved by
+            Manager but pending at the Master level.
+          </div>
+        </Space>
+      </Modal>
 
       <Tabs type="card" activeKey={activekey} items={tabItems} onChange={onTabChange} />
 

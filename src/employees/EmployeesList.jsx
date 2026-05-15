@@ -2696,6 +2696,7 @@ import Pageheading from '../components/shared/Pageheading'
 import { IoIosRefresh } from 'react-icons/io'
 import axiosInstance from '../services/axiosInstance'
 import EmployeeInactiveModal from '../components/modals/EmployeeInactiveModal'
+import BulkInactivateModal from '../components/modals/BulkInactivateModal'
 import CardInRow from '../components/shared/CardInRow/CardInRow'
 import useColumnSearch from '../components/shared/columnSearch'
 import styles from './EmployeesList.module.css'
@@ -4910,6 +4911,7 @@ const TableBulkActionIcons = ({
 }) => {
   const theme = useSelector((state) => state?.ui?.theme)
   const [isEmpUploadVisible, setIsEmpUploadVisible] = useState(false)
+  const [isBulkInactiveOpen, setIsBulkInactiveOpen] = useState(false)
 
   const [statusSummary, setstatusSummary] = useState([
     { name: 'ActiveEmployees', label: 'Active Employees', count: 0, color: 'green', id: [1] },
@@ -5242,6 +5244,13 @@ const downloadAbscondReportAsExcel = async () => {
         />
       )}
 
+      <BulkInactivateModal
+        open={isBulkInactiveOpen}
+        onClose={() => setIsBulkInactiveOpen(false)}
+        preselectedEmployees={[]}
+        onSuccess={refreshData}
+      />
+
       <Modal
         title="Export Abscond Report"
         open={isAbscondReportModalOpen}
@@ -5320,6 +5329,12 @@ const downloadAbscondReportAsExcel = async () => {
                 </Button>
               </Tooltip>
             )}
+
+            <Tooltip placement="top" title={'Bulk Inactivate Employees'}>
+              <Button style={{ marginLeft: 5 }} danger onClick={() => setIsBulkInactiveOpen(true)}>
+                Bulk Inactive
+              </Button>
+            </Tooltip>
 
             {actionsMap?.export?.actionStatus && (
               <Tooltip placement="top" title={'Export'}>

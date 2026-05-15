@@ -2461,6 +2461,21 @@ const handleSubmitReopen = async () => {
   )
 }
 
+const APPLICANT_STATUS_OPTIONS = [
+  { label: 'All Statuses', value: 0 },
+  { label: 'Pending Applicant List', value: 4 },
+  { label: 'On Hold', value: 6 },
+  { label: 'Not Interested', value: 9 },
+  { label: 'Rejected', value: 2 },
+  { label: 'Resume Shortlisted', value: 12 },
+  { label: 'Schedule Pending', value: 13 },
+  { label: 'Upcoming Interviews', value: 14 },
+  { label: 'Interview Completed', value: 15 },
+  { label: 'Negotiation', value: 11 },
+]
+
+const SUPER_ADMIN_ROLES_APPLICANT = ['superadmin', 'it superadmin', 'master']
+
 const TableBulkActionIcons = ({
   totalRecords,
   selectedRowKeys,
@@ -2472,12 +2487,51 @@ const TableBulkActionIcons = ({
   setimportExelModal, // ✅ NEW
 }) => {
   const { theme } = useSelector((state) => state.ui)
+  const role = useSelector((state) => state?.auth?.data?.role) || ''
+  const isSuperAdmin = SUPER_ADMIN_ROLES_APPLICANT.includes(role.trim().toLowerCase())
+
   const [statusSummary, setstatusSummary] = useState([
     { name: 'Total Rows', label: 'Pending Interview Schedule', count: 0, color: 'green' },
     { name: 'Selected Rows', label: 'Rejected', count: 0, color: 'blue' },
   ])
   const [isApplicantTabExporting, setIsApplicantTabExporting] = useState(false)
   const [isApplicantAllExporting, setIsApplicantAllExporting] = useState(false)
+
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exportStatusId, setExportStatusId] = useState(0)
+  const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
+
+  const handleSuperAdminExport = async () => {
+    setSuperAdminExportLoading(true)
+    try {
+      const response = await exportApplicantDataByStatus(parseInt(exportStatusId))
+      if (response.status === 200) {
+        const blob = new Blob([response.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+        const timestamp = new Date()
+          .toISOString()
+          .replace(/[-:T.Z]/g, '')
+          .slice(0, 14)
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.setAttribute('download', `ApplicantList_${exportStatusId || 'all'}_${timestamp}.xlsx`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        message.success('Export downloaded')
+        setExportModalOpen(false)
+      }
+    } catch (err) {
+      const msg =
+        err?.response?.status === 403
+          ? 'Only SuperAdmin can export applicants.'
+          : err?.response?.data?.message || err?.response?.data?.error || 'Error downloading excel'
+      message.error(msg)
+    } finally {
+      setSuperAdminExportLoading(false)
+    }
+  }
 
   useEffect(() => {
     setstatusSummary([
@@ -2614,6 +2668,54 @@ const TableBulkActionIcons = ({
               <ExportOutlined /> Current Tab
             </Button>
           </Tooltip>
+
+          {isSuperAdmin && (
+            <Tooltip placement="top" title="Export Reports (SuperAdmin)">
+              <Button
+                type="primary"
+                style={{ marginLeft: 5 }}
+                onClick={() => setExportModalOpen(true)}
+              >
+                <ExportOutlined /> Export Reports
+              </Button>
+            </Tooltip>
+          )}
+
+          <Modal
+            title="Export Applicants"
+            open={exportModalOpen}
+            onCancel={() => setExportModalOpen(false)}
+            width={520}
+            footer={[
+              <Button key="cancel" onClick={() => setExportModalOpen(false)}>
+                Cancel
+              </Button>,
+              <Button
+                key="download"
+                type="primary"
+                loading={superAdminExportLoading}
+                onClick={handleSuperAdminExport}
+              >
+                Download Report
+              </Button>,
+            ]}
+          >
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>Status</div>
+                <Select
+                  style={{ width: '100%' }}
+                  value={exportStatusId}
+                  onChange={setExportStatusId}
+                  options={APPLICANT_STATUS_OPTIONS}
+                />
+              </div>
+              <div style={{ fontSize: 12, color: '#888' }}>
+                Tip: Choose &quot;All Statuses&quot; to export every applicant; pick a specific
+                status to filter the export to that bucket only.
+              </div>
+            </Space>
+          </Modal>
 
           {/* ✅ Upload icon – opens ApplicantBulkUpload */}
           <Tooltip placement="top" title="Upload Applicants">

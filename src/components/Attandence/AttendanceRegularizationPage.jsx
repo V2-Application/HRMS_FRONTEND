@@ -699,15 +699,27 @@
 
 
 import React, { useState, useEffect } from 'react'
-import { Layout, Form, DatePicker, Button, Table, Typography } from 'antd'
+import { Layout, Form, DatePicker, Button, Table, Typography, Select, Space, Modal } from 'antd'
 import dayjs from 'dayjs'
+import { useSelector } from 'react-redux'
+import axiosInstance from 'src/services/axiosInstance'
 import 'src/components/Attandence/AttendanceRegularization.css'
 
 const { Content } = Layout
 const { Title, Text } = Typography
+const { RangePicker } = DatePicker
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
 const API_URL = `${API_BASE_URL}api/AttendanceRegularization`
+
+const STATUS_OPTIONS = [
+  { label: 'All', value: '' },
+  { label: 'Approved', value: 'Approved' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Rejected', value: 'Rejected' },
+]
+
+const SUPER_ADMIN_ROLES = ['superadmin', 'it superadmin', 'master']
 
 function formatDateTime(value) {
   if (!value) return '-'
@@ -734,6 +746,19 @@ const AttendanceRegularizationPage = () => {
   const [error, setError] = useState('')
   const defaultMonth = dayjs()
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
+
+  const role = useSelector((state) => state?.auth?.data?.role) || ''
+  const isSuperAdmin = SUPER_ADMIN_ROLES.includes(role.trim().toLowerCase())
+
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exportRange, setExportRange] = useState([
+    defaultMonth.subtract(1, 'month').startOf('month'),
+    defaultMonth,
+  ])
+  const [exportStatus, setExportStatus] = useState('')
+  const [exportManagerStatus, setExportManagerStatus] = useState('')
+  const [exportLpStatus, setExportLpStatus] = useState('')
+  const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
 
   const getMonthYearParam = (m) => (m || defaultMonth).format('MMM-YY')
 
@@ -764,6 +789,58 @@ const AttendanceRegularizationPage = () => {
   useEffect(() => {
     fetchData(selectedMonth)
   }, [selectedMonth])
+
+  const handleSuperAdminExport = async () => {
+    if (!exportRange || !exportRange[0] || !exportRange[1]) {
+      setError('Please select a date range')
+      return
+    }
+
+    setSuperAdminExportLoading(true)
+    setError('')
+
+    try {
+      const startDate = exportRange[0].format('YYYY-MM-DD')
+      const endDate = exportRange[1].format('YYYY-MM-DD')
+
+      const params = { startDate, endDate }
+      if (exportStatus) params.status = exportStatus
+      if (exportManagerStatus) params.managerStatus = exportManagerStatus
+      if (exportLpStatus) params.lpStatus = exportLpStatus
+
+      const res = await axiosInstance.get(
+        'api/AttendanceRegularization/ExportAttendanceRegularization',
+        { params, responseType: 'blob' },
+      )
+
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const blobUrl = window.URL.createObjectURL(blob)
+
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:T.Z]/g, '')
+        .slice(0, 14)
+      const filename = `AttendanceRegularization_${startDate}_${endDate}_${timestamp}.xlsx`
+
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      link.click()
+      window.URL.revokeObjectURL(blobUrl)
+      setExportModalOpen(false)
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        (err?.response?.status === 403
+          ? 'Only SuperAdmin can export regularize requests.'
+          : 'Export failed')
+      setError(msg)
+    } finally {
+      setSuperAdminExportLoading(false)
+    }
+  }
 
   const handleDownloadExcel = async () => {
     setExcelLoading(true)
@@ -980,6 +1057,81 @@ const AttendanceRegularizationPage = () => {
               </div>
             )}
           </div>
+
+          {isSuperAdmin && (
+            <div style={{ marginBottom: 8, textAlign: 'right' }}>
+              <Button type="primary" onClick={() => setExportModalOpen(true)}>
+                Export Reports
+              </Button>
+            </div>
+          )}
+
+          <Modal
+            title="Export Regularize Requests"
+            open={exportModalOpen}
+            onCancel={() => setExportModalOpen(false)}
+            width={640}
+            footer={[
+              <Button key="cancel" onClick={() => setExportModalOpen(false)}>
+                Cancel
+              </Button>,
+              <Button
+                key="download"
+                type="primary"
+                loading={superAdminExportLoading}
+                onClick={handleSuperAdminExport}
+              >
+                Download Report
+              </Button>,
+            ]}
+          >
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>Date Range</div>
+                <RangePicker
+                  style={{ width: '100%' }}
+                  value={exportRange}
+                  onChange={(v) => setExportRange(v || [null, null])}
+                  format="YYYY-MM-DD"
+                  allowClear={false}
+                />
+              </div>
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>Status</div>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="All"
+                  value={exportStatus}
+                  onChange={setExportStatus}
+                  options={STATUS_OPTIONS}
+                />
+              </div>
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>Manager Status</div>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="All"
+                  value={exportManagerStatus}
+                  onChange={setExportManagerStatus}
+                  options={STATUS_OPTIONS}
+                />
+              </div>
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>LP Status</div>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="All"
+                  value={exportLpStatus}
+                  onChange={setExportLpStatus}
+                  options={STATUS_OPTIONS}
+                />
+              </div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Tip: For &quot;Approved by Manager, Pending by LP&quot; — set Manager Status =
+                Approved and LP Status = Pending.
+              </Text>
+            </Space>
+          </Modal>
 
           {/* TABLE – ONLY THIS SCROLLS (via scroll.y) */}
           <div className="ar-table-container">

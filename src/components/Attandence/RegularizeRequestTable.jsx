@@ -1822,6 +1822,9 @@ import {
   Skeleton,
   Empty,
   Grid,
+  Card,
+  DatePicker,
+  Select,
 } from 'antd'
 import {
   myregularizeRequestStatusLists,
@@ -1835,11 +1838,21 @@ import { debounce } from 'lodash'
 import AttendanceRequestModal from './AttendanceRequestModal'
 import Pageheading from '../shared/Pageheading'
 import BulkUploadRegularizeFormModal from './BulkUploadRegularizeFormModal'
+import axiosInstance from '../../services/axiosInstance'
 
 import useMediaQuery from '../../hooks/useMediaQuery'
 import { useActionsMap } from '../../utils/useActionsMap'
 
 dayjs.extend(isBetween)
+
+const { RangePicker } = DatePicker
+
+const REGULARIZE_STATUS_OPTIONS = [
+  { label: 'All', value: '' },
+  { label: 'Approved', value: 'Approved' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Rejected', value: 'Rejected' },
+]
 
 const { Search } = Input
 const { TextArea } = Input
@@ -1945,6 +1958,68 @@ const RegularizeRequestTable = () => {
   const [approverRemarkFilterValues, setApproverRemarkFilterValues] = useState([])
   const [bulkRegularizeModalOpen, setBulkRegularizeModalOpen] = useState(false)
   const showBulkActions = activekey === '1' || activekey === '2'
+
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exportRange, setExportRange] = useState([
+    dayjs().subtract(1, 'month').startOf('month'),
+    dayjs(),
+  ])
+  const [exportStatus, setExportStatus] = useState('')
+  const [exportManagerStatus, setExportManagerStatus] = useState('')
+  const [exportLpStatus, setExportLpStatus] = useState('')
+  const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
+
+  const isSuperAdmin = ['superadmin', 'it superadmin', 'master'].includes(
+    (role || '').trim().toLowerCase(),
+  )
+
+  const handleSuperAdminExport = async () => {
+    if (!exportRange || !exportRange[0] || !exportRange[1]) {
+      message.error('Please select a date range')
+      return
+    }
+
+    setSuperAdminExportLoading(true)
+    try {
+      const startDate = exportRange[0].format('YYYY-MM-DD')
+      const endDate = exportRange[1].format('YYYY-MM-DD')
+      const params = { startDate, endDate }
+      if (exportStatus) params.status = exportStatus
+      if (exportManagerStatus) params.managerStatus = exportManagerStatus
+      if (exportLpStatus) params.lpStatus = exportLpStatus
+
+      const res = await axiosInstance.get(
+        'api/AttendanceRegularization/ExportAttendanceRegularization',
+        { params, responseType: 'blob' },
+      )
+
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const blobUrl = window.URL.createObjectURL(blob)
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:T.Z]/g, '')
+        .slice(0, 14)
+      const filename = `RegularizeRequests_${startDate}_${endDate}_${timestamp}.xlsx`
+
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      link.click()
+      window.URL.revokeObjectURL(blobUrl)
+      message.success('Export downloaded')
+      setExportModalOpen(false)
+    } catch (err) {
+      const msg =
+        err?.response?.status === 403
+          ? 'Only SuperAdmin can export regularize requests.'
+          : err?.response?.data?.message || 'Export failed'
+      message.error(msg)
+    } finally {
+      setSuperAdminExportLoading(false)
+    }
+  }
 
   const { filteredSideMenu } = useSelector((state) => state?.auth || {})
   const actionsMap = useActionsMap(filteredSideMenu)
@@ -2287,9 +2362,11 @@ const RegularizeRequestTable = () => {
       )
 
       if (response?.status === 200) {
-        const filteredData = filterByRequestCycle(response?.data?.data || [])
-        setRegularizeList(filteredData)
-        setTotalRecords(filteredData.length)
+        const raw = response?.data?.data || []
+        // Pending tab keeps the cycle filter; Approved/Rejected show full history (server-filtered)
+        const list = statusId === 4 ? filterByRequestCycle(raw) : raw
+        setRegularizeList(list)
+        setTotalRecords(list.length)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -2306,9 +2383,10 @@ const RegularizeRequestTable = () => {
       const response = await myregularizeRequestStatusLists(employeeId)
       console.log('my history:', response)
       if (response?.status === 200) {
-        const filteredData = filterByRequestCycle(response?.data?.data || [])
-        setRegularizeList(filteredData)
-        setTotalRecords(filteredData.length)
+        // My History tab: show all the user's requests till date (no cycle filter)
+        const list = response?.data?.data || []
+        setRegularizeList(list)
+        setTotalRecords(list.length)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -3463,6 +3541,82 @@ const RegularizeRequestTable = () => {
       {/* <Pageheading title="Regularize Requests" /> */}
       {contextHolder}
       <ToastContainer position="top-right" autoClose={2000} />
+
+      {isSuperAdmin && (
+        <div style={{ marginBottom: 8, textAlign: 'right' }}>
+          <Button type="primary" onClick={() => setExportModalOpen(true)}>
+            Export Reports
+          </Button>
+        </div>
+      )}
+
+      <Modal
+        title="Export Regularize Requests"
+        open={exportModalOpen}
+        onCancel={() => setExportModalOpen(false)}
+        width={isMobile ? '95%' : 640}
+        footer={[
+          <Button key="cancel" onClick={() => setExportModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="download"
+            type="primary"
+            loading={superAdminExportLoading}
+            onClick={handleSuperAdminExport}
+          >
+            Download Report
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Date Range</div>
+            <RangePicker
+              style={{ width: '100%' }}
+              value={exportRange}
+              onChange={(v) => setExportRange(v || [null, null])}
+              format="YYYY-MM-DD"
+              allowClear={false}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportStatus}
+              onChange={setExportStatus}
+              options={REGULARIZE_STATUS_OPTIONS}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>Manager Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportManagerStatus}
+              onChange={setExportManagerStatus}
+              options={REGULARIZE_STATUS_OPTIONS}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>LP Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportLpStatus}
+              onChange={setExportLpStatus}
+              options={REGULARIZE_STATUS_OPTIONS}
+            />
+          </div>
+          <div style={{ fontSize: 12, color: '#888' }}>
+            Tip: For &quot;Approved by Manager, Pending by LP&quot; — set Manager Status = Approved
+            and LP Status = Pending.
+          </div>
+        </Space>
+      </Modal>
+
       <Tabs type="card" activeKey={activekey} items={tabItems} onChange={onTabChange} />
       <Modal
         title="Regularize Request"
