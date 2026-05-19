@@ -5,6 +5,7 @@ import routes from '../routes'
 import Page404 from '../views/pages/page404/Page404'
 import NotFoundPage from '../views/pages/notAuthroised/NotFoundPage'
 import { useSelector } from 'react-redux'
+import RoutePermissionGuard from './RoutePermissionGuard'
 
 const AppContent = ({ userdata, ...props }) => {
   const userRole = userdata?.role
@@ -28,16 +29,18 @@ const AppContent = ({ userdata, ...props }) => {
 
             return (
               route.element && (
-                // isAllowed && (
                 <Route
                   key={idx}
                   path={route.path}
                   exact={route.exact}
                   name={route.name}
-                  element={<route.element userdata={userdata} />}
+                  element={
+                    <RoutePermissionGuard routePath={route.path}>
+                      <route.element userdata={userdata} />
+                    </RoutePermissionGuard>
+                  }
                 />
               )
-              // )
             )
           })}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

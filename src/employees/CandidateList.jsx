@@ -1126,6 +1126,18 @@ const TableBulkActionIcons = ({
     ])
   }, [totalRecords])
 
+  const formatAgeingForExport = (hours) => {
+    if (hours === null || hours === undefined) return ''
+    const h = Number(hours)
+    if (Number.isNaN(h) || h < 0) return ''
+    if (h < 24) return `${h.toFixed(1)} hrs`
+    const days = Math.floor(h / 24)
+    const rem = h - days * 24
+    return rem < 0.05
+      ? `${days}d (${h.toFixed(1)} hrs)`
+      : `${days}d ${rem.toFixed(1)}h (${h.toFixed(1)} hrs)`
+  }
+
   const handleExportCandidate = async () => {
     if (Array.isArray(filteredData) && filteredData.length > 0) {
       const headers = [
@@ -1142,6 +1154,19 @@ const TableBulkActionIcons = ({
         'Cluster Status',
         'LP Status',
         'HR Status',
+        'Document Upload Date',
+        'LP Ageing',
+        'Cluster Ageing',
+        'HR Ageing',
+        'LP Reviewer Name',
+        'LP Reviewer Ecode',
+        'LP Remarks',
+        'Cluster Reviewer Name',
+        'Cluster Reviewer Ecode',
+        'Cluster Remarks',
+        'HR Reviewer Name',
+        'HR Reviewer Ecode',
+        'HR Remarks',
       ]
 
       const rowData = filteredData.map((row, index) => [
@@ -1158,6 +1183,21 @@ const TableBulkActionIcons = ({
         statusMap[row?.clusterManagerApprovalStatus]?.label || '',
         statusMap[row?.auditApprovalStatus]?.label || '',
         statusMap[row?.hrApprovalStatus]?.label || '',
+        row?.documentUploadedOn
+          ? dayjs(row.documentUploadedOn).format('YYYY-MM-DD HH:mm')
+          : '',
+        formatAgeingForExport(row?.lpAgeingHours),
+        formatAgeingForExport(row?.clusterAgeingHours),
+        formatAgeingForExport(row?.hrAgeingHours),
+        row?.auditReviewerName || '',
+        row?.auditReviewerEcode || '',
+        row?.auditRemarks || '',
+        row?.clusterManagerReviewerName || '',
+        row?.clusterManagerReviewerEcode || '',
+        row?.clusterManagerRemarks || '',
+        row?.hrReviewerName || '',
+        row?.hrReviewerEcode || '',
+        row?.hrRemarks || '',
       ])
 
       const exportDataFormatted = [headers, ...rowData]

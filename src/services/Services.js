@@ -1,6 +1,16 @@
 import axiosInstance from './axiosInstance'
 import axiosInstance2 from './axiosInstance2'
 
+// Backend-enforced page access check. Pass the React Router route PATTERN
+// (e.g. "/employee/update/:id"), not the resolved URL. Returns
+// { allowed, reason, routePath, subModuleId, roleName }.
+export const checkPageAccess = async (path) => {
+  const response = await axiosInstance.get('/api/Rbac/CheckPageAccess', {
+    params: { path },
+  })
+  return response.data
+}
+
 export const Login_api = async (data) => {
   try {
     // const response = await axiosInstance.post(`api/Auth/login`, data, {
