@@ -22,6 +22,7 @@ import {
   InfoCircleOutlined,
   CheckCircleOutlined,
   MinusOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -600,9 +601,110 @@ const CandidateList = () => {
     let formattedRemarks = remarks ?? '-'
     return (
       <div>
-        <p>Approved On: {formattedDate}</p>
+        <p>Action On: {formattedDate}</p>
         <p>Remarks: {formattedRemarks}</p>
       </div>
+    )
+  }
+
+  // -------- Approval details popover (richer info: reviewer + date + ageing + remarks) --------
+  const formatDateTime = (v) => {
+    if (!v) return '-'
+    try {
+      const d = new Date(v)
+      if (Number.isNaN(d.getTime())) return String(v)
+      return d.toLocaleString()
+    } catch {
+      return String(v)
+    }
+  }
+
+  const formatAgeing = (hours) => {
+    if (hours === null || hours === undefined) return null
+    const h = Number(hours)
+    if (Number.isNaN(h) || h < 0) return null
+    if (h < 24) return `${h.toFixed(1)} hrs`
+    const days = Math.floor(h / 24)
+    const rem = h - days * 24
+    return rem < 0.05 ? `${days}d (${h.toFixed(1)} hrs)` : `${days}d ${rem.toFixed(1)}h (${h.toFixed(1)} hrs)`
+  }
+
+  const approvalStatusText = (statusId) => {
+    if (statusId === 1) return 'Approved'
+    if (statusId === 2) return 'Rejected'
+    return 'Pending'
+  }
+
+  const renderApprovalDetails = ({
+    stageLabel,
+    statusId,
+    reviewer,
+    actionedOn,
+    remarks,
+    documentUploadedOn,
+    ageingHours,
+  }) => {
+    const ageingText = formatAgeing(ageingHours)
+    const isOverdue = typeof ageingHours === 'number' && ageingHours > 24
+    return (
+      <div style={{ minWidth: 280, maxWidth: 340 }}>
+        <div style={{ marginBottom: 6 }}>
+          <strong>Status:</strong> {approvalStatusText(statusId)}
+        </div>
+        <div style={{ marginBottom: 6 }}>
+          <strong>Reviewer:</strong> {reviewer || '-'}
+        </div>
+        <div style={{ marginBottom: 6 }}>
+          <strong>Action date:</strong> {formatDateTime(actionedOn)}
+        </div>
+        <div style={{ marginBottom: 6 }}>
+          <strong>Document uploaded on:</strong> {formatDateTime(documentUploadedOn)}
+        </div>
+        <div style={{ marginBottom: 6 }}>
+          <strong>Ageing:</strong>{' '}
+          {ageingText ? (
+            <span style={{ color: isOverdue ? '#cf1322' : '#262626', fontWeight: isOverdue ? 600 : 400 }}>
+              {ageingText}
+              {isOverdue ? ' (>24h)' : ''}
+            </span>
+          ) : (
+            '-'
+          )}
+        </div>
+        <div>
+          <strong>Remarks:</strong>
+          <div
+            style={{
+              marginTop: 2,
+              padding: '4px 8px',
+              background: '#fafafa',
+              border: '1px solid #f0f0f0',
+              borderRadius: 4,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {remarks || '-'}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const AgeingBadge = ({ ageingHours, statusId }) => {
+    // Only show the ageing badge for still-pending stages that have exceeded 24h
+    if (statusId === 1 || statusId === 2) return null
+    if (ageingHours === null || ageingHours === undefined) return null
+    const h = Number(ageingHours)
+    if (Number.isNaN(h) || h <= 24) return null
+    return (
+      <Tag
+        color="red"
+        style={{ marginLeft: 4 }}
+        icon={<ClockCircleOutlined />}
+      >
+        Ageing {formatAgeing(h)}
+      </Tag>
     )
   }
 
@@ -718,30 +820,32 @@ const CandidateList = () => {
       render: (statusId, record) => {
         const statusInfo = statusMap[statusId] || { color: 'volcano', label: 'Pending' }
         return (
-          <Space>
+          <Space size={4} wrap>
             <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
-            {record?.auditApprovedOn && (
-              <Popover
-                content={() => handleShowContent(record?.auditApprovedOn, record?.auditRemarks)}
-                title="LP Action Info"
-                trigger="click"
-              >
-                <InfoCircleOutlined
-                  style={{
-                    color: '#0202bb',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    position: 'absolute',
-                    top: '39%',
-                    right: '9px',
-                  }}
-                />
-              </Popover>
-            )}
+            <AgeingBadge ageingHours={record?.lpAgeingHours} statusId={statusId} />
+            <Popover
+              content={() =>
+                renderApprovalDetails({
+                  stageLabel: 'LP',
+                  statusId,
+                  reviewer: record?.auditReviewedBy,
+                  actionedOn: record?.auditApprovedOn,
+                  remarks: record?.auditRemarks,
+                  documentUploadedOn: record?.documentUploadedOn,
+                  ageingHours: record?.lpAgeingHours,
+                })
+              }
+              title="LP Approval Details"
+              trigger="click"
+            >
+              <InfoCircleOutlined
+                style={{ color: '#0202bb', cursor: 'pointer', fontSize: '16px' }}
+              />
+            </Popover>
           </Space>
         )
       },
-      width: 120,
+      width: 160,
     },
     {
       title: 'Cluster Status',
@@ -757,32 +861,32 @@ const CandidateList = () => {
       render: (statusId, record) => {
         const statusInfo = statusMap[statusId] || { color: 'volcano', label: 'Pending' }
         return (
-          <Space>
+          <Space size={4} wrap>
             <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
-            {record?.clusterManagerApprovedOn && (
-              <Popover
-                content={() =>
-                  handleShowContent(record?.clusterManagerApprovedOn, record?.clusterManagerRemarks)
-                }
-                title="Cluster Action Info"
-                trigger="click"
-              >
-                <InfoCircleOutlined
-                  style={{
-                    color: '#0202bb',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    position: 'absolute',
-                    top: '39%',
-                    right: '9px',
-                  }}
-                />
-              </Popover>
-            )}
+            <AgeingBadge ageingHours={record?.clusterAgeingHours} statusId={statusId} />
+            <Popover
+              content={() =>
+                renderApprovalDetails({
+                  stageLabel: 'Cluster',
+                  statusId,
+                  reviewer: record?.clusterManagerReviewBy,
+                  actionedOn: record?.clusterManagerApprovedOn,
+                  remarks: record?.clusterManagerRemarks,
+                  documentUploadedOn: record?.documentUploadedOn,
+                  ageingHours: record?.clusterAgeingHours,
+                })
+              }
+              title="Cluster Approval Details"
+              trigger="click"
+            >
+              <InfoCircleOutlined
+                style={{ color: '#0202bb', cursor: 'pointer', fontSize: '16px' }}
+              />
+            </Popover>
           </Space>
         )
       },
-      width: 150,
+      width: 180,
     },
     {
       title: 'HR Status',
@@ -798,30 +902,32 @@ const CandidateList = () => {
       render: (statusId, record) => {
         const statusInfo = statusMap[statusId] || { color: 'volcano', label: 'Pending' }
         return (
-          <Space>
+          <Space size={4} wrap>
             <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
-            {record?.hrApprovedOn && (
-              <Popover
-                content={() => handleShowContent(record?.hrApprovedOn, record?.hrRemarks)}
-                title="HR Action Info"
-                trigger="click"
-              >
-                <InfoCircleOutlined
-                  style={{
-                    color: '#0202bb',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    position: 'absolute',
-                    top: '39%',
-                    right: '9px',
-                  }}
-                />
-              </Popover>
-            )}
+            <AgeingBadge ageingHours={record?.hrAgeingHours} statusId={statusId} />
+            <Popover
+              content={() =>
+                renderApprovalDetails({
+                  stageLabel: 'HR',
+                  statusId,
+                  reviewer: record?.hrReviewedBy,
+                  actionedOn: record?.hrApprovedOn,
+                  remarks: record?.hrRemarks,
+                  documentUploadedOn: record?.documentUploadedOn,
+                  ageingHours: record?.hrAgeingHours,
+                })
+              }
+              title="HR Approval Details"
+              trigger="click"
+            >
+              <InfoCircleOutlined
+                style={{ color: '#0202bb', cursor: 'pointer', fontSize: '16px' }}
+              />
+            </Popover>
           </Space>
         )
       },
-      width: 120,
+      width: 160,
     },
     {
       title: 'Action',
