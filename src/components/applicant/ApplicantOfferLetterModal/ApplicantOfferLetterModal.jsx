@@ -57,7 +57,8 @@ const ApplicantOfferLetterModal = ({
       }
     } catch (error) {
       console.error('minwages error:', error)
-      message.error(error?.response?.data?.message || 'Error getting data')
+      const msg = error?.response?.data?.message
+      if (msg) message.error(msg)
     }
   }
 

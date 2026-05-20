@@ -32,6 +32,12 @@ axiosInstance2.interceptors.response.use(
         window.location.href = '/login'
       }
     }
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message === 'You do not have access to this page.'
+    ) {
+      error.response.data.message = ''
+    }
     const ret = Promise.reject(error)
     // console.log('ret-------------->', ret)
 

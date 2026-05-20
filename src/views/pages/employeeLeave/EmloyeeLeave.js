@@ -77,7 +77,6 @@ const EmloyeeLeave = () => {
   const fetchLeaveData = async (empId) => {
     try {
       const res = await fetchEmpLeaveData(empId)
-      const res2 = await fetchLeaveOpeningBal() // kept here if you use it elsewhere
       if (res.status === 200) {
         const data = res.data || []
         const formatted = data

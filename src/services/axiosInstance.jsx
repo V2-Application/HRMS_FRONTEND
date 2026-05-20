@@ -32,6 +32,17 @@ axiosInstance.interceptors.response.use(
         window.location.href = '/login'
       }
     }
+    // RoutePermissionGuard owns user-visible "page denied" UX. A 403 from a
+    // background API gated by [RequirePageAccess] would surface its generic
+    // backend message as a misleading toast on whatever page is currently
+    // visible, so blank the message here and let callers fall back to their
+    // default text.
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message === 'You do not have access to this page.'
+    ) {
+      error.response.data.message = ''
+    }
     const ret = Promise.reject(error)
     // console.log('ret-------------->', ret)
 
