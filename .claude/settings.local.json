@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ExecutionPolicy -List)",
+      "PowerShell(npm.cmd i)",
+      "PowerShell($conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conn\\) { \"Port 3000 is LISTENING \\(PID: $\\($conn[0].OwningProcess\\)\\)\" } else { \"Port 3000 is NOT listening\" })"
+    ]
+  }
+}

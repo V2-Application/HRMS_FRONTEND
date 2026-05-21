@@ -2027,7 +2027,7 @@ const RegularizeRequestTable = () => {
   const getRequestCycleRange = () => {
     const now = dayjs()
     const cycleStart = now.subtract(1, 'month').date(26).startOf('day')
-    const cycleEnd = now.date(25).endOf('day')
+    const cycleEnd = now.endOf('day') // today inclusive
     return { cycleStart, cycleEnd }
   }
 
@@ -2366,7 +2366,7 @@ const RegularizeRequestTable = () => {
         // Pending tab keeps the cycle filter; Approved/Rejected show full history (server-filtered)
         const list = statusId === 4 ? filterByRequestCycle(raw) : raw
         setRegularizeList(list)
-        setTotalRecords(list.length)
+        setTotalRecords(response?.data?.totalRecords ?? list.length)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
