@@ -31,6 +31,7 @@ import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import * as XLSX from 'xlsx'
 import logo from '../../assets/images/V2-Logo-1.png'
+import vwwLogo from '../../assets/images/aquatica_logo_v2.png'
 import {
   viewSalarySlip,
   searchEmployeeDropdown,
@@ -354,41 +355,54 @@ const SalarySlips = ({
         .section-title { margin-top: 16px; font-weight: bold; font-size: 14px; }
       `}</style>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-        }}
-      >
-        <div style={{ maxWidth: '100px' }}>
-          <img
-            src={logo}
-            alt="Company Logo"
-            style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
-          />
-        </div>
-        <div>
-          <h5 className="text-right" style={{ margin: 0 }}>
-            <strong>V2 RETAIL LTD</strong>
-          </h5>
-          <p
-            className="text-right"
+      {(() => {
+        const isVww = (data?.locationName || '').trim().toUpperCase() === 'VISHAL WATER WORLD'
+        const headerLogo = isVww ? vwwLogo : logo
+        const companyName = isVww ? 'VISHAL WATER WORLD PRIVATE LIMITED' : 'V2 RETAIL LTD'
+        const addressLine1 = isVww
+          ? 'KOCHPUKUR, POST OFFICE HATGACHIA,'
+          : 'V2 Retail Limited, Incuzpace, 2nd Floor, 13, Sub. Major Laxmi Chand Road'
+        const addressLine2 = isVww
+          ? '24 PARGANAS (S), KOLKATA, PIN- 700156'
+          : 'Maruti Udyog, Sector 18, Gurgaon'
+        return (
+          <div
             style={{
-              maxWidth: '500px',
-              marginLeft: 'auto',
-              whiteSpace: 'normal',
-              wordWrap: 'break-word',
-              fontSize: 13,
-              lineHeight: 1.4,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
             }}
           >
-            V2 Retail Limited, Incuzpace, 2nd Floor, 13, Sub. Major Laxmi Chand Road
-            <br />
-            Maruti Udyog, Sector 18, Gurgaon
-          </p>
-        </div>
-      </div>
+            <div style={{ maxWidth: '100px' }}>
+              <img
+                src={headerLogo}
+                alt="Company Logo"
+                style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+            <div>
+              <h5 className="text-right" style={{ margin: 0 }}>
+                <strong>{companyName}</strong>
+              </h5>
+              <p
+                className="text-right"
+                style={{
+                  maxWidth: '500px',
+                  marginLeft: 'auto',
+                  whiteSpace: 'normal',
+                  wordWrap: 'break-word',
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                }}
+              >
+                {addressLine1}
+                <br />
+                {addressLine2}
+              </p>
+            </div>
+          </div>
+        )
+      })()}
 
       <p
         style={{

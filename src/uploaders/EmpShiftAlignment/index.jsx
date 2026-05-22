@@ -17,10 +17,11 @@ import {
   Divider,
   Empty,
 } from 'antd'
-import { ReloadOutlined, EditOutlined, UserOutlined } from '@ant-design/icons'
+import { ReloadOutlined, EditOutlined, UserOutlined, UploadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 
 import AssignmentShiftModal from './AssignmentShiftModal'
+import ShiftAlignmentUploader from '../ShiftAlignmentMaster/ShiftAlignmentUploader'
 
 import { getEmployeeShiftHistory, GetAllShifts, assignShift } from '../../services/Services'
 import axiosInstance from '../../services/axiosInstance'
@@ -39,6 +40,7 @@ const Index = () => {
   const [pageData, setPageData] = useState(null)
   const [shifts, setShifts] = useState([])
   const [modalOpen, setModalOpen] = useState(false)
+  const [uploaderOpen, setUploaderOpen] = useState(false)
 
   // ✅ Employee dropdown (API: /api/Employee/SearchEmployee?searchTerm=)
   const [employees, setEmployees] = useState([])
@@ -217,6 +219,17 @@ const Index = () => {
         return d.isValid() ? d.format('YYYY-MM-DD') : String(v)
       },
     },
+    {
+      title: 'Effective To',
+      dataIndex: 'effectiveTo',
+      key: 'effectiveTo',
+      width: 130,
+      render: (v) => {
+        if (!v || v === '-') return '-'
+        const d = dayjs(v)
+        return d.isValid() ? d.format('YYYY-MM-DD') : '-'
+      },
+    },
     { title: 'Shift', dataIndex: 'shiftName', key: 'shiftName', ellipsis: true, width: 180 },
     { title: 'Start', dataIndex: 'startTime', key: 'startTime', width: 110 },
     { title: 'End', dataIndex: 'endTime', key: 'endTime', width: 110 },
@@ -245,13 +258,26 @@ const Index = () => {
         return d.isValid() ? d.format('YYYY-MM-DD') : String(v)
       },
     },
-    { title: 'Assigned By', dataIndex: 'assignedBy', key: 'assignedBy', width: 130, ellipsis: true },
-    { title: 'Remarks', dataIndex: 'remarks', key: 'remarks', ellipsis: true },
+    {
+      title: 'Assigned By',
+      dataIndex: 'assignedBy',
+      key: 'assignedBy',
+      width: 200,
+      ellipsis: true,
+      render: (_, row) => {
+        const name = row?.assignedByName?.trim()
+        const ecode = row?.assignedByEcode?.trim()
+        if (name && ecode) return `${ecode} - ${name}`
+        return ecode || name || row?.assignedBy || '-'
+      },
+    },
+    { title: 'Remarks', dataIndex: 'remarks', key: 'remarks', width: 200, ellipsis: true },
   ]
 
   const historyData = shiftHistory.map((h, idx) => ({
     key: h?.historyId ?? h?.id ?? idx,
     effectiveFrom: h?.effectiveFrom ?? '-',
+    effectiveTo: h?.effectiveTo ?? '-',
     assignedOn: h?.assignedOn ?? '-',
     shiftStatus: h?.shiftStatus ?? '-',
     remarks: h?.remarks ?? '-',
@@ -259,6 +285,8 @@ const Index = () => {
     startTime: h?.startTime ?? h?.shiftDetails?.startTime ?? h?.shift?.startTime ?? '-',
     endTime: h?.endTime ?? h?.shiftDetails?.endTime ?? h?.shift?.endTime ?? '-',
     assignedBy: h?.assignedBy ?? h?.createdBy ?? '-',
+    assignedByEcode: h?.assignedByEcode ?? null,
+    assignedByName: h?.assignedByName ?? null,
   }))
 
   return (
@@ -284,6 +312,10 @@ const Index = () => {
             <Space>
               <Button icon={<ReloadOutlined />} onClick={() => loadPage()} disabled={loading}>
                 Refresh
+              </Button>
+
+              <Button icon={<UploadOutlined />} onClick={() => setUploaderOpen(true)}>
+                Bulk Upload
               </Button>
 
               <Button
@@ -396,7 +428,7 @@ const Index = () => {
                 </div>
               ),
             }}
-            scroll={{ x: 900 }}
+            scroll={{ x: 1400 }}
           />
         </Card>
       </Space>
@@ -410,6 +442,12 @@ const Index = () => {
         employeeId={effectiveEmployeeId}
         assignedBy={loggedInEcode}
         ecode={selectedEcode}
+      />
+
+      <ShiftAlignmentUploader
+        isVisible={uploaderOpen}
+        setIsVisible={setUploaderOpen}
+        refreshData={() => loadPage()}
       />
     </div>
   )

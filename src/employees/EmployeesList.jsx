@@ -3212,33 +3212,24 @@ const EmployeesList = () => {
   const keyOf = (v) => norm(v).toLowerCase()
   const getSt = (r) => (r?.stCode).toString().trim().toUpperCase()
 
-  const HUB_DC_CODES = useMemo(
-    () =>
-      new Set([
-        'DH24',
-        'DW01',
-        'DB03',
-        'DB05',
-        'DD04',
-        'DJ02',
-        'DK02',
-        'DM01',
-        'DN01',
-        'DN02',
-        'DO01',
-        'DO02',
-        'DP01',
-        'DR01',
-        'DU05',
-        'DU06',
-        'DU07',
-        'DW02',
-        'DX01',
-      ]),
-    [],
-  )
-
-  const isHubDcRow = useCallback((r) => HUB_DC_CODES.has(getSt(r)), [HUB_DC_CODES])
+  // HUB/DC detection via LocationName suffix patterns (HUB / RDC / DC as a delimited
+  // word). Avoids stale hardcoded STCode lists and the false-positive of city names
+  // that happen to contain "HUB" (e.g. DHUBRI, MADHUBANI).
+  const isHubDcRow = useCallback((r) => {
+    const n = (r?.locationName ?? '').toUpperCase().trim()
+    if (!n) return false
+    return (
+      n.endsWith('-HUB') ||
+      n.endsWith(' HUB') ||
+      n.includes('-HUB-') ||
+      n.endsWith('-RDC') ||
+      n.endsWith(' RDC') ||
+      n.includes('-RDC-') ||
+      n.endsWith('-DC') ||
+      n.endsWith(' DC') ||
+      n.includes('-DC-')
+    )
+  }, [])
 
   const toBool = (v) => {
     const s = String(v).trim().toLowerCase()
@@ -3507,8 +3498,16 @@ const EmployeesList = () => {
   }, [role])
 
   const subCardData = useMemo(() => {
-    return buildCardsFromRows(displayData)
-  }, [displayData])
+    const cards = buildCardsFromRows(displayData)
+    // Inactive tab is server-paginated so displayData is only the current page (~100 rows).
+    // The Total + Left cards should reflect the server-wide totalCount, not the page slice.
+    if (activeTab === 'inactive' && typeof totalCount === 'number' && totalCount > 0) {
+      return cards.map((c) =>
+        c.label === 'Total' || c.label === 'Left' ? { ...c, value: totalCount } : c,
+      )
+    }
+    return cards
+  }, [displayData, activeTab, totalCount])
 
   const fetchData = async () => {
     if (!ecode) return
@@ -3649,6 +3648,14 @@ const EmployeesList = () => {
       return () => clearTimeout(t)
     }
   }, [search, activeTab])
+
+  // Inactive tab is server-paginated: refetch on page/size change so paging works.
+  useEffect(() => {
+    if (activeTab !== 'inactive') return
+    const t = setTimeout(() => fetchInactiveData(), 100)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize])
 
   const prevTabRef = useRef(activeTab)
   useEffect(() => {
@@ -4466,7 +4473,7 @@ const EmployeesList = () => {
             pagination={{
               current: currentPage,
               position: ['bottomRight'],
-              total: displayData.length,
+              total: activeTab === 'inactive' ? totalCount : displayData.length,
               pageSize,
               showSizeChanger: true,
               pageSizeOptions: [10, 20, 50, 100],

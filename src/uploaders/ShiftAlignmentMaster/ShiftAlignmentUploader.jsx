@@ -72,10 +72,23 @@ export default function ShiftAlignmentUploader({ isVisible, setIsVisible, refres
     'General Shift',
     'Morning Shift',
     'Morning 2 Shift',
+    'Morning 3 Shift',
+    'Morning 4 Shift',
+    'Morning 5 Shift',
     'Afternoon Shift',
     'Evening Shift',
     'Night Shift',
     'Night Shift 2',
+    'Night Shift 3',
+    'Flexible Shift',
+  ]
+
+  const REQUIRED_COLUMNS = [
+    { name: 'Ecode', desc: 'Employee code, must exist in HRMS' },
+    { name: 'ShiftName', desc: 'One of the shift names listed below' },
+    { name: 'EffectiveFrom', desc: 'Date the alignment starts (YYYY-MM-DD)' },
+    { name: 'EffectiveTo', desc: 'Optional end date. Blank = open-ended' },
+    { name: 'Remarks', desc: 'Optional notes for the alignment (max 200 chars)' },
   ]
 
   return (
@@ -161,6 +174,17 @@ export default function ShiftAlignmentUploader({ isVisible, setIsVisible, refres
           <Text strong>Note:</Text>
           <Paragraph style={{ marginBottom: 6 }}>1. Only .xlsx files are supported.</Paragraph>
           <Paragraph style={{ marginBottom: 6 }}>2. Download the sample sheet above.</Paragraph>
+
+          <Paragraph style={{ marginBottom: 6 }}>
+            <Text strong>Required Columns:</Text>
+          </Paragraph>
+          <ul style={{ paddingLeft: 18, margin: 0, color: '#6c6c6cff', marginBottom: 12 }}>
+            {REQUIRED_COLUMNS.map((c) => (
+              <li key={c.name}>
+                <Text strong>{c.name}</Text> — {c.desc}
+              </li>
+            ))}
+          </ul>
 
           <Paragraph style={{ marginBottom: 6 }}>
             <Text strong>Shift Name Values:</Text>

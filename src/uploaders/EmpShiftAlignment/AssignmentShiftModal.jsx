@@ -43,6 +43,7 @@ const AssignmentShiftModal = ({
       form.setFieldsValue({
         shiftId: undefined,
         effectiveFrom: dayjs(), // default today
+        effectiveTo: null,
         remarks: '',
       })
     }
@@ -52,14 +53,18 @@ const AssignmentShiftModal = ({
     try {
       const values = await form.validateFields()
 
-      const effectiveDate = values?.effectiveFrom
-        ? dayjs(values.effectiveFrom).format('YYYY-MM-DD') // ✅ date only
+      const effectiveFromDate = values?.effectiveFrom
+        ? dayjs(values.effectiveFrom).format('YYYY-MM-DD')
+        : null
+      const effectiveToDate = values?.effectiveTo
+        ? dayjs(values.effectiveTo).format('YYYY-MM-DD')
         : null
 
       const payload = {
         employeeId,
-        shiftId: values?.shiftId, // string shiftID
-        effectiveFrom: effectiveDate, // ✅ send only date
+        shiftId: values?.shiftId,
+        effectiveFrom: effectiveFromDate,
+        effectiveTo: effectiveToDate,
         assignedBy,
         remarks: values?.remarks,
       }
@@ -123,13 +128,34 @@ const AssignmentShiftModal = ({
             name="effectiveFrom"
             rules={[{ required: true, message: 'Please select effective date' }]}
           >
-            {/* <DatePicker style={{ width: '100%' }} format="DD MMM YYYY" /> */}
             <DatePicker
               style={{ width: '100%' }}
               format="DD MMM YYYY"
-              // disabledDate={(current) => {
-              //   return current && current <= dayjs().endOf('day')
-              // }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Effective to"
+            name="effectiveTo"
+            dependencies={['effectiveFrom']}
+            rules={[
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value) return Promise.resolve()
+                  const from = getFieldValue('effectiveFrom')
+                  if (from && dayjs(value).isBefore(dayjs(from), 'day')) {
+                    return Promise.reject(new Error('Effective to must be on or after Effective from'))
+                  }
+                  return Promise.resolve()
+                },
+              }),
+            ]}
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="DD MMM YYYY"
+              placeholder="Leave blank for open-ended"
+              allowClear
             />
           </Form.Item>
 
