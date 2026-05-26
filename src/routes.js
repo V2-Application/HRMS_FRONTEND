@@ -63,6 +63,8 @@ const ApplicantList = React.lazy(() => import('../src/components/applicant/Appli
 const AddNewEmploye = React.lazy(() => import('../src/employees/AddNewEmployee'))
 const Interviews = React.lazy(() => import('./views/pages/Interviewer/InterviewsList'))
 const StoreLocations = React.lazy(() => import('./views/pages/Masters/SeatMaster'))
+const DepartmentMaster = React.lazy(() => import('./views/pages/Masters/DepartmentMaster'))
+const DesignationMaster = React.lazy(() => import('./views/pages/Masters/DesignationMaster'))
 const AddApplicant = React.lazy(() => import('./components/applicant/AddApplicantInner'))
 // const AddApplicant = React.lazy(() => import('./employees/ApplicationForm'))
 const record_resignation = React.lazy(() => import('../src/components/sepration/RecordResignation'))
@@ -563,14 +565,14 @@ const routes = [
   },
   {
     path: '/master/designations',
-    name: 'Masters',
-    element: MasterData,
+    name: 'Designation Master',
+    element: DesignationMaster,
     roles: ['Audit', 'HR', 'Employee', 'ClusterManager', 'StoreHR', 'SuperAdmin', 'Master'],
   },
   {
     path: '/master/departments',
-    name: 'Masters',
-    element: MasterData,
+    name: 'Department Master',
+    element: DepartmentMaster,
     roles: ['Audit', 'HR', 'Employee', 'ClusterManager', 'StoreHR', 'SuperAdmin', 'Master'],
   },
   {

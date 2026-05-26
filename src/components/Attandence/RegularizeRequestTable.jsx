@@ -2188,15 +2188,17 @@ const RegularizeRequestTable = () => {
                     View
                   </Button>
                 )}
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<StepForwardOutlined />}
-                  onClick={() => handleInitiateClick(record)}
-                  style={{ fontSize: 11 }}
-                >
-                  Action
-                </Button>
+                {activekey === '1' && (
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<StepForwardOutlined />}
+                    onClick={() => handleInitiateClick(record)}
+                    style={{ fontSize: 11 }}
+                  >
+                    Action
+                  </Button>
+                )}
                 {record?.attachment && (
                   <a href={record.attachment} target="_blank" rel="noopener noreferrer">
                     <Button size="small" icon={<LinkOutlined />} style={{ fontSize: 11 }}>
@@ -2709,7 +2711,9 @@ const RegularizeRequestTable = () => {
             </Tooltip>
           )}
 
-          {actionsMap?.action?.actionStatus && (
+          {/* Action button only on the Pending tab. Approved / Rejected / History
+              tabs show the row state but no action — those are terminal for this user. */}
+          {activekey === '1' && (
             <Tooltip placement="top" title={'Action'}>
               <StepForwardOutlined
                 style={{ fontSize: 18 }}

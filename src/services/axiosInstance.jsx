@@ -21,14 +21,32 @@ axiosInstance.interceptors.request.use((config) => {
   return config
 })
 
+// Paths the user can land on without being logged in. A 401 from a background
+// API call on these pages must NOT kick the user back to /login (otherwise the
+// public applicant/candidate/interview/register forms become unusable —
+// dropdown fetches that require auth return 401 and the user gets bounced).
+const PUBLIC_FORM_PATHS = [
+  '/login',
+  '/recover_password',
+  '/change_password',
+  '/register',
+  '/appform',
+  '/candidate-form',
+  '/interview-form',
+  '/applicant-form',
+]
+const isOnPublicFormPath = () => {
+  const path = window.location.pathname || ''
+  return PUBLIC_FORM_PATHS.some((p) => path === p || path.startsWith(p + '/'))
+}
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('401 error-------------->', error)
     if (error.response?.status === 401) {
-      localStorage.removeItem('data')
-      const currentPath = window.location.pathname
-      if (currentPath !== '/login') {
+      if (!isOnPublicFormPath()) {
+        localStorage.removeItem('data')
         window.location.href = '/login'
       }
     }

@@ -3089,3 +3089,89 @@ export const checkECodeExists = async (payload) => {
     throw error
   }
 }
+
+// ===== Department master =====
+export const getAllDepartments = async ({ onlyInactive = false, searchTerm = '' } = {}) => {
+  try {
+    const response = await axiosInstance.get('/api/Department/All', {
+      params: { onlyInactive, searchTerm: searchTerm || undefined },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const upsertDepartment = async (payload) => {
+  try {
+    const response = await axiosInstance.post('/api/Department/Upsert', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const toggleDepartmentActive = async (payload) => {
+  try {
+    const response = await axiosInstance.put('/api/Department/ToggleActive', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const uploadDepartmentsExcel = async (file) => {
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const response = await axiosInstance.post('/api/Department/Upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+// ===== Designation master =====
+export const getAllDesignations = async ({ onlyInactive = false, searchTerm = '' } = {}) => {
+  try {
+    const response = await axiosInstance.get('/api/Designation/All', {
+      params: { onlyInactive, searchTerm: searchTerm || undefined },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const upsertDesignation = async (payload) => {
+  try {
+    const response = await axiosInstance.post('/api/Designation/Upsert', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const toggleDesignationActive = async (payload) => {
+  try {
+    const response = await axiosInstance.put('/api/Designation/ToggleActive', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const uploadDesignationsExcel = async (file) => {
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const response = await axiosInstance.post('/api/Designation/Upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}

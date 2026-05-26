@@ -108,7 +108,9 @@ const App = () => {
               <Route path="/interview-form" element={<InterviewForm />} />
               <Route path="/interview-form/:id" element={<InterviewForm />} />
               <Route path="/applicant-form" element={<ApplicantForm />} />
-              <Route path="/appform/:designationId?/:departmentId?" element={<OuterApplicantForm />} />
+              <Route path="/appform" element={<OuterApplicantForm />} />
+              <Route path="/appform/:designationId" element={<OuterApplicantForm />} />
+              <Route path="/appform/:designationId/:departmentId" element={<OuterApplicantForm />} />
               {/* <Route path="/candidateform" element={<OuterCandidateForm />} /> */}
               <Route path="/candidate/add_new" element={<EmployeeAddNew />} />
 

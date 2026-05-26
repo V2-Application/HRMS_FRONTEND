@@ -455,6 +455,23 @@ const CandidateList = () => {
         let updatedData = response?.data?.data?.candidates || []
         let totalRows = response?.data?.data?.totalRecords || 0
 
+        // Any Cluster / HR / LP / Audit role variant — match permissively so we catch
+        // ClusterManager, Cluster Manager, HR, NapsHR, StoreHR, HR Manager, LP, LP Manager,
+        // Audit, Auditor, etc. Backend ESVM logic already filters correctly for these
+        // roles; the BgtSeatMaster filter below double-filters and hides everything.
+        const r = (role || '').toString().trim().toLowerCase()
+        const isReviewerRole =
+          r.includes('cluster') ||
+          r.includes('hr') ||
+          r.includes('audit') ||
+          r === 'lp' ||
+          r.startsWith('lp ')
+        if (isReviewerRole) {
+          setcandidateListData(updatedData)
+          setTotalRecords(totalRows)
+          return
+        }
+
         const response1 = await filterBgtSeatMaster({ eCode: ecode })
 
         const allowedList = response1?.data?.data?.allowedStores ?? []
