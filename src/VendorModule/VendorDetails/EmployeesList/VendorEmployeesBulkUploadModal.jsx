@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Modal, Button, Upload, Typography, message, Row, Col, Grid } from 'antd'
+import { Modal, Button, Upload, Typography, message, Row, Col, Grid, Alert, Table } from 'antd'
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons'
+import { Link } from 'react-router-dom'
 import axiosInstance from '../../../services/axiosInstance'
 import { HardDriveUpload } from 'lucide-react'
 import {
@@ -28,9 +29,21 @@ export default function VendorEmployeesBulkUploadModal({ contractorCode, refresh
   const [isDownloadingMasters, setIsDownloadingMasters] = useState(false)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [duplicateInfo, setDuplicateInfo] = useState(null)
 
   const showModal = () => {
     setIsModalOpen(true)
+  }
+
+  // Single-row fallback: parses backend messages of the form:
+  //   "Row 8: Aadhaar number already exists for Ecode E1234: 123456789012"
+  // The pre-scan path returns a structured list in response.data.duplicates instead.
+  const parseAadhaarDuplicate = (msg) => {
+    if (!msg) return null
+    const re = /(?:Row\s+(\d+):\s+)?Aadhaar number already exists for Ecode\s+([^:]+?):\s*(\S+)/i
+    const m = msg.match(re)
+    if (!m) return null
+    return [{ row: m[1] || null, existingEcode: m[2].trim(), aadhaar: m[3].trim() }]
   }
 
   const handleCancel = () => {
@@ -83,10 +96,21 @@ export default function VendorEmployeesBulkUploadModal({ contractorCode, refresh
         refreshData()
       }
     } catch (err) {
-      let errMsg = err?.response?.data?.message || 'Error uploading file.'
-      errMsg += '\n' + err?.response?.data?.error
-      setUploadError(errMsg)
-      message.error(err?.response?.data?.message || 'Upload failed!')
+      const backendMsg = err?.response?.data?.message || ''
+      const dupsFromPayload = err?.response?.data?.data?.duplicates
+      const dups =
+        Array.isArray(dupsFromPayload) && dupsFromPayload.length > 0
+          ? dupsFromPayload
+          : parseAadhaarDuplicate(backendMsg)
+
+      if (dups && dups.length > 0) {
+        setDuplicateInfo(dups)
+      } else {
+        let errMsg = backendMsg || 'Error uploading file.'
+        if (err?.response?.data?.error) errMsg += '\n' + err.response.data.error
+        setUploadError(errMsg)
+        message.error(backendMsg || 'Upload failed!')
+      }
     } finally {
       setIsUploading(false)
       setFileList([])
@@ -305,6 +329,92 @@ export default function VendorEmployeesBulkUploadModal({ contractorCode, refresh
             </Row>
           </Col>
         </Row>
+      </Modal>
+
+      <Modal
+        open={!!duplicateInfo}
+        onCancel={() => setDuplicateInfo(null)}
+        centered
+        width={isMobile ? '100%' : 1000}
+        title="Duplicate Aadhaar Numbers"
+        footer={[
+          <Button
+            key="download"
+            icon={<DownloadOutlined />}
+            onClick={() => {
+              if (!duplicateInfo || duplicateInfo.length === 0) return
+              const rows = duplicateInfo.map((d) => ({
+                Row: d.row ?? '',
+                Aadhaar: d.aadhaar ?? '',
+                'Excel Name': d.excelName ?? '',
+                'Excel Mobile': d.excelMobile ?? '',
+                'Excel Ecode': d.excelEcode ?? '',
+                'Existing Ecode': d.existingEcode ?? '',
+                'Existing Name': d.existingName ?? '',
+                'Existing Mobile': d.existingMobile ?? '',
+                'Existing Contractor': d.existingContractorCode ?? '',
+              }))
+              const ws = XLSX.utils.json_to_sheet(rows)
+              const wb = XLSX.utils.book_new()
+              XLSX.utils.book_append_sheet(wb, ws, 'Aadhaar Duplicates')
+              XLSX.writeFile(wb, `AadhaarDuplicates_${new Date().toISOString().slice(0, 10)}.xlsx`)
+            }}
+          >
+            Download Excel
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setDuplicateInfo(null)}>
+            Close
+          </Button>,
+        ]}
+      >
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={
+            duplicateInfo && duplicateInfo.length > 1
+              ? `${duplicateInfo.length} Aadhaar numbers in your sheet are already linked to other employees.`
+              : 'This Aadhaar number is already linked to another employee in the database.'
+          }
+        />
+        <Table
+          size="small"
+          rowKey={(r, i) => `${r.aadhaar}-${r.row ?? i}`}
+          dataSource={duplicateInfo || []}
+          pagination={false}
+          scroll={{ x: 'max-content', y: 360 }}
+          columns={[
+            { title: 'Row', dataIndex: 'row', width: 70, render: (v) => v ?? '—' },
+            { title: 'Aadhaar', dataIndex: 'aadhaar', width: 140 },
+            { title: 'Excel Name', dataIndex: 'excelName', render: (v) => v || '—' },
+            { title: 'Excel Mobile', dataIndex: 'excelMobile', width: 120, render: (v) => v || '—' },
+            {
+              title: 'Existing Ecode',
+              dataIndex: 'existingEcode',
+              width: 140,
+              render: (ecode, r) =>
+                ecode && r.existingContractorCode ? (
+                  <Link
+                    to={`/vendor/manpower/master-form/view/${r.existingContractorCode}/${ecode}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {ecode}
+                  </Link>
+                ) : (
+                  ecode || '—'
+                ),
+            },
+            { title: 'Existing Name', dataIndex: 'existingName', render: (v) => v || '—' },
+            { title: 'Existing Mobile', dataIndex: 'existingMobile', width: 130, render: (v) => v || '—' },
+            {
+              title: 'Existing Contractor',
+              dataIndex: 'existingContractorCode',
+              width: 150,
+              render: (v) => v || '—',
+            },
+          ]}
+        />
       </Modal>
     </>
   )

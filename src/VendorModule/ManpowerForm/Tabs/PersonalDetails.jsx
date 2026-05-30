@@ -139,7 +139,6 @@ const PersonalDetails = ({ form, isActive, onNext, onPrev }) => {
           label="Mobile Number"
           name={MOBILE_NUMBER}
           rules={[
-            ...reqRule(MOBILE_NUMBER, 'Mobile no. is required'),
             { pattern: /^[0-9]+$/, message: 'Mobile number must contain digits only' },
             { len: 10, message: 'Mobile number must be exactly 10 digits' },
           ]}
