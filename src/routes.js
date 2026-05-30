@@ -267,6 +267,8 @@ const AddWeeklyOff = React.lazy(() => import('./components/Attandence/WeeklyOff'
 const BvgForm = React.lazy(() => import('./BGV/BvgForm'));
 const BvgCandidateList =  React.lazy(() => import('./BGV/BvgCandidateList'));
 
+const MedicalCardAdmin = React.lazy(() => import('./MedicalCard'))
+
 const routes = [
   {
     path: '/',
@@ -1680,6 +1682,11 @@ const routes = [
     path: '/attendance-add-weekly-off',
     name: 'Add Weekly-Off',
     element: AddWeeklyOff,
+  },
+  {
+    path: '/medical-card',
+    name: 'Medical Cards',
+    element: MedicalCardAdmin,
   },
 ]
 

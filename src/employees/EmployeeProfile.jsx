@@ -48,6 +48,7 @@ import {
 } from '../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../components/payroll/SalarySlips'
+import MedicalCardAdmin from '../MedicalCard'
 const { Text } = Typography
 import LabelWithPhotoButtons from './LabelWithPhotoButtons'
 import axiosInstance from '../services/axiosInstance'
@@ -926,6 +927,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
       hasSample: true,
       sampleFile: 'form_2-EPF_and_EPS_nomination_form.doc',
     },
+    { value: 'MedicalCard', lable: 'Medical Card Attachment', maxCount: 1 },
   ]
 
   const attachmentLabelsMapFrontend = [
@@ -1181,6 +1183,32 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
 
     // ✅ within limit → persist new fileList
     setFileLists(nextFileLists)
+
+    // Medical Card flow is special: tblEmployee.MedicalCardUrl is updated
+    // via a dedicated endpoint (the bulk attachment save path doesn't carry
+    // this column). Upload immediately when a file is dropped here.
+    if (documentType === 'MedicalCard' && file?.status !== 'removed' && file?.originFileObj) {
+      if (!selectedEmpCode) {
+        message.error('Save the employee first, then attach a medical card.')
+        return
+      }
+      try {
+        dispatch(set({ loading: true }))
+        const fd = new FormData()
+        fd.append('file', file.originFileObj)
+        await axiosInstance.post(
+          `/api/MedicalCard/upload/${encodeURIComponent(selectedEmpCode)}`,
+          fd,
+          { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
+        message.success('Medical card uploaded.')
+      } catch (err) {
+        message.error(err?.response?.data?.message || 'Medical card upload failed.')
+      } finally {
+        dispatch(set({ loading: false }))
+      }
+      return
+    }
 
     // OCR-related mapping
     let newDocType =
@@ -1442,6 +1470,23 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
       }
 
       const updatedData = addUrlToDocuments(groupedDocuments)
+
+      // Medical Card is stored on tblEmployee.MedicalCardUrl (a single string),
+      // not in the candidate documents list, so the loop above never sees it.
+      // Hydrate the MedicalCard slot manually from apiData.medicalCardUrl.
+      if (apiData?.medicalCardUrl) {
+        const mcBase = import.meta.env.VITE_API_URL
+        const mcRel = apiData.medicalCardUrl.replace(/\\/g, '/').replace(/^\//, '')
+        const mcUrl = mcBase + mcRel
+        updatedData['MedicalCard'] = [
+          {
+            uid: 'mc-' + mcRel,
+            name: mcRel.split('/').pop(),
+            status: 'done',
+            url: mcUrl,
+          },
+        ]
+      }
 
       setFileLists(updatedData)
 
@@ -4324,6 +4369,17 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                 />
               </Tabs.TabPane>
             )}
+
+            <Tabs.TabPane
+              tab="Medical Card"
+              key="8"
+              className={theme === 'dark' ? 'dark-theme' : ''}
+            >
+              <MedicalCardAdmin
+                ecodeProp={selectedEmpCode}
+                key={selectedEmpCode || 'no-ecode'}
+              />
+            </Tabs.TabPane>
           </Tabs>
           <Row justify="end" style={{ marginTop: 20, gap: '0.6rem' }}>
             {pathname.includes('/employee/update') && (
