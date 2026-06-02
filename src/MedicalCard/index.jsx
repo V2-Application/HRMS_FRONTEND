@@ -12,8 +12,17 @@ import {
   Popconfirm,
   Switch,
   Typography,
+  Upload,
+  Alert,
 } from 'antd'
-import { ReloadOutlined, SearchOutlined, EditOutlined, FilePdfOutlined } from '@ant-design/icons'
+import {
+  ReloadOutlined,
+  SearchOutlined,
+  EditOutlined,
+  FilePdfOutlined,
+  UploadOutlined,
+  CloudUploadOutlined,
+} from '@ant-design/icons'
 import axiosInstance from '../services/axiosInstance'
 
 const { Title, Text } = Typography
@@ -43,6 +52,43 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
   const [reparseAllLoading, setReparseAllLoading] = useState(false)
   const [dryRun, setDryRun] = useState(true)
   const [lastReparse, setLastReparse] = useState(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkFiles, setBulkFiles] = useState([])
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkResult, setBulkResult] = useState(null)
+  const [bulkSkipReparse, setBulkSkipReparse] = useState(true)
+
+  const submitBulkUpload = async () => {
+    if (bulkFiles.length === 0) {
+      message.warning('Pick one or more PDFs (or a ZIP) first.')
+      return
+    }
+    setBulkLoading(true)
+    setBulkResult(null)
+    try {
+      const fd = new FormData()
+      bulkFiles.forEach((f) => fd.append('files', f.originFileObj || f))
+      const res = await axiosInstance.post(
+        `/api/MedicalCard/bulk-upload?skipReparse=${bulkSkipReparse}`,
+        fd,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          // Big imports can take many minutes; disable axios timeout for this call.
+          timeout: 0,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        },
+      )
+      setBulkResult(res?.data?.result || null)
+      message.success(
+        `Uploaded ${res?.data?.result?.savedCount ?? 0} / ${res?.data?.result?.totalFiles ?? 0} file(s).`,
+      )
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Bulk upload failed.')
+    } finally {
+      setBulkLoading(false)
+    }
+  }
 
   const fetchByEcode = async (codeArg) => {
     const code = (codeArg ?? ecode).trim()
@@ -248,6 +294,17 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
                 {dryRun ? 'Dry-run all' : 'Re-parse all'}
               </Button>
             </Popconfirm>
+            <Button
+              type="primary"
+              icon={<CloudUploadOutlined />}
+              onClick={() => {
+                setBulkFiles([])
+                setBulkResult(null)
+                setBulkOpen(true)
+              }}
+            >
+              Bulk Upload PDFs
+            </Button>
             {lastReparse && (
               <Space size="small" wrap>
                 <Tag color="blue">Processed: {lastReparse.employeesProcessed}</Tag>
@@ -301,6 +358,131 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
           value={editing?.sumAssured ?? null}
           onChange={(v) => setEditing((prev) => (prev ? { ...prev, sumAssured: v } : prev))}
         />
+      </Modal>
+
+      <Modal
+        open={bulkOpen}
+        title="Bulk Upload Medical Card PDFs"
+        width={720}
+        onCancel={() => {
+          if (bulkLoading) return
+          setBulkOpen(false)
+        }}
+        footer={[
+          <Button key="close" onClick={() => setBulkOpen(false)} disabled={bulkLoading}>
+            Close
+          </Button>,
+          <Button
+            key="upload"
+            type="primary"
+            icon={<UploadOutlined />}
+            loading={bulkLoading}
+            onClick={submitBulkUpload}
+            disabled={bulkFiles.length === 0}
+          >
+            Upload {bulkFiles.length > 0 ? `(${bulkFiles.length})` : ''}
+          </Button>,
+        ]}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message="Drop loose PDFs or a ZIP containing PDFs. Each PDF's filename (without extension) must be the employee Ecode — e.g. V00362.pdf → V00362."
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Text strong>Skip parse phase</Text>
+          <Switch
+            checked={bulkSkipReparse}
+            onChange={setBulkSkipReparse}
+            size="small"
+            disabled={bulkLoading}
+          />
+          <Text type="secondary" style={{ fontSize: 12, flex: '1 1 240px' }}>
+            {bulkSkipReparse
+              ? 'Files saved + URLs updated. Click Re-parse all afterwards. Recommended for 1000+ files.'
+              : 'Files parsed inline. Slower; OK for small batches.'}
+          </Text>
+        </div>
+
+        <style>{`
+          .mc-bulk-dragger,
+          .mc-bulk-dragger .ant-upload-wrapper,
+          .mc-bulk-dragger .ant-upload,
+          .mc-bulk-dragger .ant-upload-drag {
+            width: 100% !important;
+            display: block !important;
+            box-sizing: border-box;
+          }
+          .mc-bulk-dragger .ant-upload-drag {
+            padding: 20px 16px;
+          }
+        `}</style>
+        <div className="mc-bulk-dragger">
+          <Upload.Dragger
+            multiple
+            accept=".pdf,.zip,application/pdf,application/zip,application/x-zip-compressed"
+            beforeUpload={() => false}
+            fileList={bulkFiles}
+            onChange={({ fileList }) => setBulkFiles(fileList)}
+            onRemove={(f) => setBulkFiles((prev) => prev.filter((x) => x.uid !== f.uid))}
+          >
+            <p className="ant-upload-drag-icon" style={{ marginBottom: 8 }}>
+              <CloudUploadOutlined />
+            </p>
+            <p className="ant-upload-text" style={{ margin: 0 }}>
+              Click or drag PDFs or a ZIP here
+            </p>
+            <p
+              className="ant-upload-hint"
+              style={{ marginTop: 4, paddingInline: 16, fontSize: 12 }}
+            >
+              PDF filename = Ecode. Unknown ecodes are skipped, not failed. ZIPs are unpacked server-side.
+            </p>
+          </Upload.Dragger>
+        </div>
+
+        {bulkResult && (
+          <div style={{ marginTop: 16 }}>
+            <Space wrap style={{ marginBottom: 8 }}>
+              <Tag color="blue">Total: {bulkResult.totalFiles}</Tag>
+              <Tag color="green">Saved: {bulkResult.savedCount}</Tag>
+              <Tag color="orange">Skipped: {bulkResult.skippedCount}</Tag>
+              <Tag color="purple">Cards parsed: {bulkResult.cardsParsed}</Tag>
+              {bulkResult.errors?.length > 0 && (
+                <Tag color="red">Errors: {bulkResult.errors.length}</Tag>
+              )}
+            </Space>
+            <Table
+              size="small"
+              rowKey={(r, i) => `${r.fileName}-${i}`}
+              dataSource={bulkResult.items || []}
+              pagination={{ pageSize: 8 }}
+              scroll={{ y: 240 }}
+              columns={[
+                { title: 'File', dataIndex: 'fileName' },
+                { title: 'Ecode', dataIndex: 'ecode', width: 120, render: (v) => v || '—' },
+                {
+                  title: 'Status',
+                  dataIndex: 'saved',
+                  width: 100,
+                  render: (v) => (v ? <Tag color="green">Saved</Tag> : <Tag color="orange">Skipped</Tag>),
+                },
+                { title: 'Note', dataIndex: 'error', render: (v) => v || '' },
+              ]}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   )

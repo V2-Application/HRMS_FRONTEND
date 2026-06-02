@@ -46,6 +46,7 @@ import {
 } from '../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../components/payroll/SalarySlips'
+import MedicalCardAdmin from '../MedicalCard'
 import axiosInstance from '../services/axiosInstance'
 import axios from 'axios'
 const { Title, Text } = Typography
@@ -514,6 +515,8 @@ const EmployeeProfile = () => {
     { value: 'Education', lable: 'Education Attachment', maxCount: 10 },
     { value: 'Resume', lable: 'Resume Attachment', maxCount: 1 },
     { value: 'OfferLetter', lable: 'Current Offer Letter', maxCount: 1 },
+    { value: 'MedicalCard', lable: 'Medical Card Attachment', maxCount: 1 },
+    { value: 'UanCard', lable: 'UAN Card Attachment', maxCount: 1 },
   ]
 
   const attachmentKeyToFlagMap = {
@@ -773,7 +776,12 @@ const EmployeeProfile = () => {
         placeOfBirth: apiData?.placeOfBirth || '',
         PFApplicable: apiData?.pfApplicable || true,
         ESICApplicable: apiData?.esicApplicable || false,
-        bonusApplicable: apiData?.bonusApplicable || false,
+        bonusApplicable:
+          apiData?.bonusApplicable === true || apiData?.bonusApplicable === 'Ctc'
+            ? 'Ctc'
+            : apiData?.bonusApplicable === 'Stat'
+              ? 'Stat'
+              : 'No',
         CompanyId: apiData?.companyId || '',
         reportingHeadId: apiData?.reportingHeadId,
         isActive: apiData?.isActive,
@@ -824,6 +832,22 @@ const EmployeeProfile = () => {
       }
 
       const updatedData = addUrlToDocuments(groupedDocuments)
+
+      // Medical Card is stored on tblEmployee.MedicalCardUrl (a single string),
+      // not in the candidate documents list — hydrate the slot from apiData.
+      if (apiData?.medicalCardUrl) {
+        const mcBase = import.meta.env.VITE_API_URL
+        const mcRel = apiData.medicalCardUrl.replace(/\\/g, '/').replace(/^\//, '')
+        updatedData['MedicalCard'] = [
+          {
+            uid: 'mc-' + mcRel,
+            name: mcRel.split('/').pop(),
+            status: 'done',
+            url: mcBase + mcRel,
+          },
+        ]
+      }
+
       setFileLists(updatedData)
 
       const formattedDatas = { ...new_res }
@@ -1782,7 +1806,12 @@ const EmployeeProfile = () => {
                   <Form.Item labelCol={{ span: 24 }} label="Bonus Applicable">
                     <Typography.Text>
                       &nbsp;&nbsp;
-                      {form.getFieldValue(['user', 'bonusApplicable']) ? 'Yes' : 'No'}
+                      {(() => {
+                        const v = form.getFieldValue(['user', 'bonusApplicable'])
+                        if (v === 'Ctc') return 'Ctc'
+                        if (v === 'Stat') return 'Stat'
+                        return 'No'
+                      })()}
                     </Typography.Text>
                   </Form.Item>
                 </Col>
@@ -2133,6 +2162,17 @@ const EmployeeProfile = () => {
                 </div>
               </Tabs.TabPane>
             )}
+
+            <Tabs.TabPane
+              tab="Medical Card"
+              key="8"
+              className={theme === 'dark' ? 'dark-theme' : ''}
+            >
+              <MedicalCardAdmin
+                ecodeProp={selectedEmpCode}
+                key={selectedEmpCode || 'no-ecode'}
+              />
+            </Tabs.TabPane>
           </Tabs>
 
           <Row justify="end" style={{ marginTop: 20, gap: '0.6rem' }}>

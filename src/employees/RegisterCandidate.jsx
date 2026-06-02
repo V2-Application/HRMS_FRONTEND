@@ -143,6 +143,7 @@ const RegisterCandidate = () => {
     { value: 'BankStatement', lable: 'Bank Statement', maxCount: 3 },
     { value: 'PrevOfferLetter', lable: 'Prv Company Offer Letter', maxCount: 1 },
     { value: 'Education', lable: 'Education Attachment', maxCount: 10 },
+    { value: 'UanCard', lable: 'UAN Card Attachment', maxCount: 1 },
   ]
 
   const attachmentKeyToFlagMap = {
@@ -502,6 +503,7 @@ const RegisterCandidate = () => {
       PrevOfferLetter: 'PrevOfferLetter',
       Education: 'EducationAttachment',
       PassportPhoto: 'PassportPhoto',
+      UanCard: 'UanCardAttachment',
     }
 
     // for (const category in fileLists) {

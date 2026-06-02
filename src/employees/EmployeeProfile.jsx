@@ -928,6 +928,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
       sampleFile: 'form_2-EPF_and_EPS_nomination_form.doc',
     },
     { value: 'MedicalCard', lable: 'Medical Card Attachment', maxCount: 1 },
+    { value: 'UanCard', lable: 'UAN Card Attachment', maxCount: 1 },
   ]
 
   const attachmentLabelsMapFrontend = [
@@ -942,6 +943,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
     { value: 'Education', lable: 'Education Attachment', maxCount: 10 },
     { value: 'Resume', lable: 'Resume Attachment', maxCount: 1 },
     { value: 'OfferLetter', lable: 'Current Offer Letter', maxCount: 1 },
+    { value: 'UanCard', lable: 'UAN Card Attachment', maxCount: 1 },
   ]
 
   // frontend key -> backend documentType
@@ -958,6 +960,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
     Resume: 'Resume',
     OfferLetter: 'OfferLetter',
     PassportPhoto: 'PassportPhoto',
+    UanCard: 'UanCard',
   }
 
   // backend documentType -> preferred frontend key(s) - used in reverse mapping
@@ -973,6 +976,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
     Resume: ['Resume'],
     OfferLetter: ['OfferLetter'],
     PassportPhoto: ['PassportPhoto'],
+    UanCard: ['UanCard'],
   }
 
   const attachmentKeyToFlagMap = {
@@ -1608,6 +1612,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
     Form11: 'Form11Attachment',
     Form2: 'Form2Attachment',
     GratuityForm: 'GratuityFormAttachment',
+    UanCard: 'UanCardAttachment',
   }
 
   const getImageUrl = (file) => {
