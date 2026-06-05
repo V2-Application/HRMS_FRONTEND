@@ -3133,6 +3133,62 @@ export const uploadDepartmentsExcel = async (file) => {
   }
 }
 
+// ===== Sub-Department master (3-level hierarchy under a department) =====
+// Children at one level under one parent (department for L1, sub-dept for L2/L3).
+export const getSubDepartments = async ({
+  departmentId,
+  parentSubDepartmentId = null,
+  depthLevel = 1,
+  onlyInactive = false,
+  searchTerm = '',
+} = {}) => {
+  try {
+    const response = await axiosInstance.get('/api/SubDepartment/All', {
+      params: {
+        departmentId,
+        parentSubDepartmentId: parentSubDepartmentId ?? undefined,
+        depthLevel,
+        onlyInactive,
+        searchTerm: searchTerm || undefined,
+      },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const upsertSubDepartment = async (payload) => {
+  try {
+    const response = await axiosInstance.post('/api/SubDepartment/Upsert', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const toggleSubDepartmentActive = async (payload) => {
+  try {
+    const response = await axiosInstance.put('/api/SubDepartment/ToggleActive', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const uploadSubDepartmentsExcel = async (file) => {
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const response = await axiosInstance.post('/api/SubDepartment/Upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
 // ===== Designation master =====
 export const getAllDesignations = async ({ onlyInactive = false, searchTerm = '' } = {}) => {
   try {

@@ -46,6 +46,8 @@ import {
 } from '../../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../payroll/SalarySlips'
+import SubDepartmentCascade from '../shared/SubDepartmentCascade'
+import MedicalCardAdmin from '../../MedicalCard'
 const { Text } = Typography
 import LabelWithPhotoButtons from '../../employees/LabelWithPhotoButtons'
 import axiosInstance from '../../services/axiosInstance'
@@ -919,6 +921,7 @@ const MyProfile = () => {
     { value: 'Education', lable: 'Education Attachment', maxCount: 10 },
     { value: 'Resume', lable: 'Resume Attachment', maxCount: 1 },
     { value: 'OfferLetter', lable: 'Current Offer Letter', maxCount: 1 },
+    { value: 'MedicalCard', lable: 'Medical Card Attachment', maxCount: 1 },
     // { value: 'OtherAttachment', lable: 'Others', maxCount: 3 },
   ]
 
@@ -1214,6 +1217,9 @@ const MyProfile = () => {
         reference: apiData?.reference || '',
         designation: parseInt(apiData?.designation) || '',
         department: parseInt(apiData?.department) || '',
+        subDepartmentId1: apiData?.subDepartmentId1 ?? undefined,
+        subDepartmentId2: apiData?.subDepartmentId2 ?? undefined,
+        subDepartmentId3: apiData?.subDepartmentId3 ?? undefined,
         firstName: apiData?.firstName || '',
         middleName: apiData?.middleName || '',
         lastName: apiData?.lastName || '',
@@ -1309,6 +1315,21 @@ const MyProfile = () => {
       }
 
       const updatedData = addUrlToDocuments(groupedDocuments)
+
+      // Medical Card is stored on tblEmployee.MedicalCardUrl (a single string),
+      // not in the candidate documents list — hydrate the slot from apiData.
+      if (apiData?.medicalCardUrl) {
+        const mcBase = import.meta.env.VITE_API_URL
+        const mcRel = apiData.medicalCardUrl.replace(/\\/g, '/').replace(/^\//, '')
+        updatedData['MedicalCard'] = [
+          {
+            uid: 'mc-' + mcRel,
+            name: mcRel.split('/').pop(),
+            status: 'done',
+            url: mcBase + mcRel,
+          },
+        ]
+      }
 
       setFileLists(updatedData)
 
@@ -2366,6 +2387,16 @@ const MyProfile = () => {
                     </Form.Item>
                   )}
                 </Col>
+
+                {/* Sub-department chain (read-only, matches the disabled Department field) */}
+                {!pathname.includes('/candidate-form') && (
+                  <SubDepartmentCascade
+                    form={form}
+                    departmentName={['user', 'department']}
+                    namePrefix={['user']}
+                    disabled
+                  />
+                )}
 
                 <Col xs={24} sm={12} md={8}>
                   {!pathname.includes('/candidate-form') && (
@@ -3426,6 +3457,14 @@ const MyProfile = () => {
                 <SalarySlips emp_pro={true} ecodes={selectedEmpCode} />
               </Tabs.TabPane>
             )}
+
+            <Tabs.TabPane
+              tab="Medical Card"
+              key="8"
+              className={theme === 'dark' ? 'dark-theme' : ''}
+            >
+              <MedicalCardAdmin ecodeProp={selectedEmpCode} key={selectedEmpCode || 'no-ecode'} />
+            </Tabs.TabPane>
           </Tabs>
           <Row justify="end" style={{ marginTop: 20, gap: '0.6rem' }}>
             {!pathname.includes('/employee/update') && (

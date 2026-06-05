@@ -48,6 +48,7 @@ import {
 } from '../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../components/payroll/SalarySlips'
+import SubDepartmentCascade from '../components/shared/SubDepartmentCascade'
 import MedicalCardAdmin from '../MedicalCard'
 const { Text } = Typography
 import LabelWithPhotoButtons from './LabelWithPhotoButtons'
@@ -1375,6 +1376,9 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         reference: apiData?.reference || '',
         designation: parseInt(apiData?.designation) || '',
         department: parseInt(apiData?.department) || '',
+        subDepartmentId1: apiData?.subDepartmentId1 ?? undefined,
+        subDepartmentId2: apiData?.subDepartmentId2 ?? undefined,
+        subDepartmentId3: apiData?.subDepartmentId3 ?? undefined,
         firstName: apiData?.firstName || '',
         middleName: apiData?.middleName || '',
         lastName: apiData?.lastName || '',
@@ -1820,12 +1824,20 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
       Object.entries(values.user).forEach(([key, value]) => {
         // We will control PFApplicable & ESICApplicable ourselves below
         if (key === 'PFApplicable' || key === 'ESICApplicable') return
+        // Sub-department ids are appended explicitly below (always, so clearing persists).
+        if (key === 'subDepartmentId1' || key === 'subDepartmentId2' || key === 'subDepartmentId3')
+          return
 
         if (value !== undefined && value !== null) {
           ef.append(`${key}`, value)
         }
       })
     }
+
+    // Sub-department chain selections (optional). Sent even when blank so unsetting persists.
+    ef.append('subDepartmentId1', values?.user?.subDepartmentId1 ?? '')
+    ef.append('subDepartmentId2', values?.user?.subDepartmentId2 ?? '')
+    ef.append('subDepartmentId3', values?.user?.subDepartmentId3 ?? '')
 
     // Backend expects PFApplicable & ESICApplicable (camel-case)
     ef.append('PFApplicable', PFApplicablePayload) // always true
@@ -2695,6 +2707,16 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
 </Form.Item>
                   )}
                 </Col>
+
+                {/* 3 cascading sub-department selects (optional), tied to Department */}
+                {!pathname.includes('/candidate-form') && (
+                  <SubDepartmentCascade
+                    form={form}
+                    departmentName={['user', 'department']}
+                    namePrefix={['user']}
+                    disabled={disableDeptDesgUanForStoreHrOnUpdate}
+                  />
+                )}
 
                 <Col xs={24} sm={12} md={8}>
                   {!pathname.includes('/candidate-form') && (

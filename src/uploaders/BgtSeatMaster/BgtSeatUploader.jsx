@@ -152,8 +152,16 @@ export default function BgtSeatUploader({ isVisible, setIsVisible, refreshData }
           <Text strong>Note:</Text>
           <Paragraph style={{ marginBottom: 6 }}>1. Only .xlsx files are supported.</Paragraph>
           <Paragraph style={{ marginBottom: 6 }}>2. Download the sample sheet above.</Paragraph>
-          <Paragraph style={{ marginBottom: 0 }}>
+          <Paragraph style={{ marginBottom: 6 }}>
             3. Fill out the downloaded sheet and then upload it here.
+          </Paragraph>
+          <Paragraph style={{ marginBottom: 6 }}>
+            4. Optional columns <Text code>SUB DEPT 1</Text>, <Text code>SUB DEPT 2</Text>,{' '}
+            <Text code>SUB DEPT 3</Text> (columns 8–10). Leave blank for none.
+          </Paragraph>
+          <Paragraph style={{ marginBottom: 0 }}>
+            5. If a sub-department is filled, it must match the sub-department hierarchy under that
+            department (Sub Dept 1 → 2 → 3). Unmatched values are rejected with a row-level error.
           </Paragraph>
         </Col>
       </Row>

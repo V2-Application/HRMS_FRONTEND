@@ -628,6 +628,11 @@ const fullMenuList = [
       },
       {
         component: CNavItem,
+        name: 'Sub-Departments',
+        to: '/master/sub-departments',
+      },
+      {
+        component: CNavItem,
         name: 'Seat',
         to: '/master/seat',
       },
@@ -817,6 +822,11 @@ const fullMenuList = [
         component: CNavItem,
         name: 'Retention Bonus',
         to: '/uploaders/retention-bonus',
+      },
+      {
+        component: CNavItem,
+        name: 'Medical Card',
+        to: '/medical-card',
       },
     ],
   },

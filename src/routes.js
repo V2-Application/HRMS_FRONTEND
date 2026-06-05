@@ -64,6 +64,7 @@ const AddNewEmploye = React.lazy(() => import('../src/employees/AddNewEmployee')
 const Interviews = React.lazy(() => import('./views/pages/Interviewer/InterviewsList'))
 const StoreLocations = React.lazy(() => import('./views/pages/Masters/SeatMaster'))
 const DepartmentMaster = React.lazy(() => import('./views/pages/Masters/DepartmentMaster'))
+const SubDepartmentMaster = React.lazy(() => import('./views/pages/Masters/SubDepartmentMaster'))
 const DesignationMaster = React.lazy(() => import('./views/pages/Masters/DesignationMaster'))
 const AddApplicant = React.lazy(() => import('./components/applicant/AddApplicantInner'))
 // const AddApplicant = React.lazy(() => import('./employees/ApplicationForm'))
@@ -575,6 +576,12 @@ const routes = [
     path: '/master/departments',
     name: 'Department Master',
     element: DepartmentMaster,
+    roles: ['Audit', 'HR', 'Employee', 'ClusterManager', 'StoreHR', 'SuperAdmin', 'Master'],
+  },
+  {
+    path: '/master/sub-departments',
+    name: 'Sub-Department Master',
+    element: SubDepartmentMaster,
     roles: ['Audit', 'HR', 'Employee', 'ClusterManager', 'StoreHR', 'SuperAdmin', 'Master'],
   },
   {

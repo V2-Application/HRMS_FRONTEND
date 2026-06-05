@@ -738,6 +738,12 @@ const EmployeeProfile = () => {
         reference: apiData?.reference || '',
         designation: parseInt(apiData?.designation) || '',
         department: parseInt(apiData?.department) || '',
+        subDepartmentId1: apiData?.subDepartmentId1 ?? undefined,
+        subDepartmentId2: apiData?.subDepartmentId2 ?? undefined,
+        subDepartmentId3: apiData?.subDepartmentId3 ?? undefined,
+        subDepartment1Name: apiData?.subDepartment1Name ?? '',
+        subDepartment2Name: apiData?.subDepartment2Name ?? '',
+        subDepartment3Name: apiData?.subDepartment3Name ?? '',
         firstName: apiData?.firstName || '',
         middleName: apiData?.middleName || '',
         lastName: apiData?.lastName || '',
@@ -1772,6 +1778,30 @@ const EmployeeProfile = () => {
                     </Typography.Text>
                   </Form.Item>
                 </Col>
+
+                {/* Sub-department chain (read-only view) — show names resolved by the backend */}
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item labelCol={{ span: 24 }} label="Sub-Department 1">
+                    <Typography.Text>
+                      &nbsp;&nbsp;{form.getFieldValue(['user', 'subDepartment1Name'])}
+                    </Typography.Text>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item labelCol={{ span: 24 }} label="Sub-Department 2">
+                    <Typography.Text>
+                      &nbsp;&nbsp;{form.getFieldValue(['user', 'subDepartment2Name'])}
+                    </Typography.Text>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                  <Form.Item labelCol={{ span: 24 }} label="Sub-Department 3">
+                    <Typography.Text>
+                      &nbsp;&nbsp;{form.getFieldValue(['user', 'subDepartment3Name'])}
+                    </Typography.Text>
+                  </Form.Item>
+                </Col>
+
                 <Col xs={24} sm={12} md={8}>
                   <Form.Item labelCol={{ span: 24 }} label="Permanent Address">
                     <Typography.Text>

@@ -49,6 +49,7 @@ import {
 } from '../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../components/payroll/SalarySlips'
+import SubDepartmentCascade from '../components/shared/SubDepartmentCascade'
 const { Text } = Typography
 import LabelWithPhotoButtons from './LabelWithPhotoButtons'
 import axiosInstance from '../services/axiosInstance'
@@ -2428,6 +2429,9 @@ const EmployeeAddNew = () => {
         reference: apiData?.reference,
         designation: designationValue, // Use converted value
         department: departmentValue, // Use converted value
+        subDepartmentId1: apiData?.subDepartmentId1 ?? undefined,
+        subDepartmentId2: apiData?.subDepartmentId2 ?? undefined,
+        subDepartmentId3: apiData?.subDepartmentId3 ?? undefined,
         firstName: apiData?.firstName,
         middleName: apiData?.middleName,
         lastName: apiData?.lastName,
@@ -3024,6 +3028,13 @@ const EmployeeAddNew = () => {
         // console.log('Appended department with value:', departmentValue)
       }
     }
+
+    // Sub-department chain selections (optional). Appended explicitly (blank = clear).
+    const _subDept = (k) =>
+      values.user?.[k] ?? allFormValues.user?.[k] ?? form.getFieldValue(['user', k])
+    ef.append('subDepartmentId1', _subDept('subDepartmentId1') ?? '')
+    ef.append('subDepartmentId2', _subDept('subDepartmentId2') ?? '')
+    ef.append('subDepartmentId3', _subDept('subDepartmentId3') ?? '')
 
     // DESIGNATION FIELD - ADD THIS TO PASTE-2.TXT
     const designationValue =
@@ -4575,6 +4586,15 @@ const EmployeeAddNew = () => {
                       </Form.Item>
                     )}
                   </Col>
+                )}
+
+                {/* 3 cascading sub-department selects (optional), tied to Department */}
+                {!pathname.includes('/candidate-form') && (
+                  <SubDepartmentCascade
+                    form={form}
+                    departmentName={['user', 'department']}
+                    namePrefix={['user']}
+                  />
                 )}
 
                 <Col xs={24} sm={12} md={8}>
