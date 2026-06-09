@@ -687,10 +687,17 @@ const BgtSeatMaster = () => {
         const blockedDesigSet = new Set(
           desigExceptions.map((b) => `${norm(b.stCode)}-${norm(b.deptId)}-${norm(b.desigId)}`),
         )
-        const finalFiltered = level2Filtered.filter((item) => {
+        const desigFiltered = level2Filtered.filter((item) => {
           const key = `${norm(item.stCode)}-${norm(item.departmentId)}-${norm(item.designationId)}`
           return !blockedDesigSet.has(key)
         })
+
+        // Fallback (mirrors Employee Master): if the logged-in user has NO visibility scoping
+        // at all (empty allowedStores + no dept/desig exceptions — e.g. admins / unscoped users),
+        // show all rows instead of blanking the grid.
+        const isIndexEmpty =
+          allowedList.length === 0 && deptExceptions.length === 0 && desigExceptions.length === 0
+        const finalFiltered = isIndexEmpty ? records ?? [] : desigFiltered
 
         setEmployeesListData(finalFiltered)
         setCardData(buildCardData(finalFiltered))

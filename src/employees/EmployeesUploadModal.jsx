@@ -152,6 +152,10 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
           <Paragraph style={{ marginBottom: 4 }}>
             3. Fill out the downloaded sheet and then upload it here.
           </Paragraph>
+          <Paragraph style={{ marginBottom: 4 }}>
+            4. "Sub-Department 1/2/3" (last 3 columns) are optional. If filled, the names must
+            match the department's sub-department hierarchy; otherwise they're skipped and reported.
+          </Paragraph>
           {mode === 'insert' && (
             <>
               <Paragraph style={{ marginBottom: 4 }}>
