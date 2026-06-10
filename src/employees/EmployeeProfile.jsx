@@ -2715,6 +2715,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                     departmentName={['user', 'department']}
                     namePrefix={['user']}
                     disabled={disableDeptDesgUanForStoreHrOnUpdate}
+                    requiredLevel1
                   />
                 )}
 

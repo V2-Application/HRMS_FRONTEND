@@ -20,6 +20,7 @@ const SubDepartmentCascade = ({
   namePrefix = [],
   colProps = { xs: 24, sm: 12, md: 8 },
   disabled = false,
+  requiredLevel1 = false,
 }) => {
   const n1 = [...namePrefix, 'subDepartmentId1']
   const n2 = [...namePrefix, 'subDepartmentId2']
@@ -113,8 +114,8 @@ const SubDepartmentCascade = ({
       .toLowerCase()
       .includes(String(input).toLowerCase())
 
-  const renderSelect = (name, options, label, isDisabled) => (
-    <Form.Item name={name} label={label}>
+  const renderSelect = (name, options, label, isDisabled, rules) => (
+    <Form.Item name={name} label={label} rules={rules}>
       <Select
         allowClear
         showSearch
@@ -134,7 +135,17 @@ const SubDepartmentCascade = ({
 
   return (
     <>
-      <Col {...colProps}>{renderSelect(n1, opt1, 'Sub-Department 1', !toNum(deptVal))}</Col>
+      <Col {...colProps}>
+        {renderSelect(
+          n1,
+          opt1,
+          'Sub-Department 1',
+          !toNum(deptVal),
+          requiredLevel1 && opt1.length > 0
+            ? [{ required: true, message: 'Sub-Department 1 is required' }]
+            : undefined,
+        )}
+      </Col>
       <Col {...colProps}>{renderSelect(n2, opt2, 'Sub-Department 2', !toNum(v1))}</Col>
       <Col {...colProps}>{renderSelect(n3, opt3, 'Sub-Department 3', !toNum(v2))}</Col>
     </>

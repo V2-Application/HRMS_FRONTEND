@@ -4594,6 +4594,7 @@ const EmployeeAddNew = () => {
                     form={form}
                     departmentName={['user', 'department']}
                     namePrefix={['user']}
+                    requiredLevel1
                   />
                 )}
 
