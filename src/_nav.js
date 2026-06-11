@@ -1228,6 +1228,19 @@ const fullMenuList = [
       // },
     ],
   },
+  {
+    component: CNavGroup,
+    name: 'Gap Reports',
+    to: '/gap-reports',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Gap Reports',
+        to: '/gap-reports',
+      },
+    ],
+  },
 ]
 
 // permissions: the array you get from backend (role → modules → subModules → actions)

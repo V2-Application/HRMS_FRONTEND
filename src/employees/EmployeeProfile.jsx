@@ -1043,11 +1043,9 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         const desgArr = response.data?.Designation
         const locArr = response.data?.Location
 
-        isStoreHR
-          ? Array.isArray(deptArr)
-            ? setDepartments(deptArr.filter((d) => deptsForStore.includes(d.departmentName)))
-            : []
-          : setDepartments(deptArr)
+        // StoreHR sees the same full (active) department list as everyone else (e.g. IT Superadmin),
+        // so they can assign any department/sub-department when onboarding new candidates.
+        setDepartments(deptArr)
 
         setLocations(locArr)
       }

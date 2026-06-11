@@ -47,6 +47,7 @@ const ManagerEmpLeaveList = React.lazy(
   () => import('./views/pages/employeeLeave/ManagerEmpLeaveList'),
 )
 const EmployeesList = React.lazy(() => import('./employees/EmployeesList'))
+const GapReports = React.lazy(() => import('./views/reports/GapReports'))
 const EmployeesTransferList = React.lazy(() => import('./employees/EmployeeTansferApprovals'))
 const MasterData = React.lazy(() => import('./views/pages/Masters/Master'))
 const PFMaster = React.lazy(() => import('./views/pages/Masters/PFMaster'))
@@ -806,6 +807,11 @@ const routes = [
       'RegionalManager',
       'Zone',
     ],
+  },
+  {
+    path: '/gap-reports',
+    name: 'Gap Reports',
+    element: GapReports,
   },
   {
     path: '/employees/emp-transfer',

@@ -173,6 +173,25 @@ export const exportEmpAttendanceFormatToExcel = async () => {
   }
 }
 
+// ---- Gap Reports ----
+// List of available gap reports (for the dropdown on the Gap Reports page).
+export const getGapReportsList = async () => {
+  const response = await axiosInstance.get('/api/GapReports/List')
+  return response.data
+}
+
+// Download a gap report as an Excel file. `report` is the key ('location' | 'employee').
+export const exportGapReport = async (report, asOfDate = null) => {
+  const params = { report }
+  if (asOfDate) params.asOfDate = asOfDate
+  const response = await axiosInstance.get('/api/GapReports/Export', {
+    params,
+    headers: { Accept: '*/*' },
+    responseType: 'blob',
+  })
+  return response
+}
+
 export const exportBgtSalaryStructureWithEmpDetailsToExcel = async () => {
   try {
     const response = await axiosInstance.get(
