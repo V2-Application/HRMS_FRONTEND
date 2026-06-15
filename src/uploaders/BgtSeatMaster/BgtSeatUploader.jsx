@@ -64,6 +64,25 @@ export default function BgtSeatUploader({ isVisible, setIsVisible, refreshData }
     }
   }
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const res = await axiosInstance.get('/api/BgtSeatMaster/DownloadTemplate', {
+        responseType: 'blob',
+        headers: { Accept: '*/*' },
+      })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'BgtSeatMaster_UploadTemplate.xlsx'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      message.error('Failed to download template.')
+    }
+  }
+
   setTimeout(() => {
     setUploadError('')
   }, 5000)
@@ -94,20 +113,15 @@ export default function BgtSeatUploader({ isVisible, setIsVisible, refreshData }
       <Row gutter={[24, 16]}>
         {/* Left column */}
         <Col xs={24} md={12}>
-          <a
-            href="/BgtSeatUploader.xlsx"
-            download
-            style={{ display: 'inline-block', width: '100%' }}
+          <Button
+            icon={<DownloadOutlined />}
+            type="primary"
+            block
+            onClick={handleDownloadTemplate}
+            aria-label="Download sample Excel sheet"
           >
-            <Button
-              icon={<DownloadOutlined />}
-              type="primary"
-              block={isMobile}
-              aria-label="Download sample Excel sheet"
-            >
-              Download Sample Sheet
-            </Button>
-          </a>
+            Download Sample Sheet
+          </Button>
 
           <Paragraph type="secondary" style={{ fontSize: 14, marginTop: 8 }}>
             * Download, fill out, then upload the sample Excel file.

@@ -633,6 +633,11 @@ const fullMenuList = [
       },
       {
         component: CNavItem,
+        name: 'Designation Mapping',
+        to: '/master/designation-mapping',
+      },
+      {
+        component: CNavItem,
         name: 'Seat',
         to: '/master/seat',
       },

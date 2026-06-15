@@ -43,6 +43,7 @@ import {
   getEmployeeById,
   searchEmployeeDropdown,
   getDesignationByDepartment,
+  getMappedDesignations,
   deleteDocument,
   validateMinwage,
 } from '../services/Services'
@@ -149,6 +150,9 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
   const watch_joiningDate = Form.useWatch(['user', 'joiningDate'], form)
   const watch_monthlyGrossCTC = Form.useWatch(['user', 'monthlyGrossCTC'], form)
   const watch_designation = Form.useWatch(['user', 'designation'], form)
+  const watch_subDept1 = Form.useWatch(['user', 'subDepartmentId1'], form)
+  const watch_subDept2 = Form.useWatch(['user', 'subDepartmentId2'], form)
+  const watch_subDept3 = Form.useWatch(['user', 'subDepartmentId3'], form)
   const filterOutDesigFromStoreHr = ['dc executive', 'bench-dc executive', 'naps dc executive']
   console.log('watch_designation:', watch_designation)
 
@@ -528,9 +532,24 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
     })
   }, [watch_basicSalary, watch_hra, watch_cca, watch_da, watch_specialAllowance])
 
-  const fetchDesignationByDepartment = async (deptId) => {
+  const fetchDesignationByDepartment = async (deptId, s1, s2, s3) => {
+    if (!deptId) {
+      setDesignations([])
+      return
+    }
+    // Prefer the Department + Sub-Department -> Designation mapping.
+    try {
+      const mapRes = await getMappedDesignations(deptId, s1, s2, s3)
+      const mapped = mapRes?.data || []
+      if (Array.isArray(mapped) && mapped.length > 0) {
+        setDesignations(mapped)
+        return
+      }
+    } catch (e) {
+      // fall through to the department-based list
+    }
+    // Fallback: department-based designations (e.g. when no mapping exists yet).
     const response = await getDesignationByDepartment(deptId)
-
     if (response?.status === 200) {
       const data = response.data?.data || []
       const desigs = isStoreHR
@@ -545,14 +564,13 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         : data
       setDesignations(desigs)
     } else {
-      message.error(response?.response?.data?.message || 'Error fetching designations')
       setDesignations([])
     }
   }
 
   useEffect(() => {
-    fetchDesignationByDepartment(watch_department)
-  }, [watch_department])
+    fetchDesignationByDepartment(watch_department, watch_subDept1, watch_subDept2, watch_subDept3)
+  }, [watch_department, watch_subDept1, watch_subDept2, watch_subDept3])
 
   useEffect(() => {
     if (searchText.length >= 2) {

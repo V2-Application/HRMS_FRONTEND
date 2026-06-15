@@ -21,6 +21,12 @@ const GapReports = () => {
         const fallback = [
           { key: 'location', name: 'Location-wise Absconding Report' },
           { key: 'employee', name: 'Employee-wise Absconding Report' },
+          { key: 'mispunch', name: 'TD/MTD Mis-Punch Gap Report (Employee-wise)' },
+          { key: 'mispunch-loc', name: 'TD/MTD Mis-Punch Gap Report (Location-wise)' },
+          { key: 'geofence-loc', name: 'TD/MTD Geo-Fencing Gap Report (Location-wise)' },
+          { key: 'geofence-emp', name: 'TD/MTD Geo-Fencing Gap Report (Employee-wise)' },
+          { key: 'regularization-loc', name: 'TD/MTD Regularization Gap Report (Location-wise)' },
+          { key: 'regularization-emp', name: 'TD/MTD Regularization Gap Report (Employee-wise)' },
         ]
         setReports(fallback)
         setSelected('location')

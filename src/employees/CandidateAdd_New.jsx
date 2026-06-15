@@ -44,6 +44,7 @@ import {
   getEmployeeById,
   searchEmployeeDropdown,
   getDesignationByDepartment,
+  getMappedDesignations,
   validateMinwage,
   getOcrKey,
 } from '../services/Services'
@@ -162,6 +163,9 @@ const EmployeeAddNew = () => {
   // Department / location
   const watch_department = Form.useWatch(['user', 'department'], form)
   const watch_location = Form.useWatch(['user', 'location'], form)
+  const watch_subDept1 = Form.useWatch(['user', 'subDepartmentId1'], form)
+  const watch_subDept2 = Form.useWatch(['user', 'subDepartmentId2'], form)
+  const watch_subDept3 = Form.useWatch(['user', 'subDepartmentId3'], form)
 
   // Designation → Apprentice logic
   const watch_designation = Form.useWatch(['user', 'designation'], form)
@@ -2153,8 +2157,36 @@ const EmployeeAddNew = () => {
     }
   }, [])
 
-  const fetchDesignationByDepartment = async (deptId) => {
-    const response = await getDesignationByDepartment(isStore ? 36 : deptId)
+  const applyStoreHrDesigFilter = (data) =>
+    isStoreHR
+      ? data.filter(
+          (d) =>
+            !filterOutDesigFromStoreHr.includes(
+              String(d.designationName || '')
+                .toLowerCase()
+                .trim(),
+            ),
+        )
+      : data
+
+  const fetchDesignationByDepartment = async (deptId, s1, s2, s3) => {
+    const effDept = isStore ? 36 : deptId
+    if (!effDept) {
+      setDesignations([])
+      return
+    }
+    // Prefer the Department + Sub-Department -> Designation mapping.
+    try {
+      const mapRes = await getMappedDesignations(effDept, s1, s2, s3)
+      const mapped = mapRes?.data || []
+      if (Array.isArray(mapped) && mapped.length > 0) {
+        setDesignations(applyStoreHrDesigFilter(mapped))
+        return
+      }
+    } catch (e) {
+      // fall through to department-based list
+    }
+    const response = await getDesignationByDepartment(effDept)
     // console.log('desg response:', response)
 
     if (response?.status === 200) {
@@ -2177,13 +2209,12 @@ const EmployeeAddNew = () => {
   }
 
   useEffect(() => {
-    if (isStore) fetchDesignationByDepartment()
-  }, [isStore])
-
-  useEffect(() => {
-    // if (watch_department !== null && watch_department !== undefined)
-    if (!isStore && watch_department) fetchDesignationByDepartment(watch_department)
-  }, [watch_department])
+    // Reload designations from the Dept+Sub-Dept -> Designation mapping whenever the
+    // department or any sub-department changes (store users are pinned to dept 36 inside the fn).
+    if (isStore || watch_department) {
+      fetchDesignationByDepartment(watch_department, watch_subDept1, watch_subDept2, watch_subDept3)
+    }
+  }, [isStore, watch_department, watch_subDept1, watch_subDept2, watch_subDept3])
 
   const dropdowns = ['department', 'designation', 'location']
   const districts = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai']

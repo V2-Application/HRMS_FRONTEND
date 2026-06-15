@@ -173,6 +173,52 @@ export const exportEmpAttendanceFormatToExcel = async () => {
   }
 }
 
+// ---- Department + Sub-Department -> Designation mapping ----
+export const getDeptDesignationMappings = async () => {
+  const res = await axiosInstance.get('/api/DeptDesignationMap/GetAll')
+  return res.data
+}
+
+export const uploadDeptDesignationMap = async (file, uploadedBy = '') => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await axiosInstance.post(
+    `/api/DeptDesignationMap/Upload?uploadedBy=${encodeURIComponent(uploadedBy)}`,
+    fd,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return res.data
+}
+
+export const downloadDeptDesignationMapTemplate = async () => {
+  return axiosInstance.get('/api/DeptDesignationMap/DownloadTemplate', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
+export const exportDeptDesignationMap = async () => {
+  return axiosInstance.get('/api/DeptDesignationMap/Export', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
+export const deleteDeptDesignationMap = async (id) => {
+  const res = await axiosInstance.post(`/api/DeptDesignationMap/Delete?id=${id}`)
+  return res.data
+}
+
+// Designations driven by the mapping (department + sub-departments)
+export const getMappedDesignations = async (departmentId, s1, s2, s3) => {
+  const params = { departmentId }
+  if (s1) params.subDepartmentId1 = s1
+  if (s2) params.subDepartmentId2 = s2
+  if (s3) params.subDepartmentId3 = s3
+  const res = await axiosInstance.get('/api/DeptDesignationMap/GetDesignations', { params })
+  return res.data
+}
+
 // ---- Gap Reports ----
 // List of available gap reports (for the dropdown on the Gap Reports page).
 export const getGapReportsList = async () => {
