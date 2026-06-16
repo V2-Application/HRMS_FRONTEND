@@ -27,6 +27,10 @@ const GapReports = () => {
           { key: 'geofence-emp', name: 'TD/MTD Geo-Fencing Gap Report (Employee-wise)' },
           { key: 'regularization-loc', name: 'TD/MTD Regularization Gap Report (Location-wise)' },
           { key: 'regularization-emp', name: 'TD/MTD Regularization Gap Report (Employee-wise)' },
+          { key: 'lastpunch-sep', name: 'Last Punch vs Separation High Ageing Gap Report' },
+          { key: 'lastpunch-after-sep', name: 'Last Punching Shows After Separation Gap Report' },
+          { key: 'sep-fnf-pending', name: 'Separated But F&F Pending Gap Report' },
+          { key: 'sep-lastpunch-missing', name: 'Separated But Last Punch Date Missing Gap Report' },
         ]
         setReports(fallback)
         setSelected('location')

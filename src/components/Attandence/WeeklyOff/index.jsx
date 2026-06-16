@@ -1145,22 +1145,6 @@ const WeeklyOff = () => {
   const columns = useMemo(
     () => [
       {
-        title: 'Status',
-        dataIndex: 'isActive',
-        width: 90,
-        render: (_, row) => {
-          if (row.__isNew) return null
-          const loading = togglingIds.has(row.id)
-          return (
-            <Checkbox
-              checked={!!row.isActive}
-              disabled={loading}
-              onChange={(e) => handleToggle(row, e.target.checked)}
-            />
-          )
-        },
-      },
-      {
         title: requiredTitle('Location'),
         dataIndex: 'locationCategoryId',
         width: 220,
@@ -1180,21 +1164,39 @@ const WeeklyOff = () => {
         title: requiredTitle('Designation'),
         dataIndex: 'designationId',
         width: 240,
-        render: (_, row) => (
-          <Select
-            style={{ width: '100%' }}
-            placeholder="Select designation"
-            value={row.designationId ?? undefined}
-            onChange={(designationId) => {
-              const selected = (designations || []).find((d) => d.designationId === designationId)
-              updateRow(row.id, { designationId, designationName: selected?.designationName })
-            }}
-            showSearch
-            optionFilterProp="label"
-            allowClear
-            options={desgOptions}
-          />
-        ),
+        render: (_, row) => {
+          // Always show the stored name: if the row's designation isn't in the loaded
+          // dropdown options (still loading, type mismatch, or an inactive designation),
+          // prepend a fallback option built from the row's own designationName.
+          const hasOption =
+            row.designationId != null &&
+            desgOptions.some((o) => String(o.value) === String(row.designationId))
+          const rowDesgOptions =
+            row.designationId != null && !hasOption
+              ? [
+                  {
+                    value: row.designationId,
+                    label: row.designationName || String(row.designationId),
+                  },
+                  ...desgOptions,
+                ]
+              : desgOptions
+          return (
+            <Select
+              style={{ width: '100%' }}
+              placeholder="Select designation"
+              value={row.designationId ?? undefined}
+              onChange={(designationId) => {
+                const selected = (designations || []).find((d) => d.designationId === designationId)
+                updateRow(row.id, { designationId, designationName: selected?.designationName })
+              }}
+              showSearch
+              optionFilterProp="label"
+              allowClear
+              options={rowDesgOptions}
+            />
+          )
+        },
       },
       {
         title: (
