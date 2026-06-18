@@ -93,11 +93,14 @@ const GapReports = () => {
               <div>
                 <div style={{ marginBottom: 4, fontWeight: 500 }}>Report</div>
                 <Select
-                  style={{ width: 320 }}
+                  style={{ width: 460 }}
                   placeholder="Select a report"
                   value={selected}
                   onChange={setSelected}
-                  options={reports.map((r) => ({ value: r.key, label: r.name }))}
+                  popupMatchSelectWidth={false}
+                  listHeight={420}
+                  optionLabelProp="label"
+                  options={reports.map((r) => ({ value: r.key, label: r.name, title: r.name }))}
                 />
               </div>
               <Button
