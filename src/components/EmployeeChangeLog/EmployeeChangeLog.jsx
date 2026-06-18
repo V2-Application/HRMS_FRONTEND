@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './employeechangelog.css'
 import groupByColumn from './helpers/groupByColumn'
 import { getEmployeeChangeLog, searchEmployeeDropdown } from '../../services/Services'
+import { fmtDateTime } from '../../utils/dateFormat'
 import {
   message,
   Space,
@@ -185,7 +186,7 @@ const EmployeeChangeLog = () => {
     })
 
     return sorted.map((v, i) => {
-      const label = `${v?.versionLabel} • ${v?.changedBy} • ${new Date(v?.changedOn).toLocaleString()}`
+      const label = `${v?.versionLabel} • ${v?.changedBy} • ${fmtDateTime(v?.changedOn)}`
       return (
         <Option key={i} value={i}>
           {label}
@@ -221,7 +222,7 @@ const EmployeeChangeLog = () => {
           </div>
 
           <div>
-            <Text type="secondary">{new Date(compareA?.changedOn).toLocaleString()}</Text>
+            <Text type="secondary">{fmtDateTime(compareA?.changedOn)}</Text>
           </div>
 
           <SideBySideDiff oldValue={compareA?.oldValue} newValue={compareA?.newValue} />
@@ -235,7 +236,7 @@ const EmployeeChangeLog = () => {
           </div>
 
           <div>
-            <Text type="secondary">{new Date(compareB?.changedOn).toLocaleString()}</Text>
+            <Text type="secondary">{fmtDateTime(compareB?.changedOn)}</Text>
           </div>
 
           <SideBySideDiff oldValue={compareB?.oldValue} newValue={compareB?.newValue} />
@@ -576,7 +577,7 @@ const EmployeeChangeLog = () => {
                         {selectedVersions.map((v, index) => {
                           const isLatest = v?.versionLabel === 'vLatest'
                           const isChanged = v?.oldValue !== v?.newValue
-                          const formattedDate = new Date(v?.changedOn).toLocaleString()
+                          const formattedDate = fmtDateTime(v?.changedOn)
                           const formattedDateMob = v?.changedOn?.split('T')[0]
 
                           return (

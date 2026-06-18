@@ -3088,6 +3088,14 @@ const InactiveChecklistModal = ({ open, onClose, onSubmit, loading, ecode, emplo
   )
 }
 
+// Cross-navigation cache for the main employee list (survives unmount, lives for the session).
+// Stale-while-revalidate: when you re-open Employees, the last data shows INSTANTLY (no spinner)
+// while a silent background refresh keeps it current. Keyed by user + search term.
+const employeesListCache = { key: null, rows: null, total: 0 }
+// Inactive tab is server-paginated; cache the last loaded page so re-entering the
+// Inactive tab (after visiting an active tab) restores instantly without refetching.
+const inactiveListCache = { key: null, rows: null, total: 0 }
+
 const EmployeesList = () => {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -3098,6 +3106,22 @@ const EmployeesList = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(100)
   const [totalCount, setTotalCount] = useState(0)
+  // Infinite scroll (active/main tabs): accumulate server pages as the user scrolls.
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const serverPageRef = useRef(1) // last server page fetched for the active list
+  const visibilityRef = useRef(null) // cached store-visibility (depends only on the user)
+  const loadMoreRef = useRef(() => {})
+  const hasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
+  // Tracks the search term for which the shared MAIN-tab dataset is currently loaded.
+  // The main tabs (ho/stores/upc/hubdc/naps) all filter the SAME fetched rows client-side,
+  // so switching among them needs NO refetch -> instant tab clicks. null = not loaded.
+  const mainLoadedSearchRef = useRef(null)
+  // Which dataset currently fills employeesListData ('main' | 'inactive') and the exact
+  // inactive page key it holds, so switching tabs restores from cache instead of refetching.
+  const displayedDatasetRef = useRef(null)
+  const inactiveLoadedKeyRef = useRef(null)
   const [importExelModal, setimportExelModal] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [search, setSearch] = useState(() => {
@@ -3509,19 +3533,70 @@ const EmployeesList = () => {
     return cards
   }, [displayData, activeTab, totalCount])
 
-  const fetchData = async () => {
+  // Apply store-visibility filtering to a batch of records (shared by initial load + load-more).
+  const applyVisibility = useCallback(
+    (records, vis) => {
+      const allowedList = vis?.data?.data?.allowedStores ?? []
+      const deptExceptions = vis?.data?.data?.deptExceptions ?? []
+      const desigExceptions = vis?.data?.data?.desigExceptions ?? []
+      const isEmpty =
+        allowedList.length === 0 && deptExceptions.length === 0 && desigExceptions.length === 0
+      if (!isEmpty) {
+        const allowedCodes = new Set(allowedList.map((a) => norm(a.stCode)))
+        const blockedDeptSet = new Set(deptExceptions.map((b) => `${norm(b.stCode)}-${norm(b.deptId)}`))
+        const blockedDesigSet = new Set(
+          desigExceptions.map((b) => `${norm(b.stCode)}-${norm(b.deptId)}-${norm(b.desigId)}`),
+        )
+        return (records || [])
+          .filter((item) => allowedCodes.has(norm(item?.stCode)))
+          .filter((item) => !blockedDeptSet.has(`${norm(item.stCode)}-${norm(item.departmentId)}`))
+          .filter(
+            (item) =>
+              !blockedDesigSet.has(
+                `${norm(item.stCode)}-${norm(item.departmentId)}-${norm(item.designationId)}`,
+              ),
+          )
+      }
+      const getCode = (item) => (item?.stCode ?? item?.storeCode ?? '').trim().toLowerCase()
+      if (Array.isArray(locationList) && locationList.length > 0) {
+        const allowedLocCodes = new Set(
+          locationList.map((it) => it?.stCode?.trim()?.toLowerCase()).filter(Boolean),
+        )
+        return (records || []).filter((item) => allowedLocCodes.has(getCode(item)))
+      }
+      if (role === 'StoreHR') {
+        const storeCodeNorm = (storeCode ?? '').trim().toLowerCase()
+        return (records || []).filter((item) => getCode(item) === storeCodeNorm)
+      }
+      return records || []
+    },
+    [locationList, role, storeCode],
+  )
+
+  const fetchData = async ({ silent = false } = {}) => {
     if (!ecode) return
 
-    dispatch(set({ loading: true }))
+    if (!silent) dispatch(set({ loading: true }))
     const requestId = ++latestRequestIdRef.current
     try {
-      const response = await getEmployeeList({ currentPage, pageSize, search })
+      serverPageRef.current = 1
+      // Run the list fetch and the store-visibility fetch in parallel (independent calls).
+      const [response, response1] = await Promise.all([
+        getEmployeeList({ currentPage: 1, pageSize, search, mode: 'mainview' }),
+        filterBgtSeatMaster({ eCode: ecode }),
+      ])
       if (requestId !== latestRequestIdRef.current) return
+      visibilityRef.current = response1
+      // Main dataset is now loaded for this search -> switching among main tabs won't refetch.
+      mainLoadedSearchRef.current = search
+      displayedDatasetRef.current = 'main'
 
       if (response) {
         const records = response?.employees ?? []
+        const more = (records?.length ?? 0) >= pageSize
+        setHasMore(more)
+        hasMoreRef.current = more
 
-        const response1 = await filterBgtSeatMaster({ eCode: ecode })
         const allowedList = response1?.data?.data?.allowedStores ?? []
         const deptExceptions = response1?.data?.data?.deptExceptions ?? []
         const desigExceptions = response1?.data?.data?.desigExceptions ?? []
@@ -3578,24 +3653,49 @@ const EmployeesList = () => {
         }
       }
 
-      const absList = await getAbscondingReasonList()
-      const blackList = await getBlacklistReasonList()
-      if (requestId !== latestRequestIdRef.current) return
-      setabscondingList(absList)
-      setblackList(blackList)
     } catch (error) {
       console.error('Error fetching data:', error.response?.data || error.message)
-      message.error(error?.response?.data?.message || 'Error fetching data')
+      if (!silent) message.error(error?.response?.data?.message || 'Error fetching data')
     } finally {
-      if (requestId === latestRequestIdRef.current) {
+      if (!silent && requestId === latestRequestIdRef.current) {
         dispatch(set({ loading: false }))
       }
     }
   }
 
+  // Infinite scroll: fetch the next server page and APPEND (active/main tabs only).
+  const loadMoreEmployees = async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current) return
+    if (!ecode || activeTab === 'inactive' || activeTab === 'abscond') return
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    const nextPage = serverPageRef.current + 1
+    try {
+      const response = await getEmployeeList({ currentPage: nextPage, pageSize, search, mode: 'mainview' })
+      const records = response?.employees ?? []
+      const filtered = applyVisibility(records, visibilityRef.current)
+      serverPageRef.current = nextPage
+      setEmployeesListData((prev) => {
+        const seen = new Set(prev.map((r) => r.employeeId ?? r.ecode))
+        const fresh = filtered.filter((r) => !seen.has(r.employeeId ?? r.ecode))
+        return [...prev, ...fresh]
+      })
+      const more = (records?.length ?? 0) >= pageSize
+      setHasMore(more)
+      hasMoreRef.current = more
+    } catch (error) {
+      console.error('Error loading more employees:', error?.message)
+    } finally {
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+    }
+  }
+  loadMoreRef.current = loadMoreEmployees
+
   const fetchInactiveData = async () => {
     if (!ecode) return
 
+    const inactiveKey = `${ecode}|${search}|${currentPage}|${pageSize}`
     dispatch(set({ loading: true }))
     const requestId = ++latestRequestIdRef.current
     try {
@@ -3603,10 +3703,16 @@ const EmployeesList = () => {
       if (requestId !== latestRequestIdRef.current) return
 
       const records = Array.isArray(response?.employees) ? response.employees : response || []
+      const total =
+        typeof response?.totalCount === 'number' ? response.totalCount : records.length || 0
       setEmployeesListData(records)
-      setTotalCount(
-        typeof response?.totalCount === 'number' ? response.totalCount : records.length || 0,
-      )
+      setTotalCount(total)
+      // Cache this inactive page so re-entering the Inactive tab restores it without refetch.
+      inactiveListCache.key = inactiveKey
+      inactiveListCache.rows = records
+      inactiveListCache.total = total
+      inactiveLoadedKeyRef.current = inactiveKey
+      displayedDatasetRef.current = 'inactive'
     } catch (error) {
       console.error('Error fetching inactive data:', error?.response?.data || error?.message)
       message.error(error?.response?.data?.message || 'Error fetching inactive employees')
@@ -3636,34 +3742,83 @@ const EmployeesList = () => {
     }
   }
 
+  // Single loader for BOTH the active (main) view and the Inactive tab. Each dataset is
+  // loaded once and cached; switching tabs restores from cache instead of refetching.
   useEffect(() => {
+    if (!ecode) return
+
     if (activeTab === 'inactive') {
-      const t = setTimeout(() => fetchInactiveData(), 400)
-      return () => clearTimeout(t)
-    } else if (activeTab === 'abscond') {
-      const t = setTimeout(() => fetchAbscondedData(), 400)
-      return () => clearTimeout(t)
-    } else {
-      const t = setTimeout(() => fetchData(), 400)
+      const inactiveKey = `${ecode}|${search}|${currentPage}|${pageSize}`
+      // Already showing this exact inactive page -> nothing to do.
+      if (displayedDatasetRef.current === 'inactive' && inactiveLoadedKeyRef.current === inactiveKey)
+        return
+      // Cached inactive page -> restore instantly, no spinner, no refetch.
+      if (inactiveListCache.key === inactiveKey && Array.isArray(inactiveListCache.rows)) {
+        setEmployeesListData(inactiveListCache.rows)
+        setTotalCount(inactiveListCache.total)
+        inactiveLoadedKeyRef.current = inactiveKey
+        displayedDatasetRef.current = 'inactive'
+        return
+      }
+      // Not loaded yet -> fetch this page.
+      const t = setTimeout(() => fetchInactiveData(), 200)
       return () => clearTimeout(t)
     }
-  }, [search, activeTab])
 
-  // Inactive tab is server-paginated: refetch on page/size change so paging works.
-  useEffect(() => {
-    if (activeTab !== 'inactive') return
-    const t = setTimeout(() => fetchInactiveData(), 100)
+    // ---- active / main tabs (ho/stores/upc/hubdc/naps/abscond share one dataset) ----
+    // Already showing the main dataset for this search -> instant tab switch.
+    if (displayedDatasetRef.current === 'main' && mainLoadedSearchRef.current === search) return
+    // Cached main dataset (e.g. coming back from Inactive) -> restore instantly, no refetch.
+    const cacheKey = `${ecode}|${search}`
+    if (employeesListCache.key === cacheKey && Array.isArray(employeesListCache.rows)) {
+      setEmployeesListData(employeesListCache.rows)
+      setTotalCount(employeesListCache.total)
+      mainLoadedSearchRef.current = search
+      displayedDatasetRef.current = 'main'
+      return
+    }
+    // First load (no cache) -> fetch with spinner.
+    const t = setTimeout(() => fetchData(), 200)
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize])
+  }, [search, activeTab, currentPage, pageSize, ecode])
 
-  const prevTabRef = useRef(activeTab)
+  // Persist the loaded main dataset to the cross-navigation cache (instant on re-open).
   useEffect(() => {
-    if (prevTabRef.current === 'inactive' && activeTab !== 'inactive') {
-      fetchData()
+    if (
+      activeTab !== 'inactive' &&
+      mainLoadedSearchRef.current === search &&
+      Array.isArray(employeesListData) &&
+      employeesListData.length
+    ) {
+      employeesListCache.key = `${ecode}|${search}`
+      employeesListCache.rows = employeesListData
+      employeesListCache.total = totalCount
     }
-    prevTabRef.current = activeTab
-  }, [activeTab])
+  }, [employeesListData, totalCount, activeTab, search, ecode])
+
+  // Static reason lists (absconding / blacklist) change rarely - load ONCE on mount,
+  // in parallel, instead of re-fetching them on every page/search/tab change.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [absList, blackList] = await Promise.all([
+          getAbscondingReasonList(),
+          getBlacklistReasonList(),
+        ])
+        if (cancelled) return
+        setabscondingList(absList)
+        setblackList(blackList)
+      } catch (e) {
+        console.error('Error loading reason lists:', e?.message)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // (Inactive paging + leaving-Inactive refetch are handled by the single combined loader above.)
 
   useEffect(() => {
     setCurrentPage(1)

@@ -2058,6 +2058,8 @@ const EmployeeAddNew = () => {
       { key: 'AadharBack', label: 'Aadhar Attachment (Back)' },
       { key: 'BankPassbook', label: 'Passbook Attachment/Cancel Cheque' },
       { key: 'BankStatementVideo', label: 'Bank Statement Video' },
+      { key: 'Education', label: 'Education Attachment' },
+      { key: 'Resume', label: 'Resume Attachment' },
     ]
 
     const missingAttachments = []
@@ -4000,6 +4002,8 @@ const EmployeeAddNew = () => {
                       'AadharBack',
                       'BankPassbook',
                       'BankStatementVideo',
+                      'Education',
+                      'Resume',
                     ]
                     const isMandatory = mandatoryAttachments.includes(attachment.value)
                     const isEmpty = currentFileList.length === 0

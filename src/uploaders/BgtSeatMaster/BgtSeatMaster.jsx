@@ -19,6 +19,7 @@ import {
   UploadOutlined,
   PlusOutlined,
   MinusOutlined,
+  FilterFilled,
 } from '@ant-design/icons'
 import { ToastContainer } from 'react-toastify'
 import { useDispatch, useSelector } from 'react-redux'
@@ -119,6 +120,7 @@ const BgtSeatMaster = () => {
   const [pageSize, setPageSize] = useState('100')
   const [totalCount, setTotalCount] = useState(0)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const [selectedRows, setSelectedRows] = useState([])
   const [search, setSearch] = useState('')
 
   // ✅ ADDED HUB/DC tab key
@@ -150,6 +152,9 @@ const BgtSeatMaster = () => {
   const [locNameFilterValues, setLocNameFilterValues] = useState([])
   const [deptNameValues, setDeptNameValues] = useState([])
   const [desgNameValues, setDesgNameValues] = useState([])
+  const [subDept1Values, setSubDept1Values] = useState([])
+  const [subDept2Values, setSubDept2Values] = useState([])
+  const [subDept3Values, setSubDept3Values] = useState([])
   const [openingDateValues, setOpeningDateValues] = useState([])
 
   // Column text-search filters (controlled)
@@ -721,6 +726,9 @@ const BgtSeatMaster = () => {
               'reportFullName',
               'bgtReportingDesig',
               'active',
+              'subDepartment1',
+              'subDepartment2',
+              'subDepartment3',
             ],
           },
         })
@@ -762,6 +770,9 @@ const BgtSeatMaster = () => {
       locationName: locNameFilterValues,
       designationName: desgNameValues,
       departmentName: deptNameValues,
+      subDepartment1: subDept1Values,
+      subDepartment2: subDept2Values,
+      subDepartment3: subDept3Values,
       openingDate: openingDateValues,
     }
     workerRef.current?.postMessage({
@@ -774,11 +785,24 @@ const BgtSeatMaster = () => {
     openingDateValues,
     desgNameValues,
     deptNameValues,
+    subDept1Values,
+    subDept2Values,
+    subDept3Values,
     debouncedSearch,
   ])
 
   /** Column text-search (controlled) */
   const getColumnSearchProps = useColumnSearch(textFilters, setTextFilters)
+
+  // Shared filter icon so EVERY column (dropdown + search) shows the same default funnel icon.
+  const facetFilterIcon = (filtered) => (
+    <FilterFilled style={{ color: filtered ? '#1890ff' : undefined }} />
+  )
+  // Search-column props but with the same funnel icon as the dropdown columns.
+  const searchCol = (key, label) => ({
+    ...getColumnSearchProps(key, label),
+    filterIcon: facetFilterIcon,
+  })
 
   /** Apply textFilters on top of worker output so pagination reflects it */
   const finalData = useMemo(() => {
@@ -894,6 +918,9 @@ const BgtSeatMaster = () => {
       seatOrStatus: getUniques('seatOrStatus'),
       locationName: getUniques('locationName'),
       openingDate: getUniques('openingDate'),
+      subDepartment1: getUniques('subDepartment1'),
+      subDepartment2: getUniques('subDepartment2'),
+      subDepartment3: getUniques('subDepartment3'),
     }
   }, [visibleRows])
 
@@ -902,6 +929,9 @@ const BgtSeatMaster = () => {
     setLocCodeFilterValues([])
     setDeptNameValues([])
     setDesgNameValues([])
+    setSubDept1Values([])
+    setSubDept2Values([])
+    setSubDept3Values([])
     setLocNameFilterValues([])
     setOpeningDateValues([])
     setTextFilters({})
@@ -913,17 +943,26 @@ const BgtSeatMaster = () => {
     })
   }
 
-  /** Delete row */
+  // Build the precise delete identifier for a seat row.
+  const toSeatDeleteItem = (r) => ({
+    stCode: r?.stCode,
+    deptSno: String(r?.departmentId ?? ''),
+    desgSno: String(r?.designationId ?? ''),
+    seatNo: r?.seatOrStatus,
+  })
+  const isExcessRow = (r) => String(r?.seatOrStatus).toLowerCase().trim() === 'excess'
+
+  /** Delete a single seat entry (precise: this exact seat, not the whole series) */
   const handleDeleteRow = async (record) => {
     try {
-      const response = await axiosInstance.post(
-        `/api/BgtSeatMaster/DeleteBySeries?locCode=${record?.stCode}&deptSno=${Number(
-          record?.departmentId,
-        )}&desgSno=${Number(record?.designationId)}&deleteCount=1`,
-      )
+      const response = await axiosInstance.post('/api/BgtSeatMaster/DeleteSeats', [
+        toSeatDeleteItem(record),
+      ])
       if (response?.status === 200) {
         message.success(response?.data?.message || 'Deleted successfully')
         fetchData()
+        setSelectedRowKeys([])
+        setSelectedRows([])
         setLocCodeFilterValues([])
         setLocNameFilterValues([])
         setDesgNameValues([])
@@ -933,6 +972,40 @@ const BgtSeatMaster = () => {
       console.error('error deleting bgt seat: ', error)
       message.error(error?.response?.data?.message || 'Error deleting bgt seat')
     }
+  }
+
+  /** Bulk delete the selected seat entries */
+  const handleBulkDelete = async () => {
+    const items = (selectedRows || []).map(toSeatDeleteItem)
+    if (items.length === 0) {
+      message.warning('Select one or more rows to delete.')
+      return
+    }
+    try {
+      const response = await axiosInstance.post('/api/BgtSeatMaster/DeleteSeats', items)
+      if (response?.status === 200) {
+        message.success(response?.data?.message || `Deleted ${items.length} seat(s) successfully`)
+        setSelectedRowKeys([])
+        setSelectedRows([])
+        fetchData()
+      }
+    } catch (error) {
+      console.error('error bulk deleting bgt seats: ', error)
+      message.error(error?.response?.data?.message || 'Error deleting selected seats')
+    }
+  }
+
+  // Stable unique key per row + checkbox selection (every row selectable, incl. EXCESS).
+  const seatRowKey = (r, i) =>
+    `${r?.stCode || ''}|${r?.departmentId || ''}|${r?.designationId || ''}|${r?.seatOrStatus || ''}|${i}`
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (keys, rows) => {
+      setSelectedRowKeys(keys)
+      setSelectedRows(rows)
+    },
+    // EXCESS rows are employees with no budgeted seat -> nothing to delete, so not selectable.
+    getCheckboxProps: (record) => ({ disabled: isExcessRow(record) }),
   }
 
   /** Table columns */
@@ -945,6 +1018,7 @@ const BgtSeatMaster = () => {
       width: 120,
       filteredValue: locCodeFilterValues?.length ? locCodeFilterValues : null,
       onFilter: () => true,
+      filterIcon: facetFilterIcon,
       filterDropdown: ({ confirm }) => (
         <FilterDropdown
           title="Loc Code"
@@ -964,6 +1038,7 @@ const BgtSeatMaster = () => {
       width: 120,
       filteredValue: locNameFilterValues?.length ? locNameFilterValues : null,
       onFilter: () => true,
+      filterIcon: facetFilterIcon,
       filterDropdown: ({ confirm }) => (
         <FilterDropdown
           title="Loc Name"
@@ -983,6 +1058,7 @@ const BgtSeatMaster = () => {
       ellipsis: true,
       filteredValue: desgNameValues?.length ? desgNameValues : null,
       onFilter: () => true,
+      filterIcon: facetFilterIcon,
       filterDropdown: ({ confirm }) => (
         <FilterDropdown
           title="Desg Name"
@@ -1002,6 +1078,7 @@ const BgtSeatMaster = () => {
       ellipsis: true,
       filteredValue: deptNameValues?.length ? deptNameValues : null,
       onFilter: () => true,
+      filterIcon: facetFilterIcon,
       filterDropdown: ({ confirm }) => (
         <FilterDropdown
           title="Dept Name"
@@ -1020,6 +1097,19 @@ const BgtSeatMaster = () => {
       width: 130,
       ellipsis: true,
       render: (v) => v || '-',
+      filteredValue: subDept1Values?.length ? subDept1Values : null,
+      onFilter: () => true,
+      filterIcon: facetFilterIcon,
+      filterDropdown: ({ confirm }) => (
+        <FilterDropdown
+          title="Sub Dept 1"
+          dataIndex="subDepartment1"
+          dataList={uniqueValues.subDepartment1}
+          filterValues={subDept1Values}
+          setFilterValues={setSubDept1Values}
+          confirm={confirm}
+        />
+      ),
     },
     {
       title: 'Sub Dept 2',
@@ -1028,6 +1118,19 @@ const BgtSeatMaster = () => {
       width: 130,
       ellipsis: true,
       render: (v) => v || '-',
+      filteredValue: subDept2Values?.length ? subDept2Values : null,
+      onFilter: () => true,
+      filterIcon: facetFilterIcon,
+      filterDropdown: ({ confirm }) => (
+        <FilterDropdown
+          title="Sub Dept 2"
+          dataIndex="subDepartment2"
+          dataList={uniqueValues.subDepartment2}
+          filterValues={subDept2Values}
+          setFilterValues={setSubDept2Values}
+          confirm={confirm}
+        />
+      ),
     },
     {
       title: 'Sub Dept 3',
@@ -1036,6 +1139,19 @@ const BgtSeatMaster = () => {
       width: 130,
       ellipsis: true,
       render: (v) => v || '-',
+      filteredValue: subDept3Values?.length ? subDept3Values : null,
+      onFilter: () => true,
+      filterIcon: facetFilterIcon,
+      filterDropdown: ({ confirm }) => (
+        <FilterDropdown
+          title="Sub Dept 3"
+          dataIndex="subDepartment3"
+          dataList={uniqueValues.subDepartment3}
+          filterValues={subDept3Values}
+          setFilterValues={setSubDept3Values}
+          confirm={confirm}
+        />
+      ),
     },
     {
       title: 'Seat Master No.',
@@ -1043,7 +1159,7 @@ const BgtSeatMaster = () => {
       key: 'seatOrStatus',
       width: 140,
       ellipsis: true,
-      ...getColumnSearchProps('seatOrStatus', 'Seat Master No.'),
+      ...searchCol('seatOrStatus', 'Seat Master No.'),
     },
     {
       title: 'Salary Bgt',
@@ -1051,7 +1167,7 @@ const BgtSeatMaster = () => {
       key: 'salarY_BGT',
       width: 120,
       ellipsis: true,
-      ...getColumnSearchProps('salarY_BGT', 'Salary Bgt'),
+      ...searchCol('salarY_BGT', 'Salary Bgt'),
     },
     {
       title: 'Salary Act.',
@@ -1059,7 +1175,7 @@ const BgtSeatMaster = () => {
       key: 'actualSalary',
       width: 120,
       ellipsis: true,
-      ...getColumnSearchProps('actualSalary', 'Salary Act.'),
+      ...searchCol('actualSalary', 'Salary Act.'),
     },
     {
       title: 'Emp Code',
@@ -1067,7 +1183,7 @@ const BgtSeatMaster = () => {
       key: 'ecode',
       width: 120,
       ellipsis: true,
-      ...getColumnSearchProps('ecode', 'Emp Code'),
+      ...searchCol('ecode', 'Emp Code'),
     },
     {
       title: 'Emp Name',
@@ -1075,7 +1191,7 @@ const BgtSeatMaster = () => {
       key: 'fullName',
       width: 160,
       ellipsis: true,
-      ...getColumnSearchProps('fullName', 'Emp Name'),
+      ...searchCol('fullName', 'Emp Name'),
     },
     {
       title: 'Report Head Code',
@@ -1083,7 +1199,7 @@ const BgtSeatMaster = () => {
       key: 'reportEcode',
       width: 140,
       ellipsis: true,
-      ...getColumnSearchProps('reportEcode', 'Report Head Code'),
+      ...searchCol('reportEcode', 'Report Head Code'),
     },
     {
       title: 'Report Head Name',
@@ -1091,7 +1207,7 @@ const BgtSeatMaster = () => {
       key: 'reportFullName',
       width: 160,
       ellipsis: true,
-      ...getColumnSearchProps('reportFullName', 'Report Head Name'),
+      ...searchCol('reportFullName', 'Report Head Name'),
     },
     {
       title: 'Report Mngr. Desg.',
@@ -1099,7 +1215,7 @@ const BgtSeatMaster = () => {
       key: 'bgtReportingDesig',
       width: 180,
       ellipsis: true,
-      ...getColumnSearchProps('bgtReportingDesig', 'Report Mngr. Desg.'),
+      ...searchCol('bgtReportingDesig', 'Report Mngr. Desg.'),
     },
     {
       title: 'Active',
@@ -1108,7 +1224,7 @@ const BgtSeatMaster = () => {
       width: 90,
       ellipsis: true,
       render: (val) => (val === true ? 'Active' : 'UPC'),
-      ...getColumnSearchProps('storeStatus', 'Active'),
+      ...searchCol('storeStatus', 'Active'),
     },
     {
       title: 'Action',
@@ -1116,20 +1232,19 @@ const BgtSeatMaster = () => {
       key: 'action',
       width: 90,
       ellipsis: true,
-      render: (_, record) =>
-        String(record?.seatOrStatus).toLowerCase().trim() !== 'excess' && (
-          <Space style={{ position: 'relative' }}>
-            <Popconfirm
-              title="Are you sure you want to delete this record?"
-              onConfirm={() => handleDeleteRow(record)}
-              okText="Yes"
-              cancelText="No"
-              placement="left"
-            >
-              <Button icon={<DeleteOutlined />} title="Delete Group" />
-            </Popconfirm>
-          </Space>
-        ),
+      render: (_, record) => (
+        <Space style={{ position: 'relative' }}>
+          <Popconfirm
+            title="Are you sure you want to delete this record?"
+            onConfirm={() => handleDeleteRow(record)}
+            okText="Yes"
+            cancelText="No"
+            placement="left"
+          >
+            <Button icon={<DeleteOutlined />} title="Delete" />
+          </Popconfirm>
+        </Space>
+      ),
     },
   ]
 
@@ -1142,6 +1257,7 @@ const BgtSeatMaster = () => {
     ellipsis: true,
     filteredValue: openingDateValues?.length ? openingDateValues : null,
     onFilter: () => true,
+    filterIcon: facetFilterIcon,
     filterDropdown: ({ confirm }) => (
       <FilterDropdown
         title="Opening Date"
@@ -1317,11 +1433,28 @@ const BgtSeatMaster = () => {
           }}
           style={{ marginBottom: 8 }}
           tabBarExtraContent={
-            <Tooltip title="Download the current (filtered) table view">
-              <Button onClick={handleDownloadFiltered} icon={<ExportOutlined />}>
-                Download (Filtered)
-              </Button>
-            </Tooltip>
+            <Space>
+              {selectedRowKeys.length > 0 && (
+                <Popconfirm
+                  title={`Delete ${selectedRowKeys.length} selected seat entr${
+                    selectedRowKeys.length === 1 ? 'y' : 'ies'
+                  }?`}
+                  onConfirm={handleBulkDelete}
+                  okText="Yes"
+                  cancelText="No"
+                  placement="bottomRight"
+                >
+                  <Button danger icon={<DeleteOutlined />}>
+                    Delete Selected ({selectedRowKeys.length})
+                  </Button>
+                </Popconfirm>
+              )}
+              <Tooltip title="Download the current (filtered) table view">
+                <Button onClick={handleDownloadFiltered} icon={<ExportOutlined />}>
+                  Download (Filtered)
+                </Button>
+              </Tooltip>
+            </Space>
           }
         />
 
@@ -1353,7 +1486,8 @@ const BgtSeatMaster = () => {
         ) : (
           <Table
             size="small"
-            rowKey="storeBudgetId"
+            rowKey={seatRowKey}
+            rowSelection={rowSelection}
             columns={columnsToRender}
             dataSource={visibleRows}
             pagination={{

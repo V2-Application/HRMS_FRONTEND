@@ -687,6 +687,7 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
         year: selectedMonth.year(),
         month: selectedMonth.month() + 1,
         eCode: selectedEmpCode,
+        useCycle: true, // pay cycle: 26th prev month -> 25th selected month
       }
       const response = await employeeAttandanceData(body)
       if (response?.status === 200) {
