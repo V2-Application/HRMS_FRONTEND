@@ -1246,6 +1246,19 @@ const fullMenuList = [
       },
     ],
   },
+  {
+    component: CNavGroup,
+    name: 'Store Reporting Manager',
+    to: '/store-reporting-manager',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Store Reporting Manager',
+        to: '/store-reporting-manager',
+      },
+    ],
+  },
 ]
 
 // permissions: the array you get from backend (role → modules → subModules → actions)

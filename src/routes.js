@@ -48,6 +48,7 @@ const ManagerEmpLeaveList = React.lazy(
 )
 const EmployeesList = React.lazy(() => import('./employees/EmployeesList'))
 const GapReports = React.lazy(() => import('./views/reports/GapReports'))
+const StoreReportingManager = React.lazy(() => import('./views/admin/StoreReportingManager'))
 const DeptDesignationMap = React.lazy(() => import('./views/masters/DeptDesignationMap'))
 const EmployeesTransferList = React.lazy(() => import('./employees/EmployeeTansferApprovals'))
 const MasterData = React.lazy(() => import('./views/pages/Masters/Master'))
@@ -813,6 +814,11 @@ const routes = [
     path: '/gap-reports',
     name: 'Gap Reports',
     element: GapReports,
+  },
+  {
+    path: '/store-reporting-manager',
+    name: 'Store Reporting Manager',
+    element: StoreReportingManager,
   },
   {
     path: '/master/designation-mapping',

@@ -238,6 +238,24 @@ export const exportGapReport = async (report, asOfDate = null) => {
   return response
 }
 
+// ---- Store Reporting Manager ----
+// List store-id accounts with their current reporting manager. Optional search.
+export const getStoreAccounts = async (search = '') => {
+  const response = await axiosInstance.get('/api/StoreReportingManager/GetStoreAccounts', {
+    params: search ? { search } : {},
+  })
+  return response.data
+}
+
+// Set the reporting manager (ReportHeadEcode) for one or more store-id accounts.
+export const updateStoreReportingManager = async (ecodes, reportHeadEcode) => {
+  const response = await axiosInstance.post('/api/StoreReportingManager/UpdateReportingManager', {
+    ecodes,
+    reportHeadEcode,
+  })
+  return response.data
+}
+
 export const exportBgtSalaryStructureWithEmpDetailsToExcel = async () => {
   try {
     const response = await axiosInstance.get(
