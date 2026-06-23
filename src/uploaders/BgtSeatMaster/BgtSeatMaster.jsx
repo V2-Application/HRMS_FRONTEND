@@ -12,6 +12,8 @@ import {
   Checkbox,
   Tabs,
   Grid,
+  Select,
+  Modal,
 } from 'antd'
 import {
   DeleteOutlined,
@@ -974,6 +976,57 @@ const BgtSeatMaster = () => {
     }
   }
 
+  /** Delete ALL budget seats for one or more stores (LOC_CODE list). Server backs up the rows first. */
+  const handleDeleteByStore = async (locCodes) => {
+    const codes = (Array.isArray(locCodes) ? locCodes : [locCodes]).filter(Boolean)
+    if (codes.length === 0) {
+      message.warning('Select at least one store first.')
+      return
+    }
+    try {
+      const response = await axiosInstance.post('/api/BgtSeatMaster/DeleteByStore', codes)
+      if (response?.status === 200) {
+        message.success(
+          response?.data?.message || `Deleted all budget seats for ${codes.length} store(s)`,
+        )
+        fetchData()
+        setSelectedRowKeys([])
+        setSelectedRows([])
+      }
+    } catch (error) {
+      console.error('error deleting store bgt: ', error)
+      message.error(error?.response?.data?.message || 'Error deleting store budget seats')
+    }
+  }
+
+  /** Delete EVERY budget seat (whole table). Server backs up the full table first. */
+  const handleDeleteAll = async () => {
+    try {
+      const response = await axiosInstance.post(`/api/BgtSeatMaster/DeleteAll?confirm=DELETEALL`)
+      if (response?.status === 200) {
+        message.success(response?.data?.message || 'Deleted all budget seats')
+        fetchData()
+        setSelectedRowKeys([])
+        setSelectedRows([])
+      }
+    } catch (error) {
+      console.error('error deleting all bgt: ', error)
+      message.error(error?.response?.data?.message || 'Error deleting all budget seats')
+    }
+  }
+
+  /** Unique store list (Loc Code — Loc Name) for the "Delete by Store" picker */
+  const storeOptions = useMemo(() => {
+    const m = new Map()
+    for (const r of employeesListData) {
+      const code = r?.stCode
+      if (code && !m.has(code)) m.set(code, r?.locationName || '')
+    }
+    return Array.from(m.entries())
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+      .map(([code, name]) => ({ value: code, label: name ? `${code} — ${name}` : code }))
+  }, [employeesListData])
+
   /** Bulk delete the selected seat entries */
   const handleBulkDelete = async () => {
     const items = (selectedRows || []).map(toSeatDeleteItem)
@@ -1421,6 +1474,9 @@ const BgtSeatMaster = () => {
           search={search}
           clearAllFilters={clearAllFilters}
           isMobile={isMobile}
+          storeOptions={storeOptions}
+          handleDeleteByStore={handleDeleteByStore}
+          handleDeleteAll={handleDeleteAll}
         />
 
         {/* Tabs for HO / Active / HUBDC / UPC */}
@@ -1521,9 +1577,15 @@ const TableBulkActionIcons = ({
   actionsMap,
   clearAllFilters,
   isMobile,
+  storeOptions = [],
+  handleDeleteByStore,
+  handleDeleteAll,
 }) => {
   const { theme } = useSelector((state) => state.ui)
   const [isEmpUploadVisible, setIsEmpUploadVisible] = useState(false)
+  const [deleteStores, setDeleteStores] = useState([])
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false)
+  const [deleteAllText, setDeleteAllText] = useState('')
 
   const [statusSummary, setstatusSummary] = useState([
     {
@@ -1613,6 +1675,56 @@ const TableBulkActionIcons = ({
             </Tooltip>
           )}
 
+          {/* Delete all budget seats of one or more chosen stores */}
+          <Select
+            mode="multiple"
+            showSearch
+            allowClear
+            maxTagCount="responsive"
+            placeholder="Delete by store(s)…"
+            style={{ minWidth: 260, maxWidth: 420, marginLeft: 5 }}
+            value={deleteStores}
+            onChange={setDeleteStores}
+            options={storeOptions}
+            optionFilterProp="label"
+          />
+          <Popconfirm
+            title="Delete these stores' budget?"
+            description={
+              deleteStores.length
+                ? `All budget seats for ${deleteStores.length} store(s) will be deleted (a backup is saved first).`
+                : 'Select one or more stores first.'
+            }
+            okText="Yes, delete"
+            okButtonProps={{ danger: true }}
+            cancelText="No"
+            placement="bottomRight"
+            disabled={!deleteStores.length}
+            onConfirm={async () => {
+              await handleDeleteByStore?.(deleteStores)
+              setDeleteStores([])
+            }}
+          >
+            <Button danger disabled={!deleteStores.length}>
+              Delete Store BGT ({deleteStores.length})
+            </Button>
+          </Popconfirm>
+
+          {/* Delete EVERYTHING (typed confirmation) */}
+          <Tooltip placement="top" title={'Delete ALL budget seats (every line item)'}>
+            <Button
+              danger
+              type="primary"
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                setDeleteAllText('')
+                setDeleteAllOpen(true)
+              }}
+            >
+              Delete All BGT
+            </Button>
+          </Tooltip>
+
           <Search
             placeholder="Search in table..."
             allowClear
@@ -1622,6 +1734,33 @@ const TableBulkActionIcons = ({
           />
         </Space>
       </div>
+
+      <Modal
+        title="Delete ALL budget seats?"
+        open={deleteAllOpen}
+        okText="Delete everything"
+        okButtonProps={{ danger: true, disabled: deleteAllText.trim().toUpperCase() !== 'DELETE ALL' }}
+        cancelText="Cancel"
+        onCancel={() => setDeleteAllOpen(false)}
+        onOk={async () => {
+          await handleDeleteAll?.()
+          setDeleteAllOpen(false)
+          setDeleteAllText('')
+        }}
+      >
+        <p style={{ marginBottom: 8 }}>
+          This permanently deletes <b>every</b> line item in BGT Seat Master. A full backup table is
+          saved first, but this affects all stores.
+        </p>
+        <p style={{ marginBottom: 8 }}>
+          Type <b>DELETE ALL</b> to confirm:
+        </p>
+        <Input
+          value={deleteAllText}
+          onChange={(e) => setDeleteAllText(e.target.value)}
+          placeholder="DELETE ALL"
+        />
+      </Modal>
     </>
   )
 }

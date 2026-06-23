@@ -48,6 +48,8 @@ const ManagerEmpLeaveList = React.lazy(
 )
 const EmployeesList = React.lazy(() => import('./employees/EmployeesList'))
 const GapReports = React.lazy(() => import('./views/reports/GapReports'))
+const PtaxPolicy = React.lazy(() => import('./uploaders/PolicyMaster/PtaxPolicy'))
+const LwfPolicy = React.lazy(() => import('./uploaders/PolicyMaster/LwfPolicy'))
 const StoreReportingManager = React.lazy(() => import('./views/admin/StoreReportingManager'))
 const DeptDesignationMap = React.lazy(() => import('./views/masters/DeptDesignationMap'))
 const EmployeesTransferList = React.lazy(() => import('./employees/EmployeeTansferApprovals'))
@@ -814,6 +816,16 @@ const routes = [
     path: '/gap-reports',
     name: 'Gap Reports',
     element: GapReports,
+  },
+  {
+    path: '/ptax-policy',
+    name: 'PTax Policy',
+    element: PtaxPolicy,
+  },
+  {
+    path: '/lwf-policy',
+    name: 'LWF Policy',
+    element: LwfPolicy,
   },
   {
     path: '/store-reporting-manager',

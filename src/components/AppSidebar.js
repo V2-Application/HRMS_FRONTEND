@@ -8,8 +8,11 @@ import {
   CSidebarFooter,
   CSidebarHeader,
   CSidebarToggler,
+  CNavGroup,
+  CNavItem,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
+import { cilMoney, cilCash } from '@coreui/icons'
 
 import { AppSidebarNav } from './AppSidebarNav'
 
@@ -547,7 +550,32 @@ const AppSidebar = ({ menus, userdata, ...props }) => {
   const allowedMenus = getNewMenuslistRole()
   // const filteredMenuList = filterMenus(fullMenuList, allowedMenus)
   const filteredMenuList = getMenuList()
-  const roleMenus = filteredMenuList
+
+  // Statutory Policy (PTax / LWF) masters — visible to IT SuperAdmin only.
+  const isItSuperAdmin = (userdata?.role || '').trim().toLowerCase() === 'it superadmin'
+  const statutoryPolicyGroup = {
+    component: CNavGroup,
+    name: 'Statutory Policy',
+    to: '/statutory-policy',
+    icon: <CIcon icon={cilMoney} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'PTax Policy',
+        to: '/ptax-policy',
+        icon: <CIcon icon={cilCash} customClassName="nav-icon" />,
+      },
+      {
+        component: CNavItem,
+        name: 'LWF Policy',
+        to: '/lwf-policy',
+        icon: <CIcon icon={cilCash} customClassName="nav-icon" />,
+      },
+    ],
+  }
+  const roleMenus = isItSuperAdmin
+    ? [...filteredMenuList, statutoryPolicyGroup]
+    : filteredMenuList
 
   const checkSidebarColor = () => {
     const toggler = document.querySelector('.sidebar-toggler')

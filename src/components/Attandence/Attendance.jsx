@@ -233,6 +233,7 @@ const Attendance = () => {
         year: moment(selectedPeriod).year(),
         month: moment(selectedPeriod).month() + 1,
         eCode: selectedEmpCode,
+        useCycle: true, // pay cycle: 26th prev month -> 25th selected month (same as Table View)
       }
       const response = await employeeAttandanceData(attendaceBody)
       if (response.status === 200) setAttendanceData(response.data)
@@ -249,6 +250,36 @@ const Attendance = () => {
   }, [selectedPeriod, selectedEmpCode])
 
   const handleNavigate = (newDate) => setSelectedPeriod(moment(newDate))
+
+  // ---- Pay-cycle calendar (26th prev month -> 25th selected month), react-big-calendar look ----
+  const cycleStart = selectedPeriod
+    ? moment(selectedPeriod).subtract(1, 'month').date(26).startOf('day')
+    : null
+  const cycleEnd = selectedPeriod ? moment(selectedPeriod).date(25).startOf('day') : null
+
+  // week-aligned full weeks covering the cycle, so the grid lays out like a month calendar
+  const cycleWeeks = (() => {
+    if (!cycleStart || !cycleEnd) return []
+    const gridStart = moment(cycleStart).startOf('week')
+    const gridEnd = moment(cycleEnd).endOf('week')
+    const days = []
+    let d = gridStart.clone()
+    while (d.isSameOrBefore(gridEnd, 'day')) {
+      days.push(d.clone())
+      d = d.add(1, 'day')
+    }
+    const weeks = []
+    for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7))
+    return weeks
+  })()
+  const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const recordByDate = (() => {
+    const map = {}
+    attendanceData.forEach((it) => {
+      map[moment(it.attendanceDate).format('YYYY-MM-DD')] = it
+    })
+    return map
+  })()
 
   const onExportFailed = ({ errorFields }) => form.scrollToField(errorFields[0].name)
   const onExport = (values) => {
@@ -422,27 +453,151 @@ const Attendance = () => {
               {selectedEmpCode ? (
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <div style={{ minWidth: 320 }}>
-                    <BigCalendar
-                      localizer={localizer}
-                      events={getEvents()}
-                      date={
-                        selectedPeriod
-                          ? moment(selectedPeriod).startOf('month').toDate()
-                          : new Date()
-                      }
-                      startAccessor="start"
-                      endAccessor="end"
-                      style={{
-                        height: isMobile ? 420 : 650,
-                        width: '100%',
-                        fontSize: isMobile ? '0.75rem' : '0.9rem',
-                      }}
-                      eventPropGetter={eventStyleGetter}
-                      onSelectEvent={handleSelectEvent}
-                      toolbar={true}
-                      onNavigate={handleNavigate}
-                      views={['month', 'week']}
-                    />
+                    {/* Pay-cycle calendar: react-big-calendar look, scoped 26th(prev) -> 25th(selected) */}
+                    <div className="rbc-calendar" style={{ width: '100%' }}>
+                      {/* Toolbar (RBC styling) */}
+                      <div className="rbc-toolbar">
+                        <span className="rbc-btn-group">
+                          <button type="button" onClick={() => setSelectedPeriod(moment())}>
+                            Today
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedPeriod(moment(selectedPeriod).subtract(1, 'month'))
+                            }
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="button"
+                            disabled={moment(selectedPeriod).isSameOrAfter(moment(), 'month')}
+                            onClick={() => setSelectedPeriod(moment(selectedPeriod).add(1, 'month'))}
+                          >
+                            Next
+                          </button>
+                        </span>
+                        <span className="rbc-toolbar-label">
+                          {cycleStart && cycleEnd
+                            ? `${cycleStart.format('DD MMM')} – ${cycleEnd.format('DD MMM YYYY')} (cycle)`
+                            : ''}
+                        </span>
+                        <span className="rbc-btn-group" />
+                      </div>
+
+                      {/* Weekday header */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(7, 1fr)',
+                          borderLeft: '1px solid #ddd',
+                          borderTop: '1px solid #ddd',
+                          fontWeight: 600,
+                          color: '#333',
+                        }}
+                      >
+                        {weekdayLabels.map((w) => (
+                          <div
+                            key={w}
+                            style={{
+                              textAlign: 'center',
+                              padding: '8px 0',
+                              borderRight: '1px solid #ddd',
+                              borderBottom: '1px solid #ddd',
+                              background: '#fff',
+                              fontSize: isMobile ? '0.72rem' : '0.9rem',
+                            }}
+                          >
+                            {w}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Week rows */}
+                      <div style={{ borderLeft: '1px solid #ddd' }}>
+                        {cycleWeeks.map((week, wi) => (
+                          <div
+                            key={wi}
+                            style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}
+                          >
+                            {week.map((d) => {
+                              const key = d.format('YYYY-MM-DD')
+                              const rec = recordByDate[key]
+                              const inCycle =
+                                d.isSameOrAfter(cycleStart, 'day') && d.isSameOrBefore(cycleEnd, 'day')
+                              const isFuture = d.isAfter(moment().endOf('day'))
+                              const status = rec?.status || (inCycle && !isFuture ? 'Absent' : '')
+                              const inT = rec?.punchIn
+                                ? moment(rec.punchIn, 'HH:mm:ss').format('HH:mm')
+                                : ''
+                              const outT = rec?.punchOut
+                                ? moment(rec.punchOut, 'HH:mm:ss').format('HH:mm')
+                                : ''
+                              const punchTxt = inT
+                                ? outT && outT !== inT
+                                  ? `${inT}–${outT}`
+                                  : `${inT} (MIS)`
+                                : ''
+                              const isSel =
+                                selectedDate && moment(selectedDate).format('YYYY-MM-DD') === key
+                              const clickable = inCycle && !isFuture
+                              const barColor =
+                                statusColors[status] ||
+                                (status ? '#3174ad' : 'transparent')
+                              return (
+                                <div
+                                  key={key}
+                                  onClick={() => {
+                                    if (!clickable) return
+                                    setSelectedDate(d.toDate())
+                                    setSelectedEmp(rec ? rec.employeeName || rec.eCode || '' : '')
+                                  }}
+                                  style={{
+                                    position: 'relative',
+                                    minHeight: isMobile ? 70 : 130,
+                                    borderRight: '1px solid #ddd',
+                                    borderBottom: '1px solid #ddd',
+                                    background: !inCycle ? '#f4f4f4' : isSel ? '#eaf4ff' : '#fff',
+                                    cursor: clickable ? 'pointer' : 'default',
+                                    boxShadow: isSel ? 'inset 0 0 0 2px #1890ff' : 'none',
+                                    padding: '2px 4px 4px',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      textAlign: 'right',
+                                      fontSize: isMobile ? '0.72rem' : '0.85rem',
+                                      color: inCycle ? '#666' : '#bbb',
+                                      padding: '2px 4px',
+                                    }}
+                                  >
+                                    {d.date() === 1 ? d.format('D MMM') : d.format('DD')}
+                                  </div>
+                                  {inCycle && !isFuture && status && (
+                                    <div
+                                      title={`${status}${punchTxt ? ' • ' + punchTxt : ''}`}
+                                      style={{
+                                        background: barColor,
+                                        color: '#fff',
+                                        borderRadius: 4,
+                                        padding: isMobile ? '2px 4px' : '3px 8px',
+                                        margin: '2px 2px 0',
+                                        fontSize: isMobile ? '0.66rem' : '0.8rem',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                      }}
+                                    >
+                                      {punchTxt || status}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
