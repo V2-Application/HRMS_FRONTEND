@@ -646,14 +646,15 @@ const BgtSeatMaster = () => {
       bgtSal += toNum(r?.salarY_BGT)
     }
 
-    const shortExcessValue = Math.abs(bgtManpower - actManpower)
-    const isBgtGreater = bgtManpower > actManpower
+    // Bgt - Act: positive => Short (fewer people than budget), negative => Excess (more people than budget).
+    const manpowerDiff = bgtManpower - actManpower
+    const shortExcessValue = Math.abs(manpowerDiff)
 
     return [
       { label: 'Locs', value: uniqueLocs.size },
       { label: 'Bgt Manpower', value: bgtManpower },
       { label: 'Act Manpower', value: actManpower },
-      { label: isBgtGreater ? 'Excess' : 'Short', value: shortExcessValue },
+      { label: manpowerDiff < 0 ? 'Excess' : 'Short', value: shortExcessValue },
       { label: 'Desg. Excess', value: excess },
       { label: 'Desg. Short', value: short },
       { label: 'Bgt Sal', value: bgtSal },
@@ -819,11 +820,14 @@ const BgtSeatMaster = () => {
   }, [filteredData, textFilters])
 
   /** ====== TAB SPLIT ====== */
-  const RH_CODE = 'RH01'
+  // HO tab covers RH01 + RH02; both are excluded from Active/HUB-DC/UPC tabs (which use !codeIsRH).
+  const RH_CODES = new Set(['RH01', 'RH02'])
   const codeIsRH = (v) =>
-    String(v ?? '')
-      .trim()
-      .toUpperCase() === RH_CODE
+    RH_CODES.has(
+      String(v ?? '')
+        .trim()
+        .toUpperCase(),
+    )
 
   // ✅ HUB/DC definitions
   const HUB_DC_CODES = useMemo(
@@ -1398,7 +1402,7 @@ const BgtSeatMaster = () => {
     // ✅ Added HUB/DC export label
     const tabName =
       activeTab === TAB_KEYS.RH
-        ? 'RH01'
+        ? 'HO'
         : activeTab === TAB_KEYS.ACTIVE
           ? 'Active'
           : activeTab === TAB_KEYS.HUBDC

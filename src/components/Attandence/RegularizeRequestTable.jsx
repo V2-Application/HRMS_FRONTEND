@@ -288,7 +288,7 @@
 //           <Col span={24}>
 //             <div style={{ textAlign: 'center' }}>
 //               <Space size="small">
-//                 {role === 'SuperAdmin' && (
+//                 {isSuperAdmin && (
 //                   <Button
 //                     size="small"
 //                     icon={<EditOutlined />}
@@ -807,7 +807,7 @@
 //       fixed: 'right', // sticky on desktop; stripped on mobile
 //       render: (_, record) => (
 //         <Space size="middle">
-//           {role === 'SuperAdmin' && (
+//           {isSuperAdmin && (
 //             <Tooltip placement="top" title="View">
 //               <EditOutlined
 //                 style={{ fontSize: 18 }}
@@ -1957,7 +1957,11 @@ const RegularizeRequestTable = () => {
   const [empRemarkFilterValues, setEmpRemarkFilterValues] = useState([])
   const [approverRemarkFilterValues, setApproverRemarkFilterValues] = useState([])
   const [bulkRegularizeModalOpen, setBulkRegularizeModalOpen] = useState(false)
-  const showBulkActions = activekey === '1' || activekey === '2'
+  const isSuperAdmin = ['superadmin', 'it superadmin', 'master'].includes(
+    (role || '').trim().toLowerCase(),
+  )
+  // Approved tab (key '2') actions are restricted to SuperAdmin; Pending tab keeps actions for all approvers.
+  const showBulkActions = activekey === '1' || (activekey === '2' && isSuperAdmin)
 
   const [exportModalOpen, setExportModalOpen] = useState(false)
   const [exportRange, setExportRange] = useState([
@@ -1968,10 +1972,6 @@ const RegularizeRequestTable = () => {
   const [exportManagerStatus, setExportManagerStatus] = useState('')
   const [exportLpStatus, setExportLpStatus] = useState('')
   const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
-
-  const isSuperAdmin = ['superadmin', 'it superadmin', 'master'].includes(
-    (role || '').trim().toLowerCase(),
-  )
 
   const handleSuperAdminExport = async () => {
     if (!exportRange || !exportRange[0] || !exportRange[1]) {
@@ -2175,7 +2175,7 @@ const RegularizeRequestTable = () => {
           <Col span={24}>
             <div style={{ textAlign: 'center' }}>
               <Space size="small">
-                {role === 'SuperAdmin' && (
+                {isSuperAdmin && (
                   <Button
                     size="small"
                     icon={<EditOutlined />}
@@ -2188,7 +2188,7 @@ const RegularizeRequestTable = () => {
                     View
                   </Button>
                 )}
-                {activekey === '1' && (
+                {(activekey === '1' || (activekey === '2' && isSuperAdmin)) && (
                   <Button
                     size="small"
                     type="primary"
@@ -2699,7 +2699,7 @@ const RegularizeRequestTable = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="middle">
-          {role === 'SuperAdmin' && (
+          {isSuperAdmin && (
             <Tooltip placement="top" title="View">
               <EditOutlined
                 style={{ fontSize: 18 }}
@@ -2713,7 +2713,7 @@ const RegularizeRequestTable = () => {
 
           {/* Action button only on the Pending tab. Approved / Rejected / History
               tabs show the row state but no action — those are terminal for this user. */}
-          {activekey === '1' && (
+          {(activekey === '1' || (activekey === '2' && isSuperAdmin)) && (
             <Tooltip placement="top" title={'Action'}>
               <StepForwardOutlined
                 style={{ fontSize: 18 }}

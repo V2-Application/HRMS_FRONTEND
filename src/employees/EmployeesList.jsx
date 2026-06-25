@@ -4224,8 +4224,8 @@ const EmployeesList = () => {
         width: 100,
         ellipsis: true,
         render: (value, record) =>
-          String(record?.resignationTypeName).trim() !== ''
-            ? record?.resignationTypeName
+          record?.resignationTypeName && String(record.resignationTypeName).trim() !== ''
+            ? record.resignationTypeName
             : record?.isActive
               ? 'Active'
               : 'Left',
