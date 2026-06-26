@@ -1,6 +1,6 @@
 import { UploadOutlined, ExportOutlined, DownOutlined } from '@ant-design/icons'
 import { Space, Input, Table, Button, message, DatePicker, Dropdown } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ProcessSalaryRequestUploader from './ProcessSalaryRequestUploader'
 import { useActionsMap } from '../../utils/useActionsMap'
 import { useSelector } from 'react-redux'
@@ -17,74 +17,139 @@ const ProcessSalaryRequest1 = () => {
   const actionsMap = useActionsMap(filteredSideMenu)
 
   const [isUploaderOpen, setIsUploaderOpen] = useState(false)
-  const [data, setData] = useState([])
+  const [filteredData, setFilteredData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [updatingId, setUpdatingId] = useState(null)
-  const [filteredData, setFilteredData] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  // Debounced copy of searchQuery that is actually sent to the server.
+  const [appliedSearch, setAppliedSearch] = useState('')
   const [monthVal, setMonthVal] = useState(dayjs())
   const [isEmpSalDataLoading, setIsEmpSalDataLoading] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [salaryInfo, setSalaryInfo] = useState(null)
   const [isExporting, setIsExporting] = useState(false)
+  // Pagination
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [total, setTotal] = useState(0)
+  // True when the backend honored paging (returned a TotalCount). When false (older backend that
+  // returns the whole month at once), we paginate/search on the client so ALL rows stay visible.
+  const [serverPaged, setServerPaged] = useState(true)
+  // Last fetched month, and the full month's rows kept for the client-side fallback so
+  // page/search changes filter locally instead of re-hitting the (slow) backend.
+  const lastFetchedMonthRef = useRef(null)
+  const clientAllRef = useRef([])
 
-  // 🔵 Fetch list snapshots for month
+  const addKeys = (list) =>
+    (list || []).map((row) => ({
+      ...row,
+      key: row.id ?? row.batchNo ?? `${row.ecode}-${row.month_Year}`,
+    }))
+
+  // Sort newest-run-first (RunAt descending), so today's run — being the most recent — is on top.
+  const sortNewestFirst = (list) =>
+    [...(list || [])].sort((a, b) => {
+      const ta = a?.runAt ? new Date(a.runAt).getTime() : 0
+      const tb = b?.runAt ? new Date(b.runAt).getTime() : 0
+      return tb - ta
+    })
+
+  // Client-side filter (used only in the non-server-paged fallback) across all column values.
+  const clientFilter = (list, q) => {
+    const s = (q || '').toLowerCase().trim()
+    if (!s) return list
+    return list.filter((item) =>
+      Object.values(item || {}).some((v) =>
+        String(v ?? '')
+          .toLowerCase()
+          .includes(s),
+      ),
+    )
+  }
+
+  // 🔵 Fetch snapshots for the selected month.
+  // - New backend: returns ONE page + TotalCount  -> fast server-side paging.
+  // - Old backend: returns the WHOLE month, no TotalCount -> we paginate/search on the client
+  //   so every run/row is still shown (fixes "only today's run is coming").
   const fetchData = async () => {
+    const monthStr = monthVal.format('MMM-YY')
+
+    // Client-paged fallback: page/search changes are handled locally over the month already loaded,
+    // so we don't re-hit the (slow) backend. Only a month change triggers a new request here.
+    if (!serverPaged && lastFetchedMonthRef.current === monthStr && clientAllRef.current.length) {
+      const filtered = clientFilter(clientAllRef.current, appliedSearch)
+      setFilteredData(filtered)
+      setTotal(filtered.length)
+      return
+    }
+
     try {
       setIsLoading(true)
-      const monthStr = monthVal.format('MMM-YY')
 
       const res = await axiosInstance.get('/api/EmpAttendanceViewSnapshot/get-snapshots', {
         params: {
           month: monthStr,
           status: 0, // 0 = all active salary requests
+          page,
+          pageSize,
+          search: appliedSearch || undefined,
         },
       })
 
       if (res?.status === 200) {
-        const list = res?.data?.data || []
-        const withKeys = list.map((row) => ({
-          ...row,
-          key: row.id ?? row.batchNo ?? `${row.ecode}-${row.month_Year}`,
-        }))
-        setData(withKeys)
-        setFilteredData(withKeys)
+        const list = sortNewestFirst(addKeys(res?.data?.data))
+        const serverTotal = res?.data?.totalCount
+        const isServerPaged = typeof serverTotal === 'number' && serverTotal > 0
+        setServerPaged(isServerPaged)
+        lastFetchedMonthRef.current = monthStr
+
+        if (isServerPaged) {
+          // Backend already returned just this page.
+          clientAllRef.current = []
+          setFilteredData(list)
+          setTotal(serverTotal)
+        } else {
+          // Backend returned the full month (or none) -> keep it and filter/paginate on the client
+          // so ALL rows (every run) stay visible.
+          clientAllRef.current = list
+          const filtered = clientFilter(list, appliedSearch)
+          setFilteredData(filtered)
+          setTotal(filtered.length)
+        }
       } else {
-        setData([])
         setFilteredData([])
+        setTotal(0)
         message.error(res?.data?.message || 'Failed to fetch data')
       }
     } catch (err) {
-      setData([])
       setFilteredData([])
+      setTotal(0)
       message.error(err?.response?.data?.message || 'Error fetching data')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Refetch whenever month / page / pageSize / applied search changes.
   useEffect(() => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthVal, page, pageSize, appliedSearch])
+
+  // Reset to page 1 when the month changes.
+  useEffect(() => {
+    setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthVal])
 
-  // 🔍 Search in table
+  // 🔍 Debounce the search box -> server search (and jump back to page 1).
   useEffect(() => {
-    const searchText = searchQuery.toLowerCase().trim()
-
-    if (!searchText) {
-      setFilteredData(data)
-    } else {
-      const filtered = data.filter((item) =>
-        Object.values(item || {}).some((v) =>
-          String(v ?? '')
-            .toLowerCase()
-            .includes(searchText),
-        ),
-      )
-      setFilteredData(filtered)
-    }
-  }, [searchQuery, data])
+    const t = setTimeout(() => {
+      setAppliedSearch(searchQuery.trim())
+      setPage(1)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [searchQuery])
 
   // 🔵 Fetch salary info for modal (if you use it)
   const fetchSalData = async (batchNo) => {
@@ -182,24 +247,42 @@ const ProcessSalaryRequest1 = () => {
     XLSX.writeFile(wb, `Processed_Salary_${suffix}_${monthStr}_${ts}.xlsx`)
   }
 
+  // Export must cover the WHOLE month (not just the current page), so it fetches all matching
+  // rows from the server (pageSize omitted = no paging) honoring the current search.
+  const fetchAllForExport = async () => {
+    const monthStr = monthVal.format('MMM-YY')
+    const res = await axiosInstance.get('/api/EmpAttendanceViewSnapshot/get-snapshots', {
+      params: {
+        month: monthStr,
+        status: 0,
+        search: appliedSearch || undefined,
+      },
+    })
+    if (res?.status !== 200) throw new Error(res?.data?.message || 'Failed to fetch data for export')
+    return addKeys(res?.data?.data)
+  }
+
   const runExport = async (compute) => {
     if (isExporting) return
     setIsExporting(true)
     try {
+      const rows = await fetchAllForExport()
       // yield so the spinner paints before xlsx blocks the main thread
       await new Promise((r) => setTimeout(r, 0))
-      compute()
+      compute(rows)
+    } catch (err) {
+      message.error(err?.response?.data?.message || err?.message || 'Failed to export')
     } finally {
       setIsExporting(false)
     }
   }
 
-  const handleExportAll = () => runExport(() => downloadXlsx(filteredData, 'All'))
+  const handleExportAll = () => runExport((rows) => downloadXlsx(rows, 'All'))
 
   const handleExportLatest = () =>
-    runExport(() => {
+    runExport((rows) => {
       const latestByEcode = new Map()
-      for (const r of filteredData) {
+      for (const r of rows) {
         const key = r.ecode ?? r.key
         const tsNew = r.runAt ? new Date(r.runAt).getTime() : 0
         const existing = latestByEcode.get(key)
@@ -267,6 +350,21 @@ const ProcessSalaryRequest1 = () => {
         dataSource={filteredData}
         loading={isLoading}
         scroll={{ x: totalWidth, y: 'calc(100vh - 160px)' }}
+        pagination={{
+          current: page,
+          pageSize,
+          total,
+          showSizeChanger: true,
+          pageSizeOptions: ['25', '50', '100', '200'],
+          showTotal: (t) => `${t} records`,
+        }}
+        onChange={(pag) => {
+          if (pag?.current) setPage(pag.current)
+          if (pag?.pageSize && pag.pageSize !== pageSize) {
+            setPageSize(pag.pageSize)
+            setPage(1)
+          }
+        }}
       />
     </>
   )

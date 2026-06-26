@@ -327,7 +327,11 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
   const [selectedEmpName, setSelectedEmpName] = useState(defaultName || '')
   const [selectedEmpId, setSelectedEmpId] = useState(null)
 
-  const [selectedMonth, setSelectedMonth] = useState(dayjs())
+  // Default to the current pay-cycle month: on/after the 26th the new cycle (26th -> 25th next month)
+  // has started, so default to next month so today's new-cycle attendance is shown right away.
+  const [selectedMonth, setSelectedMonth] = useState(
+    dayjs().date() >= 26 ? dayjs().add(1, 'month') : dayjs(),
+  )
   const [tableSearch, setTableSearch] = useState('')
   const [apiType, setApiType] = useState('table')
 
@@ -392,6 +396,14 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
     const endOfSelectedMonth = selectedMonth.endOf('month').endOf('day')
     return endOfSelectedMonth.isAfter(today) ? today : endOfSelectedMonth
   }, [selectedMonth])
+
+  // ✅ latest selectable month in the picker.
+  // Pay cycle starts on the 26th (26th prev month -> 25th selected month). So once we're on/after
+  // the 26th, the NEXT month's cycle has begun and that month must be selectable.
+  const maxSelectableMonth = useMemo(() => {
+    const today = dayjs()
+    return today.date() >= 26 ? today.add(1, 'month') : today
+  }, [])
   const [selectedPunchRow, setSelectedPunchRow] = useState(null)
   console.log('actionsMap:', actionsMap)
 
@@ -1979,7 +1991,7 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
             onChange={setSelectedMonth}
             format="YYYY-MM"
             placeholder="Select month"
-            disabledDate={(current) => current && current.isAfter(dayjs(), 'month')}
+            disabledDate={(current) => current && current.isAfter(maxSelectableMonth, 'month')}
           />
         </div>
 

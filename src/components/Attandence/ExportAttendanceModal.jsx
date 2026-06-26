@@ -1,28 +1,41 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Modal, Form, Input, DatePicker, Button, message, Row, Col } from 'antd'
+import { StopOutlined } from '@ant-design/icons'
 import { exportAttendance } from '../../services/Services'
 import moment from 'moment'
-import { useDispatch, useSelector } from 'react-redux'
-import { set } from '../../redux/uiSlice'
+import { useSelector } from 'react-redux'
+
+// True when a request error is just a user-initiated abort (Stop), not a real failure.
+const isCancelError = (error) =>
+  error?.code === 'ERR_CANCELED' ||
+  error?.name === 'CanceledError' ||
+  error?.name === 'AbortError'
 
 const ExportAttendanceModal = ({ isExportAttendanceModalOpen, setIsExportAttendanceModalOpen }) => {
   const [form] = Form.useForm()
 
   const { role, ecode } = useSelector((state) => state.auth.data)
-  const { loading } = useSelector((state) => state.ui)
-  const dispatch = useDispatch()
+  // Local (non-blocking) export state + abort controller so the Stop button can cancel the export.
+  const [isExporting, setIsExporting] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
+  const exportAbortRef = useRef(null)
 
   const onFinish = async (values) => {
+    if (isExporting) return
     const { eCode, startDate, endDate } = values
+
+    const controller = new AbortController()
+    exportAbortRef.current = controller
+
     try {
-      await dispatch(set({ loading: true }))
+      setIsExporting(true)
       const requestBody = {
         fromDate: startDate.format('YYYY-MM-DD'),
         toDate: endDate.format('YYYY-MM-DD'),
         ...(eCode ? { eCode } : {}),
       }
 
-      const { data: arraybuffer, status } = await exportAttendance(requestBody)
+      const { data: arraybuffer, status } = await exportAttendance(requestBody, controller.signal)
       if (status === 200) {
         const blob = new Blob([arraybuffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -40,14 +53,34 @@ const ExportAttendanceModal = ({ isExportAttendanceModalOpen, setIsExportAttenda
         setIsExportAttendanceModalOpen(false)
       }
     } catch (err) {
-      console.error(err)
-      message.error('Failed to start export')
+      if (isCancelError(err)) {
+        message.warning('Attendance export stopped.')
+      } else {
+        console.error(err)
+        message.error('Failed to start export')
+      }
     } finally {
-      await dispatch(set({ loading: false }))
+      setIsExporting(false)
+      setIsStopping(false)
+      exportAbortRef.current = null
     }
   }
 
+  // Abort the in-flight export -> backend cancels the running query -> then close the modal.
+  const stopExport = () => {
+    if (exportAbortRef.current) {
+      setIsStopping(true)
+      exportAbortRef.current.abort()
+    }
+    form.resetFields()
+    setIsExportAttendanceModalOpen(false)
+  }
+
   const onCancel = () => {
+    if (isExporting) {
+      message.warning('Stop the running export first.')
+      return
+    }
     form.resetFields()
     setIsExportAttendanceModalOpen(false)
   }
@@ -70,7 +103,8 @@ const ExportAttendanceModal = ({ isExportAttendanceModalOpen, setIsExportAttenda
       onCancel={onCancel}
       footer={null}
       width={400}
-      confirmLoading={loading}
+      maskClosable={!isExporting}
+      closable={!isExporting}
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item name="eCode" label="Employee Code">
@@ -116,10 +150,21 @@ const ExportAttendanceModal = ({ isExportAttendanceModalOpen, setIsExportAttenda
         </Row>
 
         <Form.Item style={{ textAlign: 'right' }}>
-          <Button style={{ marginRight: 8 }} onClick={onCancel}>
+          <Button style={{ marginRight: 8 }} onClick={onCancel} disabled={isExporting}>
             Cancel
           </Button>
-          <Button type="primary" htmlType="submit" loading={loading} disabled={loading}>
+          {isExporting && (
+            <Button
+              danger
+              icon={<StopOutlined />}
+              loading={isStopping}
+              style={{ marginRight: 8 }}
+              onClick={stopExport}
+            >
+              Stop
+            </Button>
+          )}
+          <Button type="primary" htmlType="submit" loading={isExporting} disabled={isExporting}>
             Export
           </Button>
         </Form.Item>

@@ -114,7 +114,7 @@ export const AttendanceRegularization = async (formData) => {
   }
 }
 
-export const exportAttendance = async (requestBody) => {
+export const exportAttendance = async (requestBody, signal) => {
   try {
     const response = await axiosInstance.post(
       'api/EmpAttendance/DownloadMonthlyAttendanceExcel',
@@ -125,12 +125,15 @@ export const exportAttendance = async (requestBody) => {
           Accept: '*',
         },
         responseType: 'blob',
+        signal,
       },
     )
 
     return response
   } catch (error) {
     console.error('Error exporting attendance:', error)
+    // Rethrow so the caller can distinguish a user-initiated "Stop" (abort) from a real failure.
+    throw error
   }
 }
 
@@ -2112,13 +2115,14 @@ export const storeRoutingList = async (locationId) => {
   }
 }
 
-export const salaryRecalculate = async (payload) => {
+export const salaryRecalculate = async (payload, signal) => {
   try {
     // const response = await axiosInstance.post(`api/SalaryRecalculate/recalculate`, payload, {
     const response = await axiosInstance.post(`/api/SalaryRecalculate/recalculate-new`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
+      signal,
     })
     return response
   } catch (error) {

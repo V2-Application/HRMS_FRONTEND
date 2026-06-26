@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Space,
   Table,
@@ -28,6 +28,7 @@ import {
   SaveOutlined,
   PlusOutlined,
   MinusOutlined,
+  StopOutlined,
 } from '@ant-design/icons'
 import { toast, ToastContainer } from 'react-toastify'
 import { Link } from 'react-router-dom'
@@ -59,6 +60,12 @@ import SalaryRecalculateUploader from './SalaryRecalculateUploader'
 
 const { Search } = Input
 const { useBreakpoint } = Grid
+
+// True when a request error is just a user-initiated abort (Stop), not a real failure.
+const isCancelError = (error) =>
+  error?.code === 'ERR_CANCELED' ||
+  error?.name === 'CanceledError' ||
+  error?.name === 'AbortError'
 
 const FilterDropdown = ({ dataIndex, dataList, filterValues, setFilterValues, confirm, title }) => {
   const [searchText, setSearchText] = useState('')
@@ -165,6 +172,11 @@ const SalaryRecalculate = () => {
   const [dateYearForSalary, setdateYearForSalary] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedStore, setSelectedStore] = useState()
+  // Shared recalculation state so a single "Stop" button can abort whichever recalc
+  // (per-row, bulk, or all-by-month) is currently running.
+  const [isRecalculating, setIsRecalculating] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
+  const recalcAbortRef = useRef(null)
   // ✅ Mobile state
   const [expandedCards, setExpandedCards] = useState({})
 
@@ -671,6 +683,10 @@ const SalaryRecalculate = () => {
   ]
 
   const getRecalulatedSalaryData = async (record) => {
+    if (isRecalculating) {
+      message.warning('A recalculation is already running. Stop it first.')
+      return
+    }
     let date_month = null
     if (record) {
       const { ecode } = record
@@ -680,15 +696,19 @@ const SalaryRecalculate = () => {
       date_month = str_selectedkey
     }
 
+    // Fresh abort controller so the "Stop" button can cancel this run (which cancels the proc on SQL Server).
+    const controller = new AbortController()
+    recalcAbortRef.current = controller
+
     try {
-      dispatch(set({ loading: true }))
+      setIsRecalculating(true)
 
       const payload = {
         eCodes: date_month,
         // month: dateYearForSalary,
         month: listCurrentMonth.format('MMM-YY'),
       }
-      const res = await salaryRecalculate(payload)
+      const res = await salaryRecalculate(payload, controller.signal)
 
       if (res?.status === 200) {
         messageApi.success(res.data?.message || 'Salary Recalculated Successfully')
@@ -697,9 +717,56 @@ const SalaryRecalculate = () => {
         message.error(res?.response?.data?.message || 'Some error occured')
       }
     } catch (error) {
-      console.error('error in Salary Recalculate: ', error)
+      if (isCancelError(error)) {
+        messageApi.warning('Salary recalculation stopped.')
+      } else {
+        console.error('error in Salary Recalculate: ', error)
+        message.error(error?.response?.data?.message || 'Some error occured')
+      }
     } finally {
-      dispatch(set({ loading: false }))
+      setIsRecalculating(false)
+      setIsStopping(false)
+      recalcAbortRef.current = null
+    }
+  }
+
+  // Recalculate ALL salaries for the selected month (heavy, runs the iterate proc server-side).
+  const handleCalculateByMonth = async () => {
+    if (isRecalculating) {
+      message.warning('A recalculation is already running. Stop it first.')
+      return
+    }
+    const controller = new AbortController()
+    recalcAbortRef.current = controller
+
+    try {
+      setIsRecalculating(true)
+      const response = await axiosInstance.post(
+        '/api/SalaryRecalculate/recalculate-by-month-new',
+        { month: listCurrentMonth.format('MMM-YY') },
+        { signal: controller.signal },
+      )
+      messageApi.success(response?.data?.message || 'Recalculation successful')
+      fetchData()
+    } catch (error) {
+      if (isCancelError(error)) {
+        messageApi.warning('Salary recalculation stopped.')
+      } else {
+        console.error('Error in recalculate-by-month:', error)
+        message.error(error?.response?.data?.message || 'Recalculation failed')
+      }
+    } finally {
+      setIsRecalculating(false)
+      setIsStopping(false)
+      recalcAbortRef.current = null
+    }
+  }
+
+  // Abort the in-flight recalculation -> backend cancels the running stored procedure.
+  const stopRecalc = () => {
+    if (recalcAbortRef.current) {
+      setIsStopping(true)
+      recalcAbortRef.current.abort()
     }
   }
 
@@ -972,6 +1039,10 @@ const SalaryRecalculate = () => {
           setSelectedStore={setSelectedStore}
           selectedStore={selectedStore}
           handleOk={handleOk}
+          handleCalculateByMonth={handleCalculateByMonth}
+          isRecalculating={isRecalculating}
+          isStopping={isStopping}
+          stopRecalc={stopRecalc}
         />
 
         {isMobile ? (
@@ -1098,11 +1169,14 @@ const TableBulkActionIcons = ({
   selectedStore,
   setSelectedStore,
   handleOk,
+  handleCalculateByMonth,
+  isRecalculating,
+  isStopping,
+  stopRecalc,
 }) => {
   const { theme } = useSelector((state) => state.ui)
   const [isEmpUploadVisible, setIsEmpUploadVisible] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(dayjs())
-  const [isAllRecalculating, setIsAllRecalculating] = useState(false)
   const [isRecalModelOpen, setIsRecalModalOpen] = useState(false)
 
   const [statusSummary, setstatusSummary] = useState([
@@ -1143,26 +1217,8 @@ const TableBulkActionIcons = ({
     ])
   }, [selectedRowKeys, totalRecords, cardsData])
 
-  const handleCalculateByMonth = async () => {
-    const reqestBody = {
-      month: listCurrentMonth.format('MMM-YY'),
-    }
-
-    try {
-      setIsAllRecalculating(true)
-      const response = await axiosInstance.post(
-        // '/api/SalaryRecalculate/recalculate-by-month',
-        '/api/SalaryRecalculate/recalculate-by-month-new',
-        reqestBody,
-      )
-      message.success(response?.data?.message || 'Recalculation successful')
-    } catch (error) {
-      console.error('Error in recalculate-by-month:', error)
-      message.error(error?.response?.data?.message || 'Recalculation failed')
-    } finally {
-      setIsAllRecalculating(false)
-    }
-  }
+  // handleCalculateByMonth, isRecalculating, isStopping, stopRecalc come from the parent
+  // so a single Stop button can abort whichever recalc (per-row, bulk, or all) is running.
 
   return (
     <>
@@ -1276,8 +1332,9 @@ const TableBulkActionIcons = ({
                 okText="Yes"
                 cancelText="No"
                 onConfirm={handleOk}
+                disabled={isRecalculating}
               >
-                <Button loading={bulkSalaryRecalculateStatus} disabled={selectedRowKeys.length < 1}>
+                <Button loading={isRecalculating} disabled={selectedRowKeys.length < 1}>
                   <ReloadOutlined />
                 </Button>
               </Popconfirm>
@@ -1289,7 +1346,7 @@ const TableBulkActionIcons = ({
               <Modal
                 open={isRecalModelOpen}
                 onOk={handleCalculateByMonth}
-                loading={isAllRecalculating}
+                loading={isRecalculating}
                 onCancel={() => setIsRecalModalOpen(false)}
               >
                 <Space
@@ -1305,27 +1362,47 @@ const TableBulkActionIcons = ({
                     picker="month"
                     value={currentMonth}
                     onChange={(val) => setCurrentMonth(val)}
-                    disabled={isAllRecalculating}
+                    disabled={isRecalculating}
                     size={isMobile ? 'small' : 'middle'}
                   />
                 </Space>
               </Modal>
 
               <Tooltip placement="top" title="Recalculate All">
-                {/* <Button onClick={handleCalculateByMonth} loading={isAllRecalculating}> */}
+                {/* <Button onClick={handleCalculateByMonth} loading={isRecalculating}> */}
                 <Popconfirm
                   title="Recalculate All Salaries"
                   description="Are you sure you want to recalculate salaries for this month?"
                   okText="Yes"
                   cancelText="No"
                   onConfirm={handleCalculateByMonth}
+                  disabled={isRecalculating}
                 >
-                  <Button loading={isAllRecalculating}>
+                  <Button loading={isRecalculating}>
                     <SaveOutlined />
                   </Button>
                 </Popconfirm>
               </Tooltip>
             </>
+          )}
+
+          {/* Stop is shown whenever ANY recalculation is running (per-row, bulk or all),
+              on both desktop and mobile, so the user can always kill the process. */}
+          {isRecalculating && (
+            <Tooltip placement="top" title="Stop Recalculation">
+              <Popconfirm
+                title="Stop Recalculation"
+                description="Are you sure you want to stop the running recalculation?"
+                okText="Yes, stop"
+                cancelText="No"
+                okButtonProps={{ danger: true }}
+                onConfirm={stopRecalc}
+              >
+                <Button danger loading={isStopping} icon={<StopOutlined />}>
+                  Stop
+                </Button>
+              </Popconfirm>
+            </Tooltip>
           )}
 
           <Button icon={<UploadOutlined />} onClick={() => setIsUploaderOpen(true)} />
