@@ -32,6 +32,10 @@ const ALL_REPORTS = [
   { key: 'deptbgt-vs-actemp-loc', name: 'Location-Dept-wise Bgt Emp vs Act Emp Gap Report', category: 'Manpower / Budget' },
   { key: 'absent-emp', name: 'Employee-wise Absent TD/MTD Gap Report', category: 'Attendance' },
   { key: 'subdeptbgt-vs-actemp-loc', name: 'Location-SubDept-wise Bgt Emp vs Act Emp Gap Report', category: 'Manpower / Budget' },
+  { key: 'manual-gf-present-gt4', name: 'Location-Employee Manual & GF Present > 4 Days Gap Report', category: 'Manual / GF & Leave' },
+  { key: 'leave-availed-gt4', name: 'Location-Employee Leave Availed > 4 Days Gap Report', category: 'Manual / GF & Leave' },
+  { key: 'lm-vs-tm-gross-gap', name: 'Location-Employee LM vs TM Gross Salary Gap Report', category: 'LM vs TM (Salary/Loc)' },
+  { key: 'emp-loc-change-lm-vs-tm', name: 'Employee Location Change LM vs TM Gap Report', category: 'LM vs TM (Salary/Loc)' },
 ]
 
 const ALL_CATEGORIES = 'All Categories'

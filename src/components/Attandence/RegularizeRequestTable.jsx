@@ -2365,8 +2365,15 @@ const RegularizeRequestTable = () => {
 
       if (response?.status === 200) {
         const raw = response?.data?.data || []
-        // Pending tab keeps the cycle filter; Approved/Rejected show full history (server-filtered)
-        const list = statusId === 4 ? filterByRequestCycle(raw) : raw
+        // Regularize HR sees the full backend-scoped window (26-May → today); don't re-apply
+        // the current-cycle client filter (it was hiding May-dated requests that arrive with the
+        // newest IDs). Other roles: Pending tab keeps the current-cycle filter as before.
+        const roleLc = String(role || '')
+          .toLowerCase()
+          .trim()
+        const isRegularizeHrRole =
+          roleLc === 'regularize hr' || roleLc === 'regularizehr' || roleLc === 'regularize-hr'
+        const list = statusId === 4 && !isRegularizeHrRole ? filterByRequestCycle(raw) : raw
         setRegularizeList(list)
         setTotalRecords(response?.data?.totalRecords ?? list.length)
       }

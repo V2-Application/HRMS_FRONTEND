@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Badge, Button, Flex, message, Segmented, Tabs, Typography } from 'antd'
+import React, { useEffect, useRef, useState } from 'react'
+import { Badge, Button, Flex, Input, message, Segmented, Tabs, Typography } from 'antd'
 import PendingFNF from './PendingFNF'
 import NewFNF from './NewFNF'
 import FNFList from './FNFList'
@@ -14,6 +14,34 @@ const { Title } = Typography
 const FNF = () => {
   const [activeKey, setActiveKey] = useState('pending')
   const [pendingExportLoading, setPendingExportLoading] = useState(false);
+
+  // ✅ Shared search across all 3 tabs (Pending / Processed / Completed) — like Employee Master
+  const [search, setSearch] = useState('')
+
+  // ✅ Auto-switch to the tab where a searched ecode lives.
+  // Only switches on an exact ecode match; won't fight the user while typing partials.
+  const lastLocatedRef = useRef('')
+  useEffect(() => {
+    const term = (search || '').trim()
+    // ecodes are alphanumeric with no spaces; skip name/partial searches
+    if (term.length < 3 || /\s/.test(term)) return
+    if (lastLocatedRef.current === term) return
+
+    const t = setTimeout(async () => {
+      try {
+        const res = await axiosInstance.get('/api/Fnf/locate-tab', { params: { ecode: term } })
+        const tab = res?.data?.data?.tab
+        lastLocatedRef.current = term
+        if (tab && (tab === 'pending' || tab === 'processed' || tab === 'completed')) {
+          setActiveTab((prev) => (prev === tab ? prev : tab))
+        }
+      } catch {
+        // ignore — auto-switch is best-effort
+      }
+    }, 600)
+
+    return () => clearTimeout(t)
+  }, [search])
 
   // When selectedEmployee exists => show NewFNF and hide main tabs
   const [selectedEmployee, setSelectedEmployee] = useState(null)
@@ -148,25 +176,34 @@ const FNF = () => {
   return (
     <div style={{ width: '100%' }}>
       <Header />
-      <Flex justify='space-between' align='center' wrap>
-        <Segmented options={items} onChange={(val) => setActiveTab(val)} />
-        {
-          activeTab === "pending"
-          &&
-          <Flex gap={8} align='center'>
-            <FNFBulkUploadModal />
-            <Button disabled={pendingExportLoading} loading={pendingExportLoading} onClick={handlePendingExport} icon={<Download size={16} />} color='cyan' variant='filled'>Export Data</Button>
-          </Flex>
-        }
+      <Flex justify='space-between' align='center' wrap gap={8}>
+        <Segmented options={items} value={activeTab} onChange={(val) => setActiveTab(val)} />
+        <Flex gap={8} align='center' wrap>
+          {/* ✅ One search box shared by all tabs */}
+          <Input.Search
+            placeholder="Search by code / name / department..."
+            allowClear
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 300, maxWidth: '100%' }}
+          />
+          {
+            activeTab === "pending"
+            &&
+            <>
+              <FNFBulkUploadModal />
+            </>
+          }
+        </Flex>
       </Flex>
       {
-        activeTab === "pending" && <PendingFNF onProcess={handleProcess} />
+        activeTab === "pending" && <PendingFNF onProcess={handleProcess} search={search} />
       }
       {
-        activeTab === 'processed' && <ProcessedFNF />
+        activeTab === 'processed' && <ProcessedFNF search={search} />
       }
       {
-        activeTab === "completed" && <FNFList />
+        activeTab === "completed" && <FNFList search={search} />
       }
     </div>
   )

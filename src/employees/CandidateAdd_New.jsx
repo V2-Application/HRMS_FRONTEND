@@ -2501,8 +2501,8 @@ const EmployeeAddNew = () => {
         prevEstNo: apiData?.prevEstNo,
         aoCode: apiData?.aoCode || apiData?.AOCode || '',
         placeOfBirth: apiData?.placeOfBirth,
-        PFApplicable: apiData?.pfApplicable || true,
-        ESICApplicable: apiData?.esicApplicable || false,
+        PFApplicable: apiData?.pfApplicable ?? false,
+        ESICApplicable: apiData?.esicApplicable ?? false,
         bonusApplicable: apiData?.bonusApplicable || false,
         CompanyId: apiData?.companyId,
         reportingHeadId: apiData?.reportingHeadId,
@@ -3020,7 +3020,7 @@ const EmployeeAddNew = () => {
     })
 
     // ============= BOOLEAN SALARY FIELDS =============
-    const booleanSalaryFields = ['bonusApplicable']
+    const booleanSalaryFields = ['bonusApplicable', 'PFApplicable', 'ESICApplicable']
 
     booleanSalaryFields.forEach((field) => {
       let value =
@@ -4759,6 +4759,34 @@ const EmployeeAddNew = () => {
                       labelCol={{ span: 24 }}
                       name={['user', 'bonusApplicable']}
                       label="Bonus Applicable"
+                    >
+                      <Select placeholder="Select">
+                        <Select.Option value={true}>Yes</Select.Option>
+                        <Select.Option value={false}>No</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  )}
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  {!pathname.includes('/candidate-form') && (
+                    <Form.Item
+                      labelCol={{ span: 24 }}
+                      name={['user', 'PFApplicable']}
+                      label="PF Applicable"
+                    >
+                      <Select placeholder="Select">
+                        <Select.Option value={true}>Yes</Select.Option>
+                        <Select.Option value={false}>No</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  )}
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  {!pathname.includes('/candidate-form') && (
+                    <Form.Item
+                      labelCol={{ span: 24 }}
+                      name={['user', 'ESICApplicable']}
+                      label="ESIC Applicable"
                     >
                       <Select placeholder="Select">
                         <Select.Option value={true}>Yes</Select.Option>

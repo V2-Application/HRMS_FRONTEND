@@ -790,8 +790,9 @@ const GeofenceRequestTable = () => {
       render: (_, record) => {
         const roleLower = (role || '').toLowerCase()
         const isSuperAdmin = roleLower === 'superadmin'
-        // Manager, Master, and SuperAdmin can all act on Pending (tab 1)
-        const canAct = isSuperAdmin || activekey === '1'
+        // Approve/Reject action is available on Pending (tab 1) and Approved (tab 2) for all
+        // approvers, and on every tab for SuperAdmin.
+        const canAct = isSuperAdmin || activekey === '1' || activekey === '2'
 
         if (!canAct) return null
         return (
@@ -1084,7 +1085,8 @@ const GeofenceRequestTable = () => {
     {
       label: <span className="custom-tab-label">Approved</span>,
       key: '2',
-      children: renderTable(columnsPendingAll, false),
+      // showAction=true so the Action column (Approve/Reject) renders on the Approved tab too.
+      children: renderTable(columnsPendingAll, true),
     },
     {
       label: <span className="custom-tab-label">Rejected</span>,

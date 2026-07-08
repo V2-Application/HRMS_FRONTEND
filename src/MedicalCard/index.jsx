@@ -14,6 +14,7 @@ import {
   Typography,
   Upload,
   Alert,
+  Progress,
 } from 'antd'
 import {
   ReloadOutlined,
@@ -24,8 +25,14 @@ import {
   CloudUploadOutlined,
 } from '@ant-design/icons'
 import axiosInstance from '../services/axiosInstance'
+import JSZip from 'jszip'
 
 const { Title, Text } = Typography
+
+// Upload PDFs in small batches (multiple requests) instead of one giant request.
+// Keeps every request well under the IIS request-size limit, so a ZIP/selection
+// of 1000+ medical cards never triggers HTTP 413 (Content Too Large).
+const BULK_BATCH_SIZE = 10
 
 const baseUrl = import.meta.env.VITE_API_URL
 
@@ -57,6 +64,32 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState(null)
   const [bulkSkipReparse, setBulkSkipReparse] = useState(true)
+  const [bulkProgress, setBulkProgress] = useState(null) // { done, total, phase }
+
+  // Expand the user's selection into a flat list of PDF File objects.
+  // Loose PDFs pass through; ZIPs are unzipped in the browser (JSZip) so their
+  // PDFs can be re-batched into small requests instead of one huge upload.
+  const expandToPdfFiles = async (rawFiles) => {
+    const pdfs = []
+    for (const f of rawFiles) {
+      const name = (f.name || '').toLowerCase()
+      if (name.endsWith('.zip')) {
+        const zip = await JSZip.loadAsync(f)
+        const entries = Object.values(zip.files).filter(
+          (e) => !e.dir && /\.pdf$/i.test(e.name),
+        )
+        for (const entry of entries) {
+          const blob = await entry.async('blob')
+          // Strip any folder path inside the zip — filename (basename) = Ecode.
+          const base = entry.name.split('/').pop()
+          pdfs.push(new File([blob], base, { type: 'application/pdf' }))
+        }
+      } else if (name.endsWith('.pdf')) {
+        pdfs.push(f)
+      }
+    }
+    return pdfs
+  }
 
   const submitBulkUpload = async () => {
     if (bulkFiles.length === 0) {
@@ -65,28 +98,87 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
     }
     setBulkLoading(true)
     setBulkResult(null)
+    setBulkProgress({ done: 0, total: 0, phase: 'Reading files…' })
+
     try {
-      const fd = new FormData()
-      bulkFiles.forEach((f) => fd.append('files', f.originFileObj || f))
-      const res = await axiosInstance.post(
-        `/api/MedicalCard/bulk-upload?skipReparse=${bulkSkipReparse}`,
-        fd,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          // Big imports can take many minutes; disable axios timeout for this call.
-          timeout: 0,
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        },
-      )
-      setBulkResult(res?.data?.result || null)
-      message.success(
-        `Uploaded ${res?.data?.result?.savedCount ?? 0} / ${res?.data?.result?.totalFiles ?? 0} file(s).`,
-      )
+      // 1) Flatten selection (unzip any ZIPs client-side) into individual PDFs.
+      const rawFiles = bulkFiles.map((f) => f.originFileObj || f)
+      const pdfFiles = await expandToPdfFiles(rawFiles)
+
+      if (pdfFiles.length === 0) {
+        message.warning('No PDF files found in the selection / ZIP.')
+        setBulkProgress(null)
+        return
+      }
+
+      // 2) Split into batches of BULK_BATCH_SIZE and upload sequentially.
+      const batches = []
+      for (let i = 0; i < pdfFiles.length; i += BULK_BATCH_SIZE) {
+        batches.push(pdfFiles.slice(i, i + BULK_BATCH_SIZE))
+      }
+
+      // Aggregate the per-batch results into one combined summary.
+      const agg = {
+        totalFiles: 0,
+        savedCount: 0,
+        skippedCount: 0,
+        cardsParsed: 0,
+        errors: [],
+        items: [],
+      }
+
+      setBulkProgress({ done: 0, total: pdfFiles.length, phase: 'Uploading…' })
+
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b]
+        const fd = new FormData()
+        batch.forEach((file) => fd.append('files', file))
+
+        try {
+          const res = await axiosInstance.post(
+            `/api/MedicalCard/bulk-upload?skipReparse=${bulkSkipReparse}`,
+            fd,
+            {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              timeout: 0,
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+            },
+          )
+          const r = res?.data?.result
+          if (r) {
+            agg.totalFiles += r.totalFiles || 0
+            agg.savedCount += r.savedCount || 0
+            agg.skippedCount += r.skippedCount || 0
+            agg.cardsParsed += r.cardsParsed || 0
+            if (Array.isArray(r.errors)) agg.errors.push(...r.errors)
+            if (Array.isArray(r.items)) agg.items.push(...r.items)
+          }
+        } catch (err) {
+          // Don't abort the whole import if one batch fails — record and move on.
+          const msg = err?.response?.data?.message || err?.message || 'Batch failed'
+          batch.forEach((file) =>
+            agg.items.push({ fileName: file.name, ecode: '', saved: false, error: msg }),
+          )
+          agg.errors.push(`Batch ${b + 1}/${batches.length}: ${msg}`)
+        }
+
+        setBulkProgress({
+          done: Math.min((b + 1) * BULK_BATCH_SIZE, pdfFiles.length),
+          total: pdfFiles.length,
+          phase: `Uploading… (batch ${b + 1}/${batches.length})`,
+        })
+        // Reflect progress live in the result panel as batches complete.
+        setBulkResult({ ...agg })
+      }
+
+      setBulkResult(agg)
+      message.success(`Uploaded ${agg.savedCount} / ${agg.totalFiles} file(s) in ${batches.length} batch(es).`)
     } catch (err) {
-      message.error(err?.response?.data?.message || 'Bulk upload failed.')
+      message.error(err?.message || 'Bulk upload failed.')
     } finally {
       setBulkLoading(false)
+      setBulkProgress(null)
     }
   }
 
@@ -451,6 +543,23 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
             </p>
           </Upload.Dragger>
         </div>
+
+        {bulkProgress && (
+          <div style={{ marginTop: 16 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {bulkProgress.phase}
+            </Text>
+            <Progress
+              percent={
+                bulkProgress.total > 0
+                  ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
+                  : 0
+              }
+              status="active"
+              format={() => `${bulkProgress.done}/${bulkProgress.total}`}
+            />
+          </div>
+        )}
 
         {bulkResult && (
           <div style={{ marginTop: 16 }}>

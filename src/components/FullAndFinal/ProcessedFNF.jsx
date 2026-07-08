@@ -218,7 +218,7 @@
 //         key: 'chequeDate',
 //         ellipsis: true,
 //         width: 140,
-//         render: (date) => (date ? String(date).split('T')[0] : null),
+//         render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
 //       },
 //       { title: 'Cheque No.', dataIndex: 'chequeNo', key: 'chequeNo', ellipsis: true, width: 160 },
 //       {
@@ -227,7 +227,7 @@
 //         key: 'dateOfLeaving',
 //         ellipsis: true,
 //         width: 140,
-//         render: (date) => (date ? String(date).split('T')[0] : null),
+//         render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
 //       },
 //       {
 //         title: 'FNF Date',
@@ -235,7 +235,7 @@
 //         key: 'fnfDate',
 //         ellipsis: true,
 //         width: 140,
-//         render: (date) => (date ? String(date).split('T')[0] : null),
+//         render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
 //       },
 //       {
 //         title: 'Net Amount',
@@ -424,7 +424,7 @@ const useIsMobile = (query = '(max-width: 768px)') => {
   return isMobile
 }
 
-const ProcessedFNF = () => {
+const ProcessedFNF = ({ search = '' }) => {
   const isMobile = useIsMobile()
   const [pageNumber, setPageNumber] = useState(1)
   const [pageSize, setPageSize] = useState(100)
@@ -433,7 +433,6 @@ const ProcessedFNF = () => {
   const [totalCount, setTotalCount] = useState(0) // ✅ NEW: total for pagination
 
   const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [isUploaderOpen, setIsUploaderOpen] = useState(false)
   const [isFNFPdfOpen, setIsFNFPdfOpen] = useState(false)
   const [fnfDetails, setFnfDetails] = useState(null)
@@ -447,8 +446,8 @@ const ProcessedFNF = () => {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportForm] = Form.useForm()
 
-  // Keep last debounced search in state so paging reuses it
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  // Keep last debounced search in state so paging reuses it (seeded from shared prop)
+  const [debouncedSearch, setDebouncedSearch] = useState(() => String(search || '').trim().toLowerCase())
 
   const { filteredSideMenu } = useSelector((state) => state?.auth || {})
   const actionsMap = useActionsMap(filteredSideMenu)
@@ -516,12 +515,12 @@ const ProcessedFNF = () => {
     navigate(`/fnf/detail/${_ecode}`);
   }
 
-  // Debounce search
+  // Debounce shared search prop
   useEffect(() => {
-    const s = String(searchQuery).trim().toLowerCase()
+    const s = String(search).trim().toLowerCase()
     const timer = setTimeout(() => setDebouncedSearch(s), 500)
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [search])
 
   // Debounce date range
   useEffect(() => {
@@ -638,7 +637,7 @@ const ProcessedFNF = () => {
         key: 'dateOfLeaving',
         ellipsis: true,
         width: 110,
-        render: (date) => (date ? String(date).split('T')[0] : null),
+        render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
       },
       {
         title: 'FNF Date',
@@ -646,7 +645,7 @@ const ProcessedFNF = () => {
         key: 'fnfDate',
         ellipsis: true,
         width: 110,
-        render: (date) => (date ? String(date).split('T')[0] : null),
+        render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
       },
       {
         title: 'Net Amount',
@@ -791,23 +790,11 @@ const ProcessedFNF = () => {
             </Button>
           )}
 
-          <Button icon={<DownloadOutlined />} onClick={openExportModal}>
-            Export
-          </Button>
-
           <RangePicker
             value={dateRange}
             onChange={(val) => setDateRange(val)}
             allowClear
             style={{ width: isMobile ? '100%' : '16rem' }}
-          />
-
-          <Search
-            placeholder="Search..."
-            allowClear
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: isMobile ? '100%' : '18rem' }}
           />
         </div>
 

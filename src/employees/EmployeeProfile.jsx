@@ -1432,8 +1432,8 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         beneficiaryAddress: apiData?.beneficiaryAddress || '',
         prevEstNo: apiData?.prevEstNo || '',
         placeOfBirth: apiData?.placeOfBirth || '',
-        PFApplicable: apiData?.pfApplicable || true,
-        ESICApplicable: apiData?.esicApplicable || false,
+        PFApplicable: apiData?.pfApplicable ?? false,
+        ESICApplicable: apiData?.esicApplicable ?? false,
         bonusApplicable:
           apiData?.bonusApplicable === true || apiData?.bonusApplicable === 'Ctc'
             ? 'Ctc'
@@ -1747,11 +1747,10 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
 
     const ef = new FormData()
 
-    const PFApplicablePayload = true
-
-    // ESICApplicable: true if Monthly Gross CTC <= 21000, else false
-    const monthlyGrossForEsic = Number(watch_monthlyGrossCTC ?? values?.user?.monthlyGrossCTC ?? 0)
-    const ESICApplicablePayload = monthlyGrossForEsic <= 21000
+    // PF / ESIC Applicable are now driven by the user's Yes/No selection on the form.
+    // Yes -> true (stored as bit 1), No -> false (stored as bit 0).
+    const PFApplicablePayload = Boolean(values?.user?.PFApplicable)
+    const ESICApplicablePayload = Boolean(values?.user?.ESICApplicable)
 
     for (const category in fileLists) {
       const fileList = fileLists[category]
@@ -2901,6 +2900,34 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                         <Select.Option value="Stat">Stat</Select.Option>
                         <Select.Option value="Ctc">Ctc</Select.Option>
                         <Select.Option value="No">No</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  )}
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  {!pathname.includes('/candidate-form') && (
+                    <Form.Item
+                      labelCol={{ span: 24 }}
+                      name={['user', 'PFApplicable']}
+                      label="PF Applicable"
+                    >
+                      <Select placeholder="Select">
+                        <Select.Option value={true}>Yes</Select.Option>
+                        <Select.Option value={false}>No</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  )}
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  {!pathname.includes('/candidate-form') && (
+                    <Form.Item
+                      labelCol={{ span: 24 }}
+                      name={['user', 'ESICApplicable']}
+                      label="ESIC Applicable"
+                    >
+                      <Select placeholder="Select">
+                        <Select.Option value={true}>Yes</Select.Option>
+                        <Select.Option value={false}>No</Select.Option>
                       </Select>
                     </Form.Item>
                   )}

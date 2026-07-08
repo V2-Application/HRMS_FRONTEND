@@ -218,7 +218,7 @@
 //         key: 'chequeDate',
 //         ellipsis: true,
 //         width: 140,
-//         render: (date) => (date ? String(date).split('T')[0] : null),
+//         render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
 //       },
 //       { title: 'Cheque No.', dataIndex: 'chequeNo', key: 'chequeNo', ellipsis: true, width: 160 },
 //       {
@@ -227,7 +227,7 @@
 //         key: 'dateOfLeaving',
 //         ellipsis: true,
 //         width: 140,
-//         render: (date) => (date ? String(date).split('T')[0] : null),
+//         render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
 //       },
 //       {
 //         title: 'FNF Date',
@@ -235,7 +235,7 @@
 //         key: 'fnfDate',
 //         ellipsis: true,
 //         width: 140,
-//         render: (date) => (date ? String(date).split('T')[0] : null),
+//         render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
 //       },
 //       {
 //         title: 'Net Amount',
@@ -421,7 +421,7 @@ const useIsMobile = (query = '(max-width: 768px)') => {
   return isMobile
 }
 
-const FNFList = () => {
+const FNFList = ({ search = '' }) => {
   const isMobile = useIsMobile()
   const [pageNumber, setPageNumber] = useState(1)
   const [pageSize, setPageSize] = useState(100)
@@ -430,7 +430,6 @@ const FNFList = () => {
   const [totalCount, setTotalCount] = useState(0) // ✅ NEW: total for pagination
 
   const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [isUploaderOpen, setIsUploaderOpen] = useState(false)
   const [isFNFPdfOpen, setIsFNFPdfOpen] = useState(false)
   const [fnfDetails, setFnfDetails] = useState(null)
@@ -444,8 +443,8 @@ const FNFList = () => {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportForm] = Form.useForm()
 
-  // Keep last debounced search in state so paging reuses it
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  // Keep last debounced search in state so paging reuses it (seeded from shared prop)
+  const [debouncedSearch, setDebouncedSearch] = useState(() => String(search || '').trim().toLowerCase())
 
   const { filteredSideMenu } = useSelector((state) => state?.auth || {})
   const actionsMap = useActionsMap(filteredSideMenu)
@@ -506,12 +505,12 @@ const FNFList = () => {
     fetchData({ page: current, size: newSize })
   }
 
-  // Debounce search
+  // Debounce shared search prop
   useEffect(() => {
-    const s = String(searchQuery).trim().toLowerCase()
+    const s = String(search).trim().toLowerCase()
     const timer = setTimeout(() => setDebouncedSearch(s), 500)
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [search])
 
   // Debounce date range
   useEffect(() => {
@@ -571,12 +570,13 @@ const FNFList = () => {
         search: values?.ecode?.trim() || undefined,
         from,
         to,
-        paymentStatus: values?.paymentStatus || undefined,
+        status: values?.status || 'All',
       }
 
       setExportLoading(true)
 
-      const res = await axiosInstance.get('/api/Fnf/export-excel', {
+      // Comprehensive FNF report across all statuses (user picks the status).
+      const res = await axiosInstance.get('/api/Fnf/export-all-excel', {
         params,
         responseType: 'blob',
       })
@@ -619,7 +619,7 @@ const FNFList = () => {
         key: 'chequeDate',
         ellipsis: true,
         width: 110,
-        render: (date) => (date ? String(date).split('T')[0] : null),
+        render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
       },
       { title: 'Cheque No.', dataIndex: 'chequeNo', key: 'chequeNo', ellipsis: true, width: 110 },
       {
@@ -628,7 +628,7 @@ const FNFList = () => {
         key: 'dateOfLeaving',
         ellipsis: true,
         width: 110,
-        render: (date) => (date ? String(date).split('T')[0] : null),
+        render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
       },
       {
         title: 'FNF Date',
@@ -636,7 +636,7 @@ const FNFList = () => {
         key: 'fnfDate',
         ellipsis: true,
         width: 110,
-        render: (date) => (date ? String(date).split('T')[0] : null),
+        render: (date) => (date ? dayjs(date).format('DD-MMM-YY') : null),
       },
       {
         title: 'Net Amount',
@@ -722,7 +722,7 @@ const FNFList = () => {
           details={fnfDetails}
         />
       )}
-      <FNFUploader isVisible={isUploaderOpen} setIsVisible={setIsUploaderOpen} />
+      <FNFUploader isVisible={isUploaderOpen} setIsVisible={setIsUploaderOpen} refreshData={() => fetchData({ page: 1 })} />
 
       {/* Export Modal (UNCHANGED) */}
       <Modal
@@ -742,14 +742,14 @@ const FNFList = () => {
             <Input placeholder="Enter employee code (optional)" />
           </Form.Item>
 
-          <Form.Item name="paymentStatus" label="Payment Status">
+          <Form.Item name="status" label="Status" initialValue="All">
             <Select
-              allowClear
-              placeholder="Select payment status (optional)"
+              placeholder="Select status"
               options={[
-                { value: 'Paid', label: 'Paid' },
-                { value: 'Unpaid', label: 'Unpaid' },
-                { value: 'Pending', label: 'Pending' },
+                { value: 'All', label: 'All' },
+                { value: 'Completed', label: 'Completed (Paid)' },
+                { value: 'Processed', label: 'Processed (Unpaid)' },
+                { value: 'Pending', label: 'Pending (no FNF yet)' },
               ]}
             />
           </Form.Item>
@@ -781,14 +781,6 @@ const FNFList = () => {
             onChange={(val) => setDateRange(val)}
             allowClear
             style={{ width: isMobile ? '100%' : '16rem' }}
-          />
-
-          <Search
-            placeholder="Search..."
-            allowClear
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: isMobile ? '100%' : '18rem' }}
           />
         </div>
 

@@ -31,6 +31,19 @@ const { Option } = Select
 const { Sider, Content } = Layout
 const { useBreakpoint } = Grid
 
+// Friendly labels for id-style fields (values themselves are resolved to names server-side).
+const FIELD_LABELS = {
+  DepartmentId: 'Department',
+  SubDepartmentId1: 'Sub Department 1',
+  SubDepartmentId2: 'Sub Department 2',
+  SubDepartmentId3: 'Sub Department 3',
+  DesignationId: 'Designation',
+  LocationId: 'Location',
+  CompanyId: 'Company',
+  ReportHeadEcode: 'Reporting Head',
+}
+const prettyField = (name) => FIELD_LABELS[name] || name
+
 const EmployeeChangeLog = () => {
   const [empCodeInput, setEmpCodeInput] = useState('')
   const [empCode, setEmpCode] = useState('')
@@ -445,7 +458,7 @@ const EmployeeChangeLog = () => {
                                   overflow: 'hidden',
                                 }}
                               >
-                                {columnName}
+                                {prettyField(columnName)}
                               </Text>
 
                               <Tag
@@ -489,7 +502,7 @@ const EmployeeChangeLog = () => {
                   >
                     <div style={{ flex: 1, minWidth: 220 }}>
                       <Title level={4} style={{ marginBottom: 0 }}>
-                        {selectedColumn}
+                        {prettyField(selectedColumn)}
                       </Title>
 
                       <Text type="secondary">
@@ -616,6 +629,10 @@ const EmployeeChangeLog = () => {
                                       </Tag>
 
                                       <Tag>{v?.changedBy}</Tag>
+
+                                      {v?.changedIp && (
+                                        <Tag color="geekblue">IP: {v.changedIp}</Tag>
+                                      )}
 
                                       {!isChanged && <Tag color="default">no value change</Tag>}
                                     </Space>

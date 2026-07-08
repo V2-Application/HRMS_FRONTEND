@@ -4,12 +4,12 @@ import dayjs from 'dayjs'
 import axiosInstance from '../../services/axiosInstance'
 import { ArrowRight } from 'lucide-react'
 
-const PendingFNF = ({ onProcess }) => {
+const PendingFNF = ({ onProcess, search = '' }) => {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
 
-  const [searchText, setSearchText] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  // ✅ search now comes from the shared parent prop; init immediately so first fetch uses it
+  const [debouncedSearch, setDebouncedSearch] = useState(() => (search || '').trim())
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -23,14 +23,15 @@ const PendingFNF = ({ onProcess }) => {
   // tracks latest request to avoid stale loading/data updates
   const requestIdRef = useRef(0)
 
-  // debounce search input
+  // debounce shared search prop + reset to first page on change
   useEffect(() => {
     const t = setTimeout(() => {
-      setDebouncedSearch((searchText || '').trim())
-    }, 1000)
+      setDebouncedSearch((search || '').trim())
+      setPagination((prev) => ({ ...prev, current: 1 }))
+    }, 600)
 
     return () => clearTimeout(t)
-  }, [searchText])
+  }, [search])
 
   const fetchPendingEmployees = useCallback(async ({ search = '', page = 1, pageSize = 20 } = {}) => {
     const requestId = ++requestIdRef.current
@@ -47,7 +48,7 @@ const PendingFNF = ({ onProcess }) => {
 
     try {
       const res = await axiosInstance.get(
-        'https://v2parivar.v2retail.com:9987/api/Fnf/FetchEmployeesForFNF',
+        '/api/Fnf/FetchEmployeesForFNF',
         {
           params: {
             search,
@@ -117,17 +118,6 @@ const PendingFNF = ({ onProcess }) => {
     }
   }, [])
 
-  const handleSearchChange = (e) => {
-    const value = e.target.value || ''
-    setSearchText(value)
-
-    // reset to first page on search
-    setPagination((prev) => ({
-      ...prev,
-      current: 1,
-    }))
-  }
-
   const handleSelect = (record) => {
     if (typeof onProcess === 'function') {
       onProcess(record)
@@ -160,13 +150,13 @@ const PendingFNF = ({ onProcess }) => {
         title: 'Date of Joining',
         dataIndex: 'dateOfJoining',
         key: 'dateOfJoining',
-        render: (value) => (value ? dayjs(value).format('YYYY-MM-DD') : '-'),
+        render: (value) => (value ? dayjs(value).format('DD-MMM-YY') : '-'),
       },
       {
         title: 'Date of Leaving',
         dataIndex: 'dateOfLeaving',
         key: 'dateOfLeaving',
-        render: (value) => (value ? dayjs(value).format('YYYY-MM-DD') : '-'),
+        render: (value) => (value ? dayjs(value).format('DD-MMM-YY') : '-'),
       },
       {
         title: 'Action',
@@ -208,20 +198,6 @@ const PendingFNF = ({ onProcess }) => {
             {pagination.total || 0} Total Rows
           </Tag>
         </div>
-
-        <Space
-          align="center"
-          size={8}
-          style={{ marginTop: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
-        >
-          <Input
-            placeholder="Search in table..."
-            value={searchText}
-            onChange={handleSearchChange}
-            allowClear
-            style={{ width: 280, maxWidth: '100%' }}
-          />
-        </Space>
       </div>
 
       <div style={{ marginTop: 12 }}>

@@ -292,9 +292,40 @@ const ProcessSalaryRequest1 = () => {
       downloadXlsx([...latestByEcode.values()], 'Latest')
     })
 
+  // NEW report: download the LOC-WISE EMP-WISE SALARY REPORT in the 148-column PAYROLL FORMAT
+  // (latest run per employee for the selected month). Built server-side, streamed as .xlsx.
+  // Leaves the existing All/Latest exports untouched.
+  const handleExportPayrollFormat = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      const monthStr = monthVal.format('MMM-YY')
+      const res = await axiosInstance.get(
+        `/api/EmpAttendanceViewSnapshot/payroll-format-export?month=${encodeURIComponent(monthStr)}`,
+        { responseType: 'blob' },
+      )
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `LOC_EMP_Salary_Report_${monthStr}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      message.error(err?.response?.data?.message || err?.message || 'Failed to export payroll format')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const exportMenuItems = [
     { key: 'all', label: 'All salaries', onClick: handleExportAll },
     { key: 'latest', label: 'Latest salaries', onClick: handleExportLatest },
+    { key: 'payroll-format', label: 'Payroll format (LOC & EMP)', onClick: handleExportPayrollFormat },
   ]
 
   return (

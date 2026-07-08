@@ -2704,6 +2704,23 @@ import styles from './EmployeesList.module.css'
 const { Search } = Input
 const { RangePicker } = DatePicker
 
+// Store/field-scoped roles: when such a user has NO store-visibility mapping AND no
+// locationList, they must see NO employees (never the whole company). Company-wide
+// roles (Admin/HR/SuperAdmin/Finance/etc.) are intentionally NOT listed here, so they
+// keep seeing all employees when they have no explicit mapping. Add a role here to
+// restrict it. Matching is space-insensitive + case-insensitive.
+const STORE_SCOPED_ROLES = new Set([
+  'clustermanager',
+  'regionalmanager',
+  'zone',
+  'retailhead',
+  'retailcm/rm',
+  'retailzm',
+  'retailhierarchy',
+])
+const isStoreScopedRole = (r) =>
+  STORE_SCOPED_ROLES.has((r || '').replace(/\s+/g, '').toLowerCase())
+
 const FilterDropdown = ({ dataIndex, dataList, filterValues, setFilterValues, confirm, title }) => {
   const [searchText, setSearchText] = useState('')
   const [selectedOptions, setSelectedOptions] = useState(filterValues || [])
@@ -3568,6 +3585,9 @@ const EmployeesList = () => {
         const storeCodeNorm = (storeCode ?? '').trim().toLowerCase()
         return (records || []).filter((item) => getCode(item) === storeCodeNorm)
       }
+      // Store/field-scoped role with no mapping AND no locationList → see NOTHING
+      // (never fall through to the whole company). Company-wide/admin roles skip this.
+      if (isStoreScopedRole(role)) return []
       return records || []
     },
     [locationList, role, storeCode],
@@ -3641,14 +3661,17 @@ const EmployeesList = () => {
             const filteredEmployees = records.filter((item) => allowedLocCodes.has(getCode(item)))
             setEmployeesListData(filteredEmployees)
             setTotalCount(filteredEmployees?.length || 0)
+          } else if (role === 'StoreHR') {
+            setEmployeesListData(storeFilterData)
+            setTotalCount(storeFilterData?.length || 0)
+          } else if (isStoreScopedRole(role)) {
+            // Store/field-scoped role with no mapping AND no locationList → see NOTHING
+            // (never fall through to the whole company).
+            setEmployeesListData([])
+            setTotalCount(0)
           } else {
-            if (role === 'StoreHR') {
-              setEmployeesListData(storeFilterData)
-              setTotalCount(storeFilterData?.length || 0)
-            } else {
-              setEmployeesListData(records)
-              setTotalCount(response?.totalCount ?? records?.length ?? 0)
-            }
+            setEmployeesListData(records)
+            setTotalCount(response?.totalCount ?? records?.length ?? 0)
           }
         }
       }
@@ -5096,6 +5119,7 @@ const TableBulkActionIcons = ({
   handleClearFilters,
 }) => {
   const theme = useSelector((state) => state?.ui?.theme)
+  const role = useSelector((state) => state?.auth?.data?.role)
   const [isEmpUploadVisible, setIsEmpUploadVisible] = useState(false)
   const [isBulkInactiveOpen, setIsBulkInactiveOpen] = useState(false)
 
@@ -5516,11 +5540,13 @@ const downloadAbscondReportAsExcel = async () => {
               </Tooltip>
             )}
 
-            <Tooltip placement="top" title={'Bulk Inactivate Employees'}>
-              <Button style={{ marginLeft: 5 }} danger onClick={() => setIsBulkInactiveOpen(true)}>
-                Bulk Inactive
-              </Button>
-            </Tooltip>
+            {(role || '').replace(/\s+/g, '').toLowerCase() === 'itsuperadmin' && (
+              <Tooltip placement="top" title={'Bulk Inactivate Employees'}>
+                <Button style={{ marginLeft: 5 }} danger onClick={() => setIsBulkInactiveOpen(true)}>
+                  Bulk Inactive
+                </Button>
+              </Tooltip>
+            )}
 
             {actionsMap?.export?.actionStatus && (
               <Tooltip placement="top" title={'Export'}>
