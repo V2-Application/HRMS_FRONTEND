@@ -40,12 +40,18 @@ const isOnPublicFormPath = () => {
   return PUBLIC_FORM_PATHS.some((p) => path === p || path.startsWith(p + '/'))
 }
 
+// Background/non-critical endpoints: a transient 401 from these (e.g. fired during page load or
+// while a long request is in flight) must NOT force-logout the whole app — otherwise the user gets
+// bounced to /login mid-flow (e.g. during a multi-minute export). They just fail silently.
+const NON_LOGOUT_ENDPOINTS = ['/api/PunchLocation/', '/api/Rbac/CheckPageAccess']
+const isBackgroundEndpoint = (url) => !!url && NON_LOGOUT_ENDPOINTS.some((p) => url.includes(p))
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('401 error-------------->', error)
     if (error.response?.status === 401) {
-      if (!isOnPublicFormPath()) {
+      if (!isOnPublicFormPath() && !isBackgroundEndpoint(error.config?.url)) {
         localStorage.removeItem('data')
         window.location.href = '/login'
       }

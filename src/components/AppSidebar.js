@@ -12,7 +12,7 @@ import {
   CNavItem,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilMoney, cilCash } from '@coreui/icons'
+import { cilMoney, cilCash, cilLocationPin } from '@coreui/icons'
 
 import { AppSidebarNav } from './AppSidebarNav'
 
@@ -573,8 +573,15 @@ const AppSidebar = ({ menus, userdata, ...props }) => {
       },
     ],
   }
+  // Biomax attendance device-location -> ST code mapping — IT SuperAdmin only.
+  const biomaxLocationMappingItem = {
+    component: CNavItem,
+    name: 'Biomax Attendance Location Mapping',
+    to: '/master/biomax-attendance-location-mapping',
+    icon: <CIcon icon={cilLocationPin} customClassName="nav-icon" />,
+  }
   const roleMenus = isItSuperAdmin
-    ? [...filteredMenuList, statutoryPolicyGroup]
+    ? [...filteredMenuList, statutoryPolicyGroup, biomaxLocationMappingItem]
     : filteredMenuList
 
   const checkSidebarColor = () => {

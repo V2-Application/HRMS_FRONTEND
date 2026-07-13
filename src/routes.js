@@ -52,6 +52,9 @@ const PtaxPolicy = React.lazy(() => import('./uploaders/PolicyMaster/PtaxPolicy'
 const LwfPolicy = React.lazy(() => import('./uploaders/PolicyMaster/LwfPolicy'))
 const StoreReportingManager = React.lazy(() => import('./views/admin/StoreReportingManager'))
 const DeptDesignationMap = React.lazy(() => import('./views/masters/DeptDesignationMap'))
+const BiomaxAttendanceLocationMap = React.lazy(
+  () => import('./views/masters/BiomaxAttendanceLocationMap'),
+)
 const EmployeesTransferList = React.lazy(() => import('./employees/EmployeeTansferApprovals'))
 const MasterData = React.lazy(() => import('./views/pages/Masters/Master'))
 const PFMaster = React.lazy(() => import('./views/pages/Masters/PFMaster'))
@@ -270,8 +273,8 @@ const RetentionBonus = React.lazy(() => import('./uploaders/RetentionBonus'))
 const LastMonthSalary = React.lazy(() => import('./uploaders/LastMonthSalary'))
 const AddWeeklyOff = React.lazy(() => import('./components/Attandence/WeeklyOff'))
 
-const BvgForm = React.lazy(() => import('./BGV/BvgForm'));
-const BvgCandidateList =  React.lazy(() => import('./BGV/BvgCandidateList'));
+const BvgForm = React.lazy(() => import('./BGV/BvgForm'))
+const BvgCandidateList = React.lazy(() => import('./BGV/BvgCandidateList'))
 
 const MedicalCardAdmin = React.lazy(() => import('./MedicalCard'))
 
@@ -298,22 +301,16 @@ const routes = [
   {
     path: '/BGV',
     exact: true,
-    name: "BGV",
+    name: 'BGV',
     element: BvgCandidateList,
-    roles: [
-      'HR',
-      'IT Superadmin'
-    ],
+    roles: ['HR', 'IT Superadmin'],
   },
   {
     path: '/BGV/verify/:id',
     exact: true,
-    name: "BGV",
+    name: 'BGV',
     element: BvgForm,
-    roles: [
-      'Audit',
-      'IT Superadmin'
-    ],
+    roles: ['Audit', 'IT Superadmin'],
   },
   {
     path: '/openings',
@@ -836,6 +833,11 @@ const routes = [
     path: '/master/designation-mapping',
     name: 'Designation Mapping',
     element: DeptDesignationMap,
+  },
+  {
+    path: '/master/biomax-attendance-location-mapping',
+    name: 'Biomax Attendance Location Mapping',
+    element: BiomaxAttendanceLocationMap,
   },
   {
     path: '/employees/emp-transfer',
@@ -1554,9 +1556,9 @@ const routes = [
   },
   {
     path: '/fnf/detail/:id',
-    naem: "F&F Detail",
+    naem: 'F&F Detail',
     element: FNFDetail,
-    roles: ['Master']
+    roles: ['Master'],
   },
   {
     path: '/holiday-master/groups',

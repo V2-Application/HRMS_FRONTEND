@@ -33,6 +33,7 @@ import {
   mygeofenceRequestStatusLists,
   getLocations,
   fetchLocationBasedEmployees,
+  getPunchLocations,
 } from '../../services/Services'
 import { useDispatch, useSelector } from 'react-redux'
 import { set } from '../../redux/uiSlice'
@@ -46,7 +47,9 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons'
 import useMediaQuery from '../../hooks/useMediaQuery'
-import { punchKeyMap } from '../../VendorModule/constants'
+// Punch role labels are derived dynamically from how many punches exist that day
+// (see punchRoleLabel) instead of a fixed punchN→label map, so a 2-punch day reads
+// "Office In / Office Out" rather than mislabelling the exit as "Lunch Out".
 
 const { MonthPicker, RangePicker } = DatePicker
 const { Text } = Typography
@@ -307,6 +310,111 @@ function showHowToEnableModal(kind) {
     okText: 'Got it',
   })
 }
+/* ---- Punch list popover with a per-punch location "i" button ----
+   For a row (employee + date) it fetches each punch's device location from
+   /api/PunchLocation/ByEcodeDate (dev-only endpoint that reads prod ATTLOG read-only)
+   and shows an info icon next to every punch time. Hovering the icon reveals the
+   biometric device Location (+ mapped ST Code, if any). */
+// Label a punch by its position among the day's actual punches:
+//  - first  -> Office In, last -> Office Out (always)
+//  - 2nd -> Lunch Out, 3rd -> Lunch In (only when they aren't the last punch)
+//  - anything beyond that -> E1, E2, ...
+// So 2 punches = Office In / Office Out; 3 = Office In / Lunch Out / Office Out;
+// 4 = Office In / Lunch Out / Lunch In / Office Out.
+const punchRoleLabel = (idx, count) => {
+  if (idx === 0) return 'Office In'
+  if (idx === count - 1) return 'Office Out'
+  if (idx === 1) return 'Lunch Out'
+  if (idx === 2) return 'Lunch In'
+  return `E${idx - 2}`
+}
+
+const PunchLocationPopoverContent = ({ row, ecode }) => {
+  const [locMap, setLocMap] = useState(null) // null = loading, {} = loaded
+  const dateStr = row?.attendanceDate ? String(row.attendanceDate).split('T')[0] : null
+
+  useEffect(() => {
+    let alive = true
+    setLocMap(null)
+    if (ecode && dateStr) {
+      getPunchLocations(ecode, dateStr)
+        .then((res) => {
+          if (!alive) return
+          const list = Array.isArray(res?.data) ? res.data : []
+          const map = {}
+          list.forEach((r) => {
+            if (r?.punchNo) map[String(r.punchNo).toLowerCase()] = r
+          })
+          setLocMap(map)
+        })
+        .catch(() => alive && setLocMap({}))
+    } else {
+      setLocMap({})
+    }
+    return () => {
+      alive = false
+    }
+  }, [ecode, dateStr])
+
+  const punchKeys = Array.from({ length: 12 }, (_, i) => `punch${i + 1}`)
+  const items = punchKeys
+    .map((k) => {
+      let raw = row?.[k]
+      if ((raw === null || raw === undefined || raw === '') && k === 'punch1') raw = row?.punchIn
+      if ((raw === null || raw === undefined || raw === '') && k === 'punch2') raw = row?.punchOut
+      const val = raw
+        ? dayjs(raw, 'HH:mm:ss', true).isValid()
+          ? dayjs(raw, 'HH:mm:ss').format('hh:mm A')
+          : String(raw)
+        : '--'
+      return { key: k, val }
+    })
+    .filter((x) => x.val !== '--')
+    .map(({ key, val }, idx, arr) => {
+      const loc = locMap ? locMap[key] : undefined
+      // Show ONLY the ST Code (mapped from the punch location via the Biomax table).
+      const info =
+        locMap === null ? (
+          <Spin size="small" />
+        ) : loc?.punchStCode ? (
+          <Tooltip title={loc.punchLocation ? `Device location: ${loc.punchLocation}` : null}>
+            <Tag color="geekblue" style={{ marginInlineEnd: 0 }}>
+              {loc.punchStCode}
+            </Tag>
+          </Tooltip>
+        ) : (
+          <Tooltip
+            title={
+              loc?.punchLocation
+                ? `Location "${loc.punchLocation}" is not mapped to an ST Code in the Biomax table`
+                : 'No punch location found'
+            }
+          >
+            <Tag color="default" style={{ marginInlineEnd: 0 }}>
+              —
+            </Tag>
+          </Tooltip>
+        )
+      return {
+        key,
+        label: punchRoleLabel(idx, arr.length),
+        children: (
+          <Space size={6}>
+            <span>{val}</span>
+            {info}
+          </Space>
+        ),
+      }
+    })
+
+  return (
+    <Space style={{ display: 'flex', flexDirection: 'column' }}>
+      <Typography.Text>{dateStr || '-'}</Typography.Text>
+      <Descriptions size="small" bordered column={1} items={items} style={{ minWidth: 260 }} />
+    </Space>
+  )
+}
+
 /* --------------------- Main Component --------------------- */
 const AttendanceTableView = ({ actionsMap = {} }) => {
   const allEmployeesAllowed = ['master', 'hr', 'superadmin', 'it superadmin', 'retail hierarchy']
@@ -316,6 +424,7 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
   const { selectedAttendanceEmpCode: empCodeObj } = useSelector((state) => state?.auth)
   const { isGeofenceEnabled } = useSelector((state) => state?.auth?.data || {})
   const dispatch = useDispatch()
+
   const is_HO_Or_Central = storeCode === 'RH01' || storeCode === 'RH02'
 
   const defaultECode = ecode
@@ -1280,36 +1389,6 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
     fetchLocations()
   }, [])
 
-  const punchesContent = (row) => {
-    const punchKeys = Array.from({ length: 12 }, (_, i) => `punch${i + 1}`)
-
-    const items = punchKeys
-      .map((k) => {
-        let raw = row?.[k]
-
-        if ((raw === null || raw === undefined || raw === '') && k === 'punch1') raw = row?.punchIn
-        if ((raw === null || raw === undefined || raw === '') && k === 'punch2') raw = row?.punchOut
-
-        const val = raw
-          ? dayjs(raw, 'HH:mm:ss', true).isValid()
-            ? dayjs(raw, 'HH:mm:ss').format('hh:mm A')
-            : String(raw)
-          : '--'
-
-        return { key: k, label: punchKeyMap[k], children: val }
-      })
-      .filter((key) => key.children !== '--')
-
-    return (
-      <Space style={{ display: 'flex', flexDirection: 'column' }}>
-        <Typography.Text>
-          {row?.attendanceDate ? String(row?.attendanceDate || '').split('T')[0] : '-'}
-        </Typography.Text>
-        <Descriptions size="small" bordered column={1} items={items} style={{ minWidth: 220 }} />
-      </Space>
-    )
-  }
-
   /* ---------------- Table columns ---------------- */
   const columns = [
     {
@@ -1523,9 +1602,17 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
         return (
           <Space>
             {noOfPunches}
-            {!is_HO_Or_Central && isPunchesMoreThan4 ? (
+            {isPunchesMoreThan4 ? (
               <span>
-                <Popover trigger={'hover'} content={() => punchesContent(row)}>
+                <Popover
+                  trigger={'hover'}
+                  content={() => (
+                    <PunchLocationPopoverContent
+                      row={row}
+                      ecode={row?.ecode || row?.eCode || selectedEmpCode}
+                    />
+                  )}
+                >
                   <InfoCircleOutlined style={{ color: 'blue', cursor: 'pointer' }} />
                 </Popover>
               </span>

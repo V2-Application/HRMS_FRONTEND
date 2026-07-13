@@ -222,6 +222,60 @@ export const getMappedDesignations = async (departmentId, s1, s2, s3) => {
   return res.data
 }
 
+// ---- Punch location (device/store each punch was recorded at) — dev-only, reads prod ATTLOG ----
+export const getPunchLocations = async (ecode, date) => {
+  const res = await axiosInstance.get('/api/PunchLocation/ByEcodeDate', {
+    params: { ecode, date },
+  })
+  return res.data
+}
+
+// ---- Biomax Attendance Device Location -> ST Code mapping ----
+export const getBiomaxAttendanceLocationMappings = async () => {
+  const res = await axiosInstance.get('/api/BiomaxAttendanceLocationMap/GetAll')
+  return res.data
+}
+
+export const uploadBiomaxAttendanceLocationMap = async (file, uploadedBy = '') => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await axiosInstance.post(
+    `/api/BiomaxAttendanceLocationMap/Upload?uploadedBy=${encodeURIComponent(uploadedBy)}`,
+    fd,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return res.data
+}
+
+export const addBiomaxAttendanceLocationMap = async (payload) => {
+  const res = await axiosInstance.post('/api/BiomaxAttendanceLocationMap/Add', payload)
+  return res.data
+}
+
+export const updateBiomaxAttendanceLocationMap = async (payload) => {
+  const res = await axiosInstance.post('/api/BiomaxAttendanceLocationMap/Update', payload)
+  return res.data
+}
+
+export const deleteBiomaxAttendanceLocationMap = async (id) => {
+  const res = await axiosInstance.post(`/api/BiomaxAttendanceLocationMap/Delete?id=${id}`)
+  return res.data
+}
+
+export const downloadBiomaxAttendanceLocationMapTemplate = async () => {
+  return axiosInstance.get('/api/BiomaxAttendanceLocationMap/DownloadTemplate', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
+export const exportBiomaxAttendanceLocationMap = async () => {
+  return axiosInstance.get('/api/BiomaxAttendanceLocationMap/Export', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
 // ---- Gap Reports ----
 // List of available gap reports (for the dropdown on the Gap Reports page).
 export const getGapReportsList = async () => {
@@ -1498,11 +1552,9 @@ export const markEmployeeActiveStatus = async (requestBody) => {
 
 export const bulkInactivateEmployees = async (formData) => {
   try {
-    const response = await axiosInstance.post(
-      `api/EmployeeNew/BulkInactivateEmployees`,
-      formData,
-      { headers: { accept: '*/*' } },
-    )
+    const response = await axiosInstance.post(`api/EmployeeNew/BulkInactivateEmployees`, formData, {
+      headers: { accept: '*/*' },
+    })
     return response.data
   } catch (error) {
     console.error('Bulk inactivate error:', error)
