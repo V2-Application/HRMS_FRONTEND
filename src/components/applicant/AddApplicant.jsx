@@ -38,7 +38,7 @@ function AddApplicant() {
   const location = useLocation()
   const navigate = useNavigate()
   const { designationId, departmentId } = useParams()
-  const params = useParams();
+  const params = useParams()
   const designationLocked = !!designationId
   const { pathname } = location
   const screens = useBreakpoint()
@@ -52,10 +52,10 @@ function AddApplicant() {
   const [totalExp, setTotalExp] = useState(null)
   const [states, setStates] = useState([])
 
-  const [selectedDesignation, setSelectedDesignation] = useState(null);
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [selectedDesignation, setSelectedDesignation] = useState(null)
+  const [selectedDepartment, setSelectedDepartment] = useState(null)
 
-  console.log("designationId", designationId, "departmentId", departmentId)
+  console.log('designationId', designationId, 'departmentId', departmentId)
 
   // watchers
   const source_applicant = useWatch(['source'], form)
@@ -78,7 +78,7 @@ function AddApplicant() {
       form.setFieldsValue({ position: Number(selectedDesignation) })
     }
     if (selectedDepartment) {
-      form.setFieldValue("department", Number(selectedDepartment))
+      form.setFieldValue('department', Number(selectedDepartment))
     }
   }, [selectedDesignation, selectedDepartment, form])
 
@@ -113,18 +113,18 @@ function AddApplicant() {
   }
 
   useEffect(() => {
-    if(selectedDesignation && selectedDepartment) {
-      navigate(`/appform/${selectedDesignation}/${selectedDepartment}`);
+    if (selectedDesignation && selectedDepartment) {
+      navigate(`/appform/${selectedDesignation}/${selectedDepartment}`)
     }
   }, [selectedDepartment, selectedDesignation])
 
   useEffect(() => {
     fetchStates()
     if (designationId) {
-      setSelectedDesignation(designationId);
+      setSelectedDesignation(designationId)
     }
     if (departmentId) {
-      setSelectedDepartment(departmentId);
+      setSelectedDepartment(departmentId)
     }
   }, [])
 
@@ -328,29 +328,31 @@ function AddApplicant() {
             </Col>
 
             <Col xs={24} sm={24} md={6}>
-              <Form.Item label="Department" name="department" required >
+              <Form.Item label="Department" name="department" required>
                 <Select
                   showSearch
                   optionFilterProp="children"
                   filterOption={(input, option) =>
                     option?.children?.toLowerCase().includes(input.toLowerCase())
                   }
-                  size='medium'
+                  size="medium"
                   placeholder="Select Department"
                   allowClear={!!selectedDepartment}
                   disabled={!!selectedDepartment && !!selectedDesignation}
                   onChange={(val) => {
                     // if (!designationLocked && val) navigate(`/appform/${val}`)
-                    setSelectedDepartment(val);
+                    setSelectedDepartment(val)
                   }}
                 >
-                  {
-                    Department && Array.isArray(Department)
-                    &&
+                  {Department &&
+                    Array.isArray(Department) &&
                     Department.map((item) => {
-                      return <Option key={item?.departmentId} value={item?.departmentId}>{item?.departmentName}</Option>;
-                    })
-                  }
+                      return (
+                        <Option key={item?.departmentId} value={item?.departmentId}>
+                          {item?.departmentName}
+                        </Option>
+                      )
+                    })}
                 </Select>
               </Form.Item>
             </Col>
@@ -386,7 +388,7 @@ function AddApplicant() {
                       disabled={!!selectedDepartment && !!selectedDesignation}
                       onChange={(val) => {
                         // if (!designationLocked && val) navigate(`/appform/${val}`)
-                        setSelectedDesignation(val);
+                        setSelectedDesignation(val)
                       }}
                     >
                       {designationOptions.map((val) => (
@@ -481,12 +483,12 @@ function AddApplicant() {
             {/* 🔹 Previous Company – now allows any characters */}
             <Col xs={24} sm={12} md={6}>
               <Form.Item
-                label="Previous Company"
+                label="Current Company"
                 name="previousCompany"
                 rules={[
                   {
                     required: totalExperience > 0 ? true : false,
-                    message: 'Please enter your previous company',
+                    message: 'Please enter your current company',
                   },
                 ]}
               >
@@ -501,12 +503,12 @@ function AddApplicant() {
             {/* 🔹 Previous Designation – now allows any characters */}
             <Col xs={24} sm={12} md={6}>
               <Form.Item
-                label="Previous Designation"
+                label="Current Designation"
                 name="previousDesignation"
                 rules={[
                   {
                     required: totalExperience > 0 ? true : false,
-                    message: 'Please enter your previous designation',
+                    message: 'Please enter your current designation',
                   },
                 ]}
               >
@@ -520,7 +522,7 @@ function AddApplicant() {
 
             <Col xs={24} sm={12} md={6}>
               <Form.Item
-                label="Previous Salary"
+                label="Current Salary"
                 name="previousSalary"
                 rules={[
                   ({ getFieldValue }) => ({
@@ -528,7 +530,7 @@ function AddApplicant() {
                       const exp = getFieldValue('totalExperience')
                       if (exp === 0) return Promise.resolve()
                       if (totalExperience > 0 && (value === '' || value === undefined)) {
-                        return Promise.reject(new Error('Please enter previous salary'))
+                        return Promise.reject(new Error('Please enter current salary'))
                       }
                       const numericValue = Number(value)
                       if (

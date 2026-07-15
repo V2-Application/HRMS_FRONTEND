@@ -276,6 +276,51 @@ export const exportBiomaxAttendanceLocationMap = async () => {
   })
 }
 
+// ---- Leave Closing Balance uploader (EmpLeaveClosingBalance) — IT Superadmin only ----
+export const getLeaveClosingBalances = async ({
+  page = 1,
+  pageSize = 50,
+  search = '',
+  month = '',
+} = {}) => {
+  const params = new URLSearchParams({ page, pageSize })
+  if (search) params.append('search', search)
+  if (month) params.append('month', month)
+  const res = await axiosInstance.get(`/api/LeaveClosingBalance/GetAll?${params.toString()}`)
+  return res.data
+}
+
+export const getLeaveClosingBalanceMonths = async () => {
+  const res = await axiosInstance.get('/api/LeaveClosingBalance/GetMonths')
+  return res.data
+}
+
+export const uploadLeaveClosingBalance = async (file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await axiosInstance.post('/api/LeaveClosingBalance/Upload', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export const downloadLeaveClosingBalanceTemplate = async () => {
+  return axiosInstance.get('/api/LeaveClosingBalance/DownloadTemplate', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
+export const exportLeaveClosingBalance = async ({ search = '', month = '' } = {}) => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  if (month) params.append('month', month)
+  return axiosInstance.get(`/api/LeaveClosingBalance/Export?${params.toString()}`, {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
 // ---- Gap Reports ----
 // List of available gap reports (for the dropdown on the Gap Reports page).
 export const getGapReportsList = async () => {

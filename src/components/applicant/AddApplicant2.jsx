@@ -339,23 +339,23 @@ function AddApplicant() {
           </Col>
 
           <Col span={8}>
-            <Form.Item label="Previous Company" name="previousCompany">
-              <Input placeholder="Enter previous company" />
+            <Form.Item label="Current Company" name="previousCompany">
+              <Input placeholder="Enter current company" />
             </Form.Item>
           </Col>
 
           <Col span={8}>
-            <Form.Item label="Previous Designation" name="previousDesignation">
-              <Input placeholder="Enter previous designation" />
+            <Form.Item label="Current Designation" name="previousDesignation">
+              <Input placeholder="Enter current designation" />
             </Form.Item>
           </Col>
 
           <Col span={8}>
             <Form.Item
-              label="Previous Salary"
+              label="Current Salary"
               name="previousSalary"
               rules={[
-                { required: true, message: 'Please enter previous salary' },
+                { required: true, message: 'Please enter current salary' },
                 {
                   validator: (_, value) => {
                     // If the field is empty, skip this validator (let 'required' handle it)
@@ -376,7 +376,7 @@ function AddApplicant() {
                 },
               ]}
             >
-              <Input placeholder="Enter Previous salary" />
+              <Input placeholder="Enter Current salary" />
             </Form.Item>
           </Col>
 

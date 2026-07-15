@@ -411,12 +411,12 @@ function AddApplicant() {
             {/* 🔹 Previous Company – now allows any characters */}
             <Col xs={24} sm={12} md={6}>
               <Form.Item
-                label="Previous Company"
+                label="Current Company"
                 name="previousCompany"
                 rules={[
                   {
                     required: totalExperience > 0 ? true : false,
-                    message: 'Please enter your previous company',
+                    message: 'Please enter your current company',
                   },
                 ]}
               >
@@ -431,12 +431,12 @@ function AddApplicant() {
             {/* 🔹 Previous Designation – now allows any characters */}
             <Col xs={24} sm={12} md={6}>
               <Form.Item
-                label="Previous Designation"
+                label="Current Designation"
                 name="previousDesignation"
                 rules={[
                   {
                     required: totalExperience > 0 ? true : false,
-                    message: 'Please enter your previous designation',
+                    message: 'Please enter your current designation',
                   },
                 ]}
               >
@@ -450,7 +450,7 @@ function AddApplicant() {
 
             <Col xs={24} sm={12} md={6}>
               <Form.Item
-                label="Previous Salary"
+                label="Current Salary"
                 name="previousSalary"
                 rules={[
                   ({ getFieldValue }) => ({
@@ -458,7 +458,7 @@ function AddApplicant() {
                       const exp = getFieldValue('totalExperience')
                       if (exp === 0) return Promise.resolve()
                       if (totalExperience > 0 && (value === '' || value === undefined)) {
-                        return Promise.reject(new Error('Please enter previous salary'))
+                        return Promise.reject(new Error('Please enter current salary'))
                       }
                       const numericValue = Number(value)
                       if (

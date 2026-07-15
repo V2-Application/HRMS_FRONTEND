@@ -12,7 +12,7 @@ import {
   CNavItem,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilMoney, cilCash, cilLocationPin } from '@coreui/icons'
+import { cilMoney, cilCash, cilLocationPin, cilCloudUpload } from '@coreui/icons'
 
 import { AppSidebarNav } from './AppSidebarNav'
 
@@ -573,16 +573,47 @@ const AppSidebar = ({ menus, userdata, ...props }) => {
       },
     ],
   }
-  // Biomax attendance device-location -> ST code mapping — IT SuperAdmin only.
-  const biomaxLocationMappingItem = {
-    component: CNavItem,
-    name: 'Biomax Attendance Location Mapping',
-    to: '/master/biomax-attendance-location-mapping',
-    icon: <CIcon icon={cilLocationPin} customClassName="nav-icon" />,
+  // Extra uploader pages (IT SuperAdmin only) — injected into the EXISTING "Uploaders" group.
+  const itUploaderItems = [
+    {
+      component: CNavItem,
+      name: 'Biomax Attendance Location Mapping',
+      to: '/master/biomax-attendance-location-mapping',
+      icon: <CIcon icon={cilLocationPin} customClassName="nav-icon" />,
+    },
+    {
+      component: CNavItem,
+      name: 'Leave Closing Balance',
+      to: '/uploaders/leave-closing-balance',
+      icon: <CIcon icon={cilCash} customClassName="nav-icon" />,
+    },
+  ]
+  let roleMenus = isItSuperAdmin ? [...filteredMenuList, statutoryPolicyGroup] : filteredMenuList
+  if (isItSuperAdmin) {
+    let injected = false
+    roleMenus = roleMenus.map((m) => {
+      if (m?.name === 'Uploaders' && Array.isArray(m.items)) {
+        injected = true
+        const existing = new Set(m.items.map((it) => it?.to))
+        const toAdd = itUploaderItems.filter((it) => !existing.has(it.to))
+        return { ...m, items: [...m.items, ...toAdd] }
+      }
+      return m
+    })
+    // Fallback: if the Uploaders group isn't in this menu, append one so the pages stay reachable.
+    if (!injected) {
+      roleMenus = [
+        ...roleMenus,
+        {
+          component: CNavGroup,
+          name: 'Uploaders',
+          to: '/uploaders',
+          icon: <CIcon icon={cilCloudUpload} customClassName="nav-icon" />,
+          items: itUploaderItems,
+        },
+      ]
+    }
   }
-  const roleMenus = isItSuperAdmin
-    ? [...filteredMenuList, statutoryPolicyGroup, biomaxLocationMappingItem]
-    : filteredMenuList
 
   const checkSidebarColor = () => {
     const toggler = document.querySelector('.sidebar-toggler')

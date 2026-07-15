@@ -783,9 +783,10 @@ const EmployeeProfile = () => {
         PFApplicable: apiData?.pfApplicable || true,
         ESICApplicable: apiData?.esicApplicable || false,
         bonusApplicable:
-          apiData?.bonusApplicable === true || apiData?.bonusApplicable === 'Ctc'
+          apiData?.bonusApplicable === true ||
+          ['ctc', 'yes', 'true', '1'].includes(String(apiData?.bonusApplicable).toLowerCase())
             ? 'Ctc'
-            : apiData?.bonusApplicable === 'Stat'
+            : String(apiData?.bonusApplicable).toLowerCase() === 'stat'
               ? 'Stat'
               : 'No',
         CompanyId: apiData?.companyId || '',
@@ -2198,10 +2199,7 @@ const EmployeeProfile = () => {
               key="8"
               className={theme === 'dark' ? 'dark-theme' : ''}
             >
-              <MedicalCardAdmin
-                ecodeProp={selectedEmpCode}
-                key={selectedEmpCode || 'no-ecode'}
-              />
+              <MedicalCardAdmin ecodeProp={selectedEmpCode} key={selectedEmpCode || 'no-ecode'} />
             </Tabs.TabPane>
           </Tabs>
 

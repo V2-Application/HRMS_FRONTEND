@@ -85,8 +85,8 @@ const EmployeeProfile = () => {
       .toLowerCase() === 'storehr'
   const { employeeId, isStore, ecode } = useSelector((state) => state?.auth?.data ?? {})
   const { pathname, state = {} } = useLocation()
-const isEmployeeUpdateRoute = pathname.includes('/employee/update')
-const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
+  const isEmployeeUpdateRoute = pathname.includes('/employee/update')
+  const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
   // const { furtherParts = [] } = state || {}
   const navigate = useNavigate()
   const [imageValue, setImageValue] = useState([])
@@ -1435,9 +1435,10 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
         PFApplicable: apiData?.pfApplicable ?? false,
         ESICApplicable: apiData?.esicApplicable ?? false,
         bonusApplicable:
-          apiData?.bonusApplicable === true || apiData?.bonusApplicable === 'Ctc'
+          apiData?.bonusApplicable === true ||
+          ['ctc', 'yes', 'true', '1'].includes(String(apiData?.bonusApplicable).toLowerCase())
             ? 'Ctc'
-            : apiData?.bonusApplicable === 'Stat'
+            : String(apiData?.bonusApplicable).toLowerCase() === 'stat'
               ? 'Stat'
               : 'No',
         CompanyId: apiData?.companyId || '',
@@ -2691,35 +2692,35 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                     //   </Select>
                     // </Form.Item>
                     <Form.Item
-  labelCol={{ span: 24 }}
-  name={['user', 'department']}
-  label="Department"
-  rules={[
-    { required: true, message: 'Department is required' },
-    {
-      validator: (_, value) =>
-        value === 'none'
-          ? Promise.reject(new Error('Please select a valid designation'))
-          : Promise.resolve(),
-    },
-  ]}
->
-  <Select
-    showSearch
-    optionFilterProp="children"
-    tabIndex={26}
-    disabled={disableDeptDesgUanForStoreHrOnUpdate}
-  >
-    <Select.Option value="none" data-id={null} key={Date.now()}>
-      Select department
-    </Select.Option>
-    {departments.map((comp) => (
-      <Select.Option value={comp.departmentId} key={comp.departmentId}>
-        {comp.departmentName}
-      </Select.Option>
-    ))}
-  </Select>
-</Form.Item>
+                      labelCol={{ span: 24 }}
+                      name={['user', 'department']}
+                      label="Department"
+                      rules={[
+                        { required: true, message: 'Department is required' },
+                        {
+                          validator: (_, value) =>
+                            value === 'none'
+                              ? Promise.reject(new Error('Please select a valid designation'))
+                              : Promise.resolve(),
+                        },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        optionFilterProp="children"
+                        tabIndex={26}
+                        disabled={disableDeptDesgUanForStoreHrOnUpdate}
+                      >
+                        <Select.Option value="none" data-id={null} key={Date.now()}>
+                          Select department
+                        </Select.Option>
+                        {departments.map((comp) => (
+                          <Select.Option value={comp.departmentId} key={comp.departmentId}>
+                            {comp.departmentName}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
                   )}
                 </Col>
 
@@ -2760,33 +2761,33 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                     //   </Select>
                     // </Form.Item>
                     <Form.Item
-  labelCol={{ span: 24 }}
-  name={['user', 'designation']}
-  label="Designation"
-  rules={[
-    { required: true, message: 'Designation is required' },
-    {
-      validator: (_, value) =>
-        value === 'none'
-          ? Promise.reject(new Error('Please select a valid designation'))
-          : Promise.resolve(),
-    },
-  ]}
->
-  <Select
-    showSearch
-    optionFilterProp="children"
-    tabIndex={24}
-    disabled={disableDeptDesgUanForStoreHrOnUpdate}
-  >
-    <Select.Option value="none">Select designation</Select.Option>
-    {designations.map((desg) => (
-      <Select.Option value={desg.designationId} key={desg.designationId}>
-        {desg.designationName}
-      </Select.Option>
-    ))}
-  </Select>
-</Form.Item>
+                      labelCol={{ span: 24 }}
+                      name={['user', 'designation']}
+                      label="Designation"
+                      rules={[
+                        { required: true, message: 'Designation is required' },
+                        {
+                          validator: (_, value) =>
+                            value === 'none'
+                              ? Promise.reject(new Error('Please select a valid designation'))
+                              : Promise.resolve(),
+                        },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        optionFilterProp="children"
+                        tabIndex={24}
+                        disabled={disableDeptDesgUanForStoreHrOnUpdate}
+                      >
+                        <Select.Option value="none">Select designation</Select.Option>
+                        {designations.map((desg) => (
+                          <Select.Option value={desg.designationId} key={desg.designationId}>
+                            {desg.designationName}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
                   )}
                 </Col>
               </Row>
@@ -3163,46 +3164,48 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
                 {/* </Col> */}
 
                 {/* Show UAN No. when designation is NOT Apprentice */}
-             {!isNapsDepartment && !isNapsDesignation && (
-  <Col xs={24} sm={12} md={8}>
-    <Form.Item
-      labelCol={{ span: 24 }}
-      name={['user', 'uanNo']}
-      label="UAN No."
-      rules={[
-        ({ getFieldValue }) => ({
-          validator(_, value) {
-            const isUANRegistered = getFieldValue(['user', 'isUANRegistered'])
-            const v = (value ?? '').toString().trim()
+                {!isNapsDepartment && !isNapsDesignation && (
+                  <Col xs={24} sm={12} md={8}>
+                    <Form.Item
+                      labelCol={{ span: 24 }}
+                      name={['user', 'uanNo']}
+                      label="UAN No."
+                      rules={[
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const isUANRegistered = getFieldValue(['user', 'isUANRegistered'])
+                            const v = (value ?? '').toString().trim()
 
-            if (isUANRegistered) {
-              if (!v) return Promise.reject(new Error('UAN No. is required'))
-              if (!/^\d{12}$/.test(v)) {
-                return Promise.reject(new Error('UAN No. must be exactly 12 digits'))
-              }
-              return Promise.resolve()
-            }
+                            if (isUANRegistered) {
+                              if (!v) return Promise.reject(new Error('UAN No. is required'))
+                              if (!/^\d{12}$/.test(v)) {
+                                return Promise.reject(
+                                  new Error('UAN No. must be exactly 12 digits'),
+                                )
+                              }
+                              return Promise.resolve()
+                            }
 
-            if (!v) return Promise.resolve()
-            return /^\d{12}$/.test(v)
-              ? Promise.resolve()
-              : Promise.reject(new Error('UAN No. must be exactly 12 digits'))
-          },
-        }),
-      ]}
-    >
-      <Input
-        maxLength={12}
-        inputMode="numeric"
-        onKeyPress={(e) => {
-          if (!/[0-9]/.test(e.key)) e.preventDefault()
-        }}
-        placeholder="Enter UAN No."
-        disabled={disableDeptDesgUanForStoreHrOnUpdate}
-      />
-    </Form.Item>
-  </Col>
-)}
+                            if (!v) return Promise.resolve()
+                            return /^\d{12}$/.test(v)
+                              ? Promise.resolve()
+                              : Promise.reject(new Error('UAN No. must be exactly 12 digits'))
+                          },
+                        }),
+                      ]}
+                    >
+                      <Input
+                        maxLength={12}
+                        inputMode="numeric"
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) e.preventDefault()
+                        }}
+                        placeholder="Enter UAN No."
+                        disabled={disableDeptDesgUanForStoreHrOnUpdate}
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
 
                 {/* Show AO Code when designation IS Apprentice */}
                 {(isNapsDepartment || isNapsDesignation) && (
@@ -4446,10 +4449,7 @@ const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
               key="8"
               className={theme === 'dark' ? 'dark-theme' : ''}
             >
-              <MedicalCardAdmin
-                ecodeProp={selectedEmpCode}
-                key={selectedEmpCode || 'no-ecode'}
-              />
+              <MedicalCardAdmin ecodeProp={selectedEmpCode} key={selectedEmpCode || 'no-ecode'} />
             </Tabs.TabPane>
           </Tabs>
           <Row justify="end" style={{ marginTop: 20, gap: '0.6rem' }}>

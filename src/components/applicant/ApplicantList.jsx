@@ -787,6 +787,22 @@ const handleSubmitReopen = async () => {
       key: 'company1',
       width: 140,
     },
+    currentDesignation: {
+      title: 'Current Designation',
+      dataIndex: 'positionHeldInPreviousCompany',
+      key: 'positionHeldInPreviousCompany',
+      width: 160,
+      render: (text) => {
+        const formattedText =
+          text === null || text === undefined || text?.trim() === '' ? '-' : text?.trim()
+
+        return (
+          <Tooltip title={formattedText}>
+            <span>{formattedText}</span>
+          </Tooltip>
+        )
+      },
+    },
     experience: {
       title: 'Experience',
       dataIndex: 'experience',
@@ -1178,6 +1194,7 @@ const handleSubmitReopen = async () => {
     columnTemplates.phone,
     columnTemplates.experience,
     columnTemplates.currentCompany,
+    columnTemplates.currentDesignation,
     columnTemplates.currentSalary,
     columnTemplates.postAppliedFor,
     columnTemplates.noticePeriod,
@@ -1202,6 +1219,7 @@ const handleSubmitReopen = async () => {
     columnTemplates.phone,
     columnTemplates.experience,
     columnTemplates.currentCompany,
+    columnTemplates.currentDesignation,
     columnTemplates.currentSalary,
     columnTemplates.postAppliedFor,
     columnTemplates.noticePeriod,

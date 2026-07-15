@@ -1,5 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import { Space, Table, Row, Input, Tooltip, Button, Col, message, Dropdown, Grid } from 'antd'
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  Space,
+  Table,
+  Row,
+  Input,
+  Tooltip,
+  Button,
+  Col,
+  message,
+  Dropdown,
+  Grid,
+  Select,
+} from 'antd'
 import { ExportOutlined, UploadOutlined } from '@ant-design/icons'
 import { toast, ToastContainer } from 'react-toastify'
 import { useDispatch, useSelector } from 'react-redux'
@@ -22,7 +34,6 @@ import { useActionsMap } from '../../utils/useActionsMap'
 import { exportExcelFromFrontend } from '../../components/shared/ExportExceFromFrontend'
 import useMediaQuery from '../../hooks/useMediaQuery'
 
-
 const { Search } = Input
 
 const LeaveOpeningBalMaster = () => {
@@ -34,11 +45,11 @@ const LeaveOpeningBalMaster = () => {
   const [importExelModal, setimportExelModal] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [search, setSearch] = useState('')
+  const [month, setMonth] = useState('')
   const dispatch = useDispatch()
   const { loading, theme } = useSelector((state) => state.ui)
   const [lodingLocal, setlodingLocal] = useState(false)
   const isMobile = useMediaQuery('(max-width: 768px)')
-
 
   const filteredSideMenu = useSelector((state) => state?.auth?.filteredSideMenu || [])
   const actionsMap = useActionsMap(filteredSideMenu)
@@ -136,22 +147,30 @@ const LeaveOpeningBalMaster = () => {
     fetchData()
   }, [])
 
+  // Distinct months present in the data (for the month filter dropdown).
+  const monthOptions = useMemo(() => {
+    const set = new Set(
+      (employeesListData || []).map((d) => String(d?.month || '').trim()).filter(Boolean),
+    )
+    return [...set].sort()
+  }, [employeesListData])
+
   useEffect(() => {
     const new_search = search?.trim().toLowerCase()
+    let data = employeesListData || []
 
-    if (new_search.length > 0) {
-      const new_data =
-        employeesListData.filter((dt) =>
-          Object.values(dt).some((val) => String(val).toLowerCase().includes(new_search)),
-        ) || []
-
-      setTotalCount(new_data.length)
-      setFilteredData(new_data)
-    } else {
-      setTotalCount(employeesListData.length)
-      setFilteredData(employeesListData)
+    if (month) {
+      data = data.filter((dt) => String(dt?.month || '').trim() === month)
     }
-  }, [search, employeesListData])
+    if (new_search.length > 0) {
+      data = data.filter((dt) =>
+        Object.values(dt).some((val) => String(val).toLowerCase().includes(new_search)),
+      )
+    }
+
+    setTotalCount(data.length)
+    setFilteredData(data)
+  }, [search, month, employeesListData])
 
   const columns = [
     {
@@ -226,6 +245,9 @@ const LeaveOpeningBalMaster = () => {
           setlodingLocal={setlodingLocal}
           refreshData={fetchData}
           search={search}
+          month={month}
+          setMonth={setMonth}
+          monthOptions={monthOptions}
           actionsMap={actionsMap}
           filteredData={filteredData}
         />
@@ -284,6 +306,9 @@ const TableBulkActionIcons = ({
   selectedRowKeys,
   handleSearch,
   search,
+  month,
+  setMonth,
+  monthOptions = [],
   lodingLocal,
   setlodingLocal,
   refreshData,
@@ -442,13 +467,24 @@ const TableBulkActionIcons = ({
               </Tooltip>
             )}
           </Col>
+          <Select
+            value={month}
+            onChange={(v) => setMonth && setMonth(v)}
+            options={[
+              { label: 'All Months', value: '' },
+              ...monthOptions.map((m) => ({ label: m, value: m })),
+            ]}
+            showSearch
+            placeholder="Month"
+            style={isMobile ? { width: 110, marginLeft: 5 } : { width: 150, marginLeft: 5 }}
+          />
           <Search
             //   placeholder="Search by name, role, or tags"
             placeholder="Search in table..."
             allowClear
             onChange={handleSearch}
             // onBlur={(e) => sessionStorage.setItem('employee-search', e.target.value)}
-            style={isMobile ? { width: 150, marginLeft: 5 } : { width: 300, marginLeft: 5 }}
+            style={isMobile ? { width: 150, marginLeft: 5 } : { width: 260, marginLeft: 5 }}
             value={search}
           />
         </Row>

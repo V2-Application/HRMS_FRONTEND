@@ -153,7 +153,6 @@ const ApplicationForm = () => {
     newFormData.append('PreferredLocation', values?.preferredLocation)
     newFormData.append('NoticePeriod', values.NoticePeriod ?? 0)
 
-    
     if (values.source === 'person') {
       newFormData.append('ReferenceEmployee', values.reference)
     }
@@ -579,20 +578,18 @@ const ApplicationForm = () => {
                         /> */}
                       {/* </Form.Item>  */}
 
-<Form.Item
-  label="Notice Period (In Days)"
-  name="NoticePeriod"
-  rules={[{ required: true, message: 'Notice Period is required' }]}
->
-  <InputNumber
-    style={{ width: '100%' }}
-    min={0}
-    max={365}
-    placeholder="Enter notice period in days"
-  />
-</Form.Item>
-
-
+                      <Form.Item
+                        label="Notice Period (In Days)"
+                        name="NoticePeriod"
+                        rules={[{ required: true, message: 'Notice Period is required' }]}
+                      >
+                        <InputNumber
+                          style={{ width: '100%' }}
+                          min={0}
+                          max={365}
+                          placeholder="Enter notice period in days"
+                        />
+                      </Form.Item>
                     </Col>
                   </Row>
 
@@ -667,11 +664,11 @@ const ApplicationForm = () => {
                         rules: [{ required: true, message: 'Total Experience is required' }],
                       },
                       {
-                        label: 'Previous Designation',
+                        label: 'Current Designation',
                         name: 'previousDesignation',
                         component: (
                           <Input
-                            placeholder="Enter previous designation"
+                            placeholder="Enter current designation"
                             disabled={totalExperience === 0}
                           />
                         ),
@@ -682,7 +679,7 @@ const ApplicationForm = () => {
                               if (exp === 0) return Promise.resolve()
                               if (totalExperience > 0 && (!value || !value.trim())) {
                                 return Promise.reject(
-                                  new Error('Please enter your previous designation'),
+                                  new Error('Please enter your current designation'),
                                 )
                               }
                               if (!/^[A-Za-z\s]+$/.test(value)) {
@@ -697,11 +694,11 @@ const ApplicationForm = () => {
                         ],
                       },
                       {
-                        label: 'Previous Salary (₹)',
+                        label: 'Current Salary (₹)',
                         name: 'previousSalary',
                         component: (
                           <Input
-                            placeholder="Enter previous salary"
+                            placeholder="Enter current salary"
                             disabled={totalExperience === 0}
                           />
                         ),
@@ -714,7 +711,7 @@ const ApplicationForm = () => {
                                 totalExperience > 0 &&
                                 (value === '' || value === undefined || value === null)
                               ) {
-                                return Promise.reject(new Error('Please enter previous salary'))
+                                return Promise.reject(new Error('Please enter current salary'))
                               }
                               if (totalExperience > 0 && !/^\d+$/.test(String(value))) {
                                 return Promise.reject(
@@ -729,11 +726,11 @@ const ApplicationForm = () => {
                       },
 
                       {
-                        label: 'Previous Company',
+                        label: 'Current Company',
                         name: 'previousCompany',
                         component: (
                           <Input
-                            placeholder="Enter previous company name"
+                            placeholder="Enter current company name"
                             disabled={totalExperience === 0}
                           />
                         ),
@@ -744,7 +741,7 @@ const ApplicationForm = () => {
                               if (exp === 0) return Promise.resolve()
                               if (totalExperience > 0 && (!value || !value.trim())) {
                                 return Promise.reject(
-                                  new Error('Please enter your previous company'),
+                                  new Error('Please enter your current company'),
                                 )
                               }
                               if (totalExperience > 0 && !/^[A-Za-z\s]+$/.test(value)) {
