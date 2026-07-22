@@ -638,6 +638,11 @@ const fullMenuList = [
       },
       {
         component: CNavItem,
+        name: 'Store State Mapping',
+        to: '/master/store-state-mapping',
+      },
+      {
+        component: CNavItem,
         name: 'Seat',
         to: '/master/seat',
       },

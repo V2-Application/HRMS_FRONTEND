@@ -587,12 +587,6 @@ const AppSidebar = ({ menus, userdata, ...props }) => {
       to: '/uploaders/leave-closing-balance',
       icon: <CIcon icon={cilCash} customClassName="nav-icon" />,
     },
-    {
-      component: CNavItem,
-      name: 'Store State Mapping',
-      to: '/master/store-state-mapping',
-      icon: <CIcon icon={cilLocationPin} customClassName="nav-icon" />,
-    },
   ]
   let roleMenus = isItSuperAdmin ? [...filteredMenuList, statutoryPolicyGroup] : filteredMenuList
   if (isItSuperAdmin) {
