@@ -321,6 +321,54 @@ export const exportLeaveClosingBalance = async ({ search = '', month = '' } = {}
   })
 }
 
+// ---- Store (STCode) -> State mapping (tblLocation.StateId, states from tblState) ----
+export const getLocationStates = async (search = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  const res = await axiosInstance.get(`/api/LocationStateMap/GetAll?${params.toString()}`)
+  return res.data
+}
+
+export const getStoreList = async () => {
+  const res = await axiosInstance.get('/api/LocationStateMap/GetStores')
+  return res.data
+}
+
+export const getStateList = async () => {
+  const res = await axiosInstance.get('/api/LocationStateMap/GetStates')
+  return res.data
+}
+
+export const updateStoreState = async ({ sTCode, stateId }) => {
+  const res = await axiosInstance.post('/api/LocationStateMap/UpdateState', { sTCode, stateId })
+  return res.data
+}
+
+export const uploadStoreState = async (file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await axiosInstance.post('/api/LocationStateMap/Upload', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export const downloadStoreStateTemplate = async () => {
+  return axiosInstance.get('/api/LocationStateMap/DownloadTemplate', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
+export const exportStoreState = async (search = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  return axiosInstance.get(`/api/LocationStateMap/Export?${params.toString()}`, {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
 // ---- Gap Reports ----
 // List of available gap reports (for the dropdown on the Gap Reports page).
 export const getGapReportsList = async () => {

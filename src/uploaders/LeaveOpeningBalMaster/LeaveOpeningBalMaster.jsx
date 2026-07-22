@@ -461,7 +461,7 @@ const TableBulkActionIcons = ({
 
             {actionsMap?.export?.actionStatus && (
               <Tooltip placement="top" title={'Export'}>
-                <Button style={{ marginLeft: 5 }} loading={lodingLocal}>
+                <Button style={{ marginLeft: 5 }} loading={lodingLocal} onClick={downloadDataInExcel}>
                   <ExportOutlined />
                 </Button>
               </Tooltip>

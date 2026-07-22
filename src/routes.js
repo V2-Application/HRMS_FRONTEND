@@ -56,6 +56,7 @@ const BiomaxAttendanceLocationMap = React.lazy(
   () => import('./views/masters/BiomaxAttendanceLocationMap'),
 )
 const LeaveClosingBalance = React.lazy(() => import('./views/masters/LeaveClosingBalance'))
+const LocationStateMap = React.lazy(() => import('./views/masters/LocationStateMap'))
 const EmployeesTransferList = React.lazy(() => import('./employees/EmployeeTansferApprovals'))
 const MasterData = React.lazy(() => import('./views/pages/Masters/Master'))
 const PFMaster = React.lazy(() => import('./views/pages/Masters/PFMaster'))
@@ -844,6 +845,12 @@ const routes = [
     path: '/uploaders/leave-closing-balance',
     name: 'Leave Closing Balance',
     element: LeaveClosingBalance,
+    roles: ['IT Superadmin'],
+  },
+  {
+    path: '/master/store-state-mapping',
+    name: 'Store State Mapping',
+    element: LocationStateMap,
     roles: ['IT Superadmin'],
   },
   {
