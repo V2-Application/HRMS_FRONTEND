@@ -28,7 +28,18 @@ const AttendanceRequestModal = ({
   isAttendanceRequestModalOpen,
   setIsAttendanceRequestModalOpen,
   regulistAttandanceUpdatedData,
+  regularizeOpenDates = [],
+  rbacRegularizeOn = false,
 }) => {
+  // When the Regularize button is granted via an admin-opened access window (RBAC action off),
+  // restrict the date picker to exactly the opened dates.
+  const openDateSet = React.useMemo(
+    () => new Set((regularizeOpenDates || []).map((d) => String(d))),
+    [regularizeOpenDates],
+  )
+  const windowGated = !rbacRegularizeOn && openDateSet.size > 0
+  const disableExceptOpenDates = (current) =>
+    !current || !openDateSet.has(current.format('YYYY-MM-DD'))
   // const reportingManagerId = localStorage.getItem('reportingManagerId')
   const {
     ecode: defaultECode,
@@ -457,9 +468,11 @@ const AttendanceRequestModal = ({
                   style={{ width: '100%' }}
                   // disabledDate={enableDateFromLastMonth26ToCurrentMonthEnd}
                   disabledDate={
-                    allowedEcodes.includes(ecode)
-                      ? enableDateFromJanMonth26ToCurrentMonthEnd
-                      : enableDateFromLastMonth26ToCurrentMonthEnd
+                    windowGated
+                      ? disableExceptOpenDates
+                      : allowedEcodes.includes(ecode)
+                        ? enableDateFromJanMonth26ToCurrentMonthEnd
+                        : enableDateFromLastMonth26ToCurrentMonthEnd
                   }
                 />
               </Form.Item>

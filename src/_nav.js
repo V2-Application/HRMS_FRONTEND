@@ -690,6 +690,47 @@ const fullMenuList = [
   },
   {
     component: CNavGroup,
+    name: 'V2 Pathshala',
+    to: '/v2-pathshala',
+    icon: <CIcon icon={cilLibrary} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Registration Form',
+        to: '/v2-pathshala/registration-form',
+      },
+      {
+        component: CNavItem,
+        name: 'Registrations',
+        to: '/v2-pathshala/registrations',
+      },
+    ],
+  },
+  {
+    component: CNavGroup,
+    name: 'Access Control',
+    to: '/access-control',
+    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'User Access Control',
+        to: '/user-access-control',
+      },
+      {
+        component: CNavItem,
+        name: 'Regularize Access',
+        to: '/regularize-access',
+      },
+      {
+        component: CNavItem,
+        name: 'Geofence Access',
+        to: '/geofence-access',
+      },
+    ],
+  },
+  {
+    component: CNavGroup,
     name: 'Holiday Master',
     to: '/holiday-master',
     icon: <CIcon icon={cilCalendarCheck} customClassName="nav-icon" />,

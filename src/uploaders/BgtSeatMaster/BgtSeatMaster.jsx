@@ -436,7 +436,7 @@ const BgtSeatMaster = () => {
                 textAlign: 'center',
               }}
             >
-              {record.bgtReportingDesig || '-'}
+              {record.actualReportingDesig || '-'}
             </div>
           </div>
         </div>
@@ -727,7 +727,7 @@ const BgtSeatMaster = () => {
               'fullName',
               'reportEcode',
               'reportFullName',
-              'bgtReportingDesig',
+              'actualReportingDesig',
               'active',
               'subDepartment1',
               'subDepartment2',
@@ -1268,11 +1268,11 @@ const BgtSeatMaster = () => {
     },
     {
       title: 'Report Mngr. Desg.',
-      dataIndex: 'bgtReportingDesig',
-      key: 'bgtReportingDesig',
+      dataIndex: 'actualReportingDesig',
+      key: 'actualReportingDesig',
       width: 180,
       ellipsis: true,
-      ...searchCol('bgtReportingDesig', 'Report Mngr. Desg.'),
+      ...searchCol('actualReportingDesig', 'Report Mngr. Desg.'),
     },
     {
       title: 'Active',

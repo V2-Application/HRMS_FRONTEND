@@ -32,6 +32,7 @@ const TableList = React.lazy(() => import('./components/shared/UploaderModule/Sa
 import UI from './UI'
 import OuterCandidateForm from './employees/OuterCandidateForm'
 import EmployeeAddNew from './employees/CandidateAdd_New'
+const CandidateRegistrationForm = React.lazy(() => import('./employees/CandidateRegistrationForm'))
 
 const App = () => {
   const [messageApi, contextHolder] = message.useMessage()
@@ -105,6 +106,7 @@ const App = () => {
               <Route path="/404" element={<Page404 />} />
               <Route path="/500" element={<Page500 />} />
               <Route path="/candidate-form" element={<OuterCandidateForm />} />
+              <Route path="/candidate-registration" element={<CandidateRegistrationForm />} />
               <Route path="/interview-form" element={<InterviewForm />} />
               <Route path="/interview-form/:id" element={<InterviewForm />} />
               <Route path="/applicant-form" element={<ApplicantForm />} />

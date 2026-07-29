@@ -32,6 +32,7 @@ const PUBLIC_FORM_PATHS = [
   '/register',
   '/appform',
   '/candidate-form',
+  '/candidate-registration',
   '/interview-form',
   '/applicant-form',
 ]

@@ -255,6 +255,12 @@ const Login = (props) => {
                             </CButton>
                           </Link>
 
+                          <Link to="/candidate-registration" className="w-100">
+                            <CButton color="primary" className="w-100" disabled={loading}>
+                              V2 Pathshala Registration
+                            </CButton>
+                          </Link>
+
                           <Link to="/candidate-form" className="w-100">
                             <CButton color="primary" className="w-100" disabled={loading}>
                               Candidate Form
@@ -293,6 +299,13 @@ const Login = (props) => {
                         <Tooltip title="Register Applicant">
                           <CButton color="primary" disabled={loading}>
                             <i className="fas fa-user-plus fa-lg" />
+                          </CButton>
+                        </Tooltip>
+                      </Link>
+                      <Link to="/candidate-registration">
+                        <Tooltip title="V2 Pathshala Registration">
+                          <CButton color="primary" disabled={loading}>
+                            <i className="fas fa-graduation-cap fa-lg" />
                           </CButton>
                         </Tooltip>
                       </Link>

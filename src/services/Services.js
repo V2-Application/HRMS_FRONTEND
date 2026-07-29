@@ -369,6 +369,119 @@ export const exportStoreState = async (search = '') => {
   })
 }
 
+// ---- User Access Control (per-employee custom access; IT Superadmin only) ----
+export const getUacModules = async () => {
+  const res = await axiosInstance.get('/api/UserAccessControl/Modules')
+  return res.data
+}
+
+export const getUacStores = async () => {
+  const res = await axiosInstance.get('/api/UserAccessControl/Stores')
+  return res.data
+}
+
+export const getUacEmployees = async (search = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  const res = await axiosInstance.get(`/api/UserAccessControl/Employees?${params.toString()}`)
+  return res.data
+}
+
+export const getUacAccess = async (ecode) => {
+  const res = await axiosInstance.get(`/api/UserAccessControl/Access?ecode=${encodeURIComponent(ecode)}`)
+  return res.data
+}
+
+export const saveUacAccess = async (payload) => {
+  const res = await axiosInstance.post('/api/UserAccessControl/Save', payload)
+  return res.data
+}
+
+export const getUacEffectiveAccess = async (ecode) => {
+  const res = await axiosInstance.get(`/api/UserAccessControl/EffectiveAccess?ecode=${encodeURIComponent(ecode)}`)
+  return res.data
+}
+
+export const getUacFeatures = async () => {
+  const res = await axiosInstance.get('/api/UserAccessControl/Features')
+  return res.data
+}
+
+export const stopUacFeature = async (nodeType, refId) => {
+  const res = await axiosInstance.post('/api/UserAccessControl/StopFeature', { nodeType, refId })
+  return res.data
+}
+
+export const restoreUacFeature = async (nodeType, refId) => {
+  const res = await axiosInstance.post('/api/UserAccessControl/RestoreFeature', { nodeType, refId })
+  return res.data
+}
+
+// ---- Regularize / Geofence Access Windows (IT Superadmin only) ----
+// `base` is 'RegularizeAccess' or 'GeofenceAccess' (the controller route).
+export const getAccessWindowEmployees = async (base, search = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  const res = await axiosInstance.get(`/api/${base}/Employees?${params.toString()}`)
+  return res.data
+}
+export const getAccessWindowStores = async (base) => {
+  const res = await axiosInstance.get(`/api/${base}/Stores`)
+  return res.data
+}
+export const getAccessWindowList = async (base) => {
+  const res = await axiosInstance.get(`/api/${base}/List`)
+  return res.data
+}
+export const saveAccessWindow = async (base, payload) => {
+  const res = await axiosInstance.post(`/api/${base}/Save`, payload)
+  return res.data
+}
+export const removeAccessWindow = async (base, ids) => {
+  const res = await axiosInstance.post(`/api/${base}/Remove`, { ids })
+  return res.data
+}
+
+// Open regularize dates for the logged-in employee (drives the Regularize button + date picker).
+export const getMyRegularizeOpenDates = async () => {
+  const res = await axiosInstance.get('/api/RegularizeAccess/MyOpenDates')
+  return res.data
+}
+
+// ---- Candidate Registration (V2 Retail Graduate Academy) ----
+// Public pre-login form. `fd` is a FormData with the text fields + up to 4 files
+// (Photo, Resume, Aadhaar, Marksheet). Endpoint is [AllowAnonymous] on the server.
+export const submitCandidateRegistration = async (fd) => {
+  const response = await axiosInstance.post('/api/CandidateRegistration/Register', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data
+}
+
+// List filled V2 Pathshala registrations (IT Superadmin page). Optional search + date range.
+export const getPathshalaRegistrations = async ({ search = '', fromDate = '', toDate = '' } = {}) => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  if (fromDate) params.append('fromDate', fromDate)
+  if (toDate) params.append('toDate', toDate)
+  const response = await axiosInstance.get(
+    `/api/CandidateRegistration/GetAll?${params.toString()}`,
+  )
+  return response.data
+}
+
+// Export V2 Pathshala registrations to Excel (blob), honoring search + date range.
+export const exportPathshalaRegistrations = async ({ search = '', fromDate = '', toDate = '' } = {}) => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  if (fromDate) params.append('fromDate', fromDate)
+  if (toDate) params.append('toDate', toDate)
+  return axiosInstance.get(`/api/CandidateRegistration/Export?${params.toString()}`, {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
 // ---- Gap Reports ----
 // List of available gap reports (for the dropdown on the Gap Reports page).
 export const getGapReportsList = async () => {

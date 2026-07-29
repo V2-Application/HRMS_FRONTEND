@@ -34,6 +34,7 @@ import {
   getLocations,
   fetchLocationBasedEmployees,
   getPunchLocations,
+  getMyRegularizeOpenDates,
 } from '../../services/Services'
 import { useDispatch, useSelector } from 'react-redux'
 import { set } from '../../redux/uiSlice'
@@ -460,6 +461,23 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+
+  // Regularize Access windows opened for THIS employee (admin-controlled). When present, the
+  // Regularize button shows even if the RBAC action is unchecked, and the request modal's
+  // date picker is restricted to these dates.
+  const [regularizeOpenDates, setRegularizeOpenDates] = useState([])
+  useEffect(() => {
+    let alive = true
+    getMyRegularizeOpenDates()
+      .then((res) => {
+        if (alive && res?.status) setRegularizeOpenDates(Array.isArray(res.data) ? res.data : [])
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  const hasOpenRegularize = regularizeOpenDates.length > 0
 
   const [attendanceDateFilterValues, setAttendanceDateFilterValues] = useState([])
   const [statusFilterValues, setStatusFilterValues] = useState([])
@@ -2107,7 +2125,7 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
               Export
             </Button>
           )}
-          {actionsMap?.regularize?.actionStatus && (
+          {(actionsMap?.regularize?.actionStatus || hasOpenRegularize) && (
             <Button onClick={() => setIsRequestModalOpen(true)}>Regularize</Button>
           )}
 
@@ -2345,6 +2363,8 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
       <AttendanceRequestModal
         isAttendanceRequestModalOpen={isRequestModalOpen}
         setIsAttendanceRequestModalOpen={setIsRequestModalOpen}
+        regularizeOpenDates={regularizeOpenDates}
+        rbacRegularizeOn={!!actionsMap?.regularize?.actionStatus}
       />
       <ExportAttendanceModal
         isExportAttendanceModalOpen={isExportModalOpen}

@@ -57,6 +57,11 @@ const BiomaxAttendanceLocationMap = React.lazy(
 )
 const LeaveClosingBalance = React.lazy(() => import('./views/masters/LeaveClosingBalance'))
 const LocationStateMap = React.lazy(() => import('./views/masters/LocationStateMap'))
+const PathshalaRegistrations = React.lazy(() => import('./views/v2pathshala/PathshalaRegistrations'))
+const UserAccessControl = React.lazy(() => import('./views/useraccess/UserAccessControl'))
+const RegularizeAccess = React.lazy(() => import('./views/accesswindow/RegularizeAccess'))
+const GeofenceAccess = React.lazy(() => import('./views/accesswindow/GeofenceAccess'))
+const CandidateRegistrationForm = React.lazy(() => import('./employees/CandidateRegistrationForm'))
 const EmployeesTransferList = React.lazy(() => import('./employees/EmployeeTansferApprovals'))
 const MasterData = React.lazy(() => import('./views/pages/Masters/Master'))
 const PFMaster = React.lazy(() => import('./views/pages/Masters/PFMaster'))
@@ -851,6 +856,36 @@ const routes = [
     path: '/master/store-state-mapping',
     name: 'Store State Mapping',
     element: LocationStateMap,
+    roles: ['IT Superadmin'],
+  },
+  {
+    path: '/v2-pathshala/registrations',
+    name: 'V2 Pathshala Registrations',
+    element: PathshalaRegistrations,
+    roles: ['IT Superadmin'],
+  },
+  {
+    path: '/user-access-control',
+    name: 'User Access Control',
+    element: UserAccessControl,
+    roles: ['IT Superadmin'],
+  },
+  {
+    path: '/regularize-access',
+    name: 'Regularize Access',
+    element: RegularizeAccess,
+    roles: ['IT Superadmin'],
+  },
+  {
+    path: '/geofence-access',
+    name: 'Geofence Access',
+    element: GeofenceAccess,
+    roles: ['IT Superadmin'],
+  },
+  {
+    path: '/v2-pathshala/registration-form',
+    name: 'V2 Pathshala Registration Form',
+    element: CandidateRegistrationForm,
     roles: ['IT Superadmin'],
   },
   {
