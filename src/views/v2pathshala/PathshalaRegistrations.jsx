@@ -90,10 +90,26 @@ const PathshalaRegistrations = () => {
       width: 200,
       render: (_t, r) => (
         <Space size={4} wrap>
-          {r.PhotoPath && <Tag color="blue">Photo</Tag>}
-          {r.ResumePath && <Tag color="green">Resume</Tag>}
-          {r.AadhaarPath && <Tag color="orange">ID</Tag>}
-          {r.MarksheetPath && <Tag color="purple">Marksheet</Tag>}
+          {r.PhotoPath && (
+            <a href={r.PhotoPath} target="_blank" rel="noopener noreferrer">
+              <Tag color="blue">Photo</Tag>
+            </a>
+          )}
+          {r.ResumePath && (
+            <a href={r.ResumePath} target="_blank" rel="noopener noreferrer">
+              <Tag color="green">Resume</Tag>
+            </a>
+          )}
+          {r.AadhaarPath && (
+            <a href={r.AadhaarPath} target="_blank" rel="noopener noreferrer">
+              <Tag color="orange">ID</Tag>
+            </a>
+          )}
+          {r.MarksheetPath && (
+            <a href={r.MarksheetPath} target="_blank" rel="noopener noreferrer">
+              <Tag color="purple">Marksheet</Tag>
+            </a>
+          )}
         </Space>
       ),
     },

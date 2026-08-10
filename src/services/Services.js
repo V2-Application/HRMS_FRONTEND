@@ -321,6 +321,75 @@ export const exportLeaveClosingBalance = async ({ search = '', month = '' } = {}
   })
 }
 
+// ---- Official Visit (apply / manager approval / IT Superadmin admin list+uploader+export) ----
+export const getOfficialVisitStores = async () => {
+  const res = await axiosInstance.get('/api/OfficialVisit/stores')
+  return res.data
+}
+
+export const applyOfficialVisit = async (payload) => {
+  const res = await axiosInstance.post('/api/OfficialVisit/apply', payload)
+  return res.data
+}
+
+export const getMyOfficialVisitRequests = async () => {
+  const res = await axiosInstance.get('/api/OfficialVisit/my-requests')
+  return res.data
+}
+
+export const getOfficialVisitPendingForManager = async (managerId, includeDecided = false) => {
+  const res = await axiosInstance.get(`/api/OfficialVisit/pending-for-manager/${managerId}`, {
+    params: { includeDecided },
+  })
+  return res.data
+}
+
+export const approveOfficialVisitRequest = async (id, payload) => {
+  const res = await axiosInstance.post(`/api/OfficialVisit/approve/${id}`, payload)
+  return res.data
+}
+
+export const getOfficialVisitAdminList = async ({
+  page = 1,
+  pageSize = 50,
+  search = '',
+  fromDate = '',
+  toDate = '',
+  statusId = '',
+} = {}) => {
+  const params = new URLSearchParams({ page, pageSize })
+  if (search) params.append('search', search)
+  if (fromDate) params.append('fromDate', fromDate)
+  if (toDate) params.append('toDate', toDate)
+  if (statusId !== '') params.append('statusId', statusId)
+  const res = await axiosInstance.get(`/api/OfficialVisit/GetAll?${params.toString()}`)
+  return res.data
+}
+
+export const downloadOfficialVisitTemplate = async () => {
+  return axiosInstance.get('/api/OfficialVisit/DownloadTemplate', {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
+export const uploadOfficialVisitExcel = async (file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await axiosInstance.post('/api/OfficialVisit/Upload', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+// filter: { ecodes: [], applyAll: bool, fromDate, toDate, customDates: [] }
+export const exportOfficialVisit = async (filter) => {
+  return axiosInstance.post('/api/OfficialVisit/Export', filter, {
+    responseType: 'blob',
+    headers: { Accept: '*/*' },
+  })
+}
+
 // ---- Store (STCode) -> State mapping (tblLocation.StateId, states from tblState) ----
 export const getLocationStates = async (search = '') => {
   const params = new URLSearchParams()
@@ -388,7 +457,9 @@ export const getUacEmployees = async (search = '') => {
 }
 
 export const getUacAccess = async (ecode) => {
-  const res = await axiosInstance.get(`/api/UserAccessControl/Access?ecode=${encodeURIComponent(ecode)}`)
+  const res = await axiosInstance.get(
+    `/api/UserAccessControl/Access?ecode=${encodeURIComponent(ecode)}`,
+  )
   return res.data
 }
 
@@ -398,7 +469,9 @@ export const saveUacAccess = async (payload) => {
 }
 
 export const getUacEffectiveAccess = async (ecode) => {
-  const res = await axiosInstance.get(`/api/UserAccessControl/EffectiveAccess?ecode=${encodeURIComponent(ecode)}`)
+  const res = await axiosInstance.get(
+    `/api/UserAccessControl/EffectiveAccess?ecode=${encodeURIComponent(ecode)}`,
+  )
   return res.data
 }
 
@@ -459,19 +532,25 @@ export const submitCandidateRegistration = async (fd) => {
 }
 
 // List filled V2 Pathshala registrations (IT Superadmin page). Optional search + date range.
-export const getPathshalaRegistrations = async ({ search = '', fromDate = '', toDate = '' } = {}) => {
+export const getPathshalaRegistrations = async ({
+  search = '',
+  fromDate = '',
+  toDate = '',
+} = {}) => {
   const params = new URLSearchParams()
   if (search) params.append('search', search)
   if (fromDate) params.append('fromDate', fromDate)
   if (toDate) params.append('toDate', toDate)
-  const response = await axiosInstance.get(
-    `/api/CandidateRegistration/GetAll?${params.toString()}`,
-  )
+  const response = await axiosInstance.get(`/api/CandidateRegistration/GetAll?${params.toString()}`)
   return response.data
 }
 
 // Export V2 Pathshala registrations to Excel (blob), honoring search + date range.
-export const exportPathshalaRegistrations = async ({ search = '', fromDate = '', toDate = '' } = {}) => {
+export const exportPathshalaRegistrations = async ({
+  search = '',
+  fromDate = '',
+  toDate = '',
+} = {}) => {
   const params = new URLSearchParams()
   if (search) params.append('search', search)
   if (fromDate) params.append('fromDate', fromDate)

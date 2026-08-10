@@ -46,6 +46,8 @@ import {
   UploadOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  ScheduleOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons'
 import useMediaQuery from '../../hooks/useMediaQuery'
 // Punch role labels are derived dynamically from how many punches exist that day
@@ -442,6 +444,10 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
   const [selectedMonth, setSelectedMonth] = useState(
     dayjs().date() >= 26 ? dayjs().add(1, 'month') : dayjs(),
   )
+  // Pay cycle (26th prev month -> 25th selected month) is the default for everyone --
+  // it's what payroll/reporting is built around. Calendar month (1-31) is an
+  // occasional per-view override, not a per-employee setting.
+  const [cycleMode, setCycleMode] = useState('cycle')
   const [tableSearch, setTableSearch] = useState('')
   const [apiType, setApiType] = useState('table')
 
@@ -826,7 +832,7 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
         year: selectedMonth.year(),
         month: selectedMonth.month() + 1,
         eCode: selectedEmpCode,
-        useCycle: true, // pay cycle: 26th prev month -> 25th selected month
+        useCycle: cycleMode === 'cycle', // 'cycle' = 26th prev month -> 25th selected month; 'calendar' = 1st -> end of selected month
       }
       const response = await employeeAttandanceData(body)
       if (response?.status === 200) {
@@ -838,7 +844,7 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
     } finally {
       await dispatch(set({ loading: false }))
     }
-  }, [selectedEmpCode, selectedMonth, dispatch])
+  }, [selectedEmpCode, selectedMonth, cycleMode, dispatch])
 
   useEffect(() => {
     fetchAttendance()
@@ -2098,6 +2104,21 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
             placeholder="Select month"
             disabledDate={(current) => current && current.isAfter(maxSelectableMonth, 'month')}
           />
+
+          <Radio.Group
+            value={cycleMode}
+            onChange={(e) => setCycleMode(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+            size="small"
+          >
+            <Radio.Button value="cycle" style={{ fontSize: 12 }}>
+              <ScheduleOutlined style={{ fontSize: 9, marginRight: 3 }} /> Pay Cycle (26-25)
+            </Radio.Button>
+            <Radio.Button value="calendar" style={{ fontSize: 12 }}>
+              <CalendarOutlined style={{ fontSize: 9, marginRight: 3 }} /> Calendar Month (1-31)
+            </Radio.Button>
+          </Radio.Group>
         </div>
 
         {/* RIGHT SIDE: action buttons + refresh */}

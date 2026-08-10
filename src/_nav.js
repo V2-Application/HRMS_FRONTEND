@@ -690,6 +690,29 @@ const fullMenuList = [
   },
   {
     component: CNavGroup,
+    name: 'Official Visit',
+    to: '/official-visit',
+    icon: <CIcon icon={cilCalendarCheck} customClassName="nav-icon" />,
+    items: [
+      {
+        component: CNavItem,
+        name: 'Official Visit',
+        to: '/official-visit',
+      },
+      {
+        component: CNavItem,
+        name: 'Official Visit Approval',
+        to: '/official-visit-approval',
+      },
+      {
+        component: CNavItem,
+        name: 'Official Visit Admin',
+        to: '/official-visit-admin',
+      },
+    ],
+  },
+  {
+    component: CNavGroup,
     name: 'V2 Pathshala',
     to: '/v2-pathshala',
     icon: <CIcon icon={cilLibrary} customClassName="nav-icon" />,

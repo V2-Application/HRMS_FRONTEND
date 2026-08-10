@@ -22,6 +22,89 @@ import { submitCandidateRegistration } from '../services/Services'
 const { Option } = Select
 const { Title, Text } = Typography
 
+const DECLARATION_TEXT = `V2 PATHSHALA
+RETAIL FOUNDATION CERTIFICATION PROGRAM (RFCP)
+Declaration, Consent & Undertaking by Applicant
+
+I, the undersigned, hereby voluntarily apply for admission to the V2 Pathshala – Retail Foundation Certification Program (RFCP) conducted by V2 Retail Limited.
+By submitting my application, I declare, understand, and agree to the following terms and conditions:
+
+1. Accuracy of Information
+I declare that all information, documents, certificates, and details submitted by me during registration are true, complete, and correct to the best of my knowledge.
+I understand that if any information or document submitted by me is found to be false, misleading, forged, or suppressed at any stage, V2 Retail Limited reserves the right to reject my application, cancel my admission, discontinue my participation in the training program, or withdraw any employment offer without any notice or liability.
+
+2. Voluntary Participation
+I understand that my participation in the Retail Foundation Certification Program is entirely voluntary and based on my own decision.
+I confirm that I have carefully read and understood the program details before applying.
+
+3. Nature of the Training Program
+I acknowledge that V2 Pathshala is a skill development and retail training initiative intended to enhance my employability and retail knowledge.
+The program is designed for educational and training purposes only.
+
+4. No Guarantee of Employment
+I clearly understand and agree that:
+Registration in the program does not guarantee admission.
+Admission into the program does not guarantee certification.
+Certification does not guarantee employment.
+Participation in training does not create any employer-employee relationship with V2 Retail Limited.
+Completion of the program does not create any legal right, vested interest, or claim for appointment.
+I understand that any future employment opportunity with V2 Retail Limited shall be subject to: organizational manpower requirements; position availability; performance during training; assessment and interview; background verification; medical fitness (where applicable); management approval; and applicable company policies prevailing at the time of recruitment.
+The decision of V2 Retail Limited regarding selection or employment shall be final and binding.
+
+5. Equal Opportunity
+I understand that V2 Retail Limited follows an Equal Opportunity Employment Policy.
+Selection shall be based solely on merit, capability, performance, organizational requirements, and eligibility criteria without discrimination based on religion, caste, race, gender, marital status, disability, language, place of birth, or any other legally protected characteristic, subject to applicable laws.
+
+6. Code of Conduct
+During the training program, I agree to maintain discipline and professional behaviour; respect trainers, fellow participants, employees, and company property; follow all safety, security, and organizational guidelines; maintain confidentiality regarding any information shared during training; and avoid misconduct, harassment, discrimination, violence, abusive language, or any behaviour detrimental to the organization.
+Violation of the Code of Conduct may result in immediate removal from the program.
+
+7. Attendance Requirement
+I understand that attendance is mandatory. I agree to maintain the minimum attendance prescribed by V2 Retail Limited.
+Failure to meet attendance requirements may result in disqualification from assessment, non-issuance of certificate, or removal from the program.
+
+8. Assessment & Evaluation
+I understand that certification shall be based upon successful completion of attendance requirements, assignments, practical exercises, assessments, behavioural evaluation, and overall performance.
+The evaluation methodology shall be determined solely by V2 Retail Limited.
+
+9. Confidentiality
+During the course of training, I may receive access to company information, operational processes, business practices, documents, software, systems, customer information, or proprietary materials.
+I undertake not to disclose, reproduce, copy, distribute, publish, or misuse any confidential information obtained during the program. This obligation shall survive completion or discontinuation of the training.
+
+10. Intellectual Property
+All study material, presentations, manuals, videos, documents, assessments, trademarks, logos, software, and other content provided during the program shall remain the exclusive property of V2 Retail Limited.
+I shall not copy, distribute, upload, record, or commercially use any training material without prior written permission.
+
+11. Photography & Media Consent
+I authorize V2 Retail Limited to photograph, audio record, or video record me during training sessions, assessments, events, or certification ceremonies.
+I consent to the use of such photographs or recordings for training, educational, promotional, recruitment, website, social media, or corporate communication purposes without any monetary compensation.
+
+12. Data Privacy Consent
+I voluntarily provide my personal information for the purpose of registration, verification, communication, training administration, assessment, placement consideration, and compliance with legal and regulatory requirements.
+I authorize V2 Retail Limited to collect, store, process, verify, and use my personal information solely for legitimate business purposes in accordance with applicable laws.
+
+13. Background Verification
+I authorize V2 Retail Limited to verify my educational qualifications, identity documents, employment history (where applicable), and any other information submitted by me.
+
+14. Medical Fitness
+I confirm that I am medically fit to attend the training program. If I have any medical condition that may affect my participation, I shall disclose the same voluntarily.
+
+15. Limitation of Liability
+I understand that V2 Retail Limited shall not be responsible for personal belongings, personal expenses, travel expenses (unless specifically approved), or any indirect or consequential losses arising from my participation.
+The company shall not be liable for any expectation of employment, salary, stipend, or future benefits unless expressly communicated through a written employment offer.
+
+16. Right to Modify or Cancel
+I understand that V2 Retail Limited reserves the right, at its sole discretion, to modify the curriculum, change trainers, revise schedules, alter batch size, postpone or cancel the program, withdraw admission, or suspend or discontinue the program, without creating any obligation or liability.
+
+17. Compliance with Company Policies
+I agree to comply with all applicable policies, rules, procedures, safety instructions, and directions issued by V2 Retail Limited from time to time.
+
+18. Governing Law & Jurisdiction
+This declaration shall be governed by the laws of India. Any dispute arising out of or relating to this declaration or the training program shall be subject to the exclusive jurisdiction of the competent courts located in Gurugram, Haryana, unless otherwise required by applicable law.
+
+Applicant Declaration
+I confirm that: I have carefully read and understood all the terms and conditions; I voluntarily accept and agree to abide by them; I understand that completion of this registration does not create any contractual employment relationship with V2 Retail Limited; I understand that any employment opportunity shall be entirely at the discretion of the Company and subject to its recruitment process and business requirements; and I shall not raise any claim for employment, compensation, damages, or other benefits solely on the basis of my participation in this training program.`
+
 const PROGRAMS = [
   'Retail Foundation Program',
   'Store Management Program',
@@ -110,9 +193,7 @@ const CandidateRegistrationForm = () => {
       }
     } catch (error) {
       console.error('Candidate registration failed:', error)
-      message.error(
-        error?.response?.data?.message || 'Submission failed. Please try again.',
-      )
+      message.error(error?.response?.data?.message || 'Submission failed. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -349,6 +430,23 @@ const CandidateRegistrationForm = () => {
 
           {/* Declaration */}
           <Divider />
+          <Title level={5}>Declaration, Consent & Undertaking</Title>
+          <div
+            style={{
+              maxHeight: 260,
+              overflowY: 'auto',
+              padding: 12,
+              border: '1px solid #d9d9d9',
+              borderRadius: 6,
+              marginBottom: 16,
+              whiteSpace: 'pre-line',
+              fontSize: 13,
+              lineHeight: 1.6,
+              background: '#fafafa',
+            }}
+          >
+            {DECLARATION_TEXT}
+          </div>
           <Form.Item
             name="AgreedToTerms"
             valuePropName="checked"
@@ -357,15 +455,16 @@ const CandidateRegistrationForm = () => {
                 validator: (_, value) =>
                   value
                     ? Promise.resolve()
-                    : Promise.reject(new Error('You must agree to the Terms & Conditions.')),
+                    : Promise.reject(new Error('You must agree to the Declaration to proceed.')),
               },
             ]}
           >
             <Checkbox>
-              I certify that the information provided by me is true and correct. I agree to abide by
-              the rules and regulations of <strong>V2 Pathshala</strong>. I understand that
-              admission, certification, and employment opportunities are subject to eligibility,
-              successful completion of the program, assessment results, and business requirements.
+              I have read, understood, and agree to the Declaration, Privacy Consent, Terms &
+              Conditions, and understand that participation in the V2 Pathshala Retail Foundation
+              Certification Program does not guarantee admission, certification, or employment with
+              V2 Retail Limited. I voluntarily consent to the processing of my personal information
+              for training and recruitment-related purposes in accordance with applicable laws.
             </Checkbox>
           </Form.Item>
 

@@ -151,12 +151,25 @@ const Attendance = () => {
     setSelectedEmp(record ? record.employeeName || record.eCode || '' : '')
   }
 
+  // Kept in sync with AttendanceTableView's statusColors -- that map is the
+  // proven-correct one covering every status the backend actually returns
+  // (Half Day Absent, MIS, Manual Present, etc). `default` covers anything new.
   const statusColors = {
     Present: 'green',
-    ManualPresent: 'green',
+    'Manual Present': 'green',
     Absent: 'red',
     Leave: 'orange',
     'Weekly Off': 'red',
+    'Half Day': 'blue',
+    'Half Day Absent': 'blue',
+    'Half Day Present': 'blue',
+    'Work From Home': 'purple',
+    Holiday: 'cyan',
+    'On Duty': 'magenta',
+    'Quarter Day Absent': 'blue',
+    MIS: '#fa541c',
+    Mispunch: '#fa541c',
+    default: 'gray',
   }
 
   const getEvents = () => {
@@ -217,7 +230,7 @@ const Attendance = () => {
 
   const eventStyleGetter = (event) => ({
     style: {
-      backgroundColor: statusColors[event.status],
+      backgroundColor: statusColors[event.status] || statusColors.default,
       color: 'white',
       borderRadius: 5,
       padding: 4,
@@ -541,9 +554,9 @@ const Attendance = () => {
                               const isSel =
                                 selectedDate && moment(selectedDate).format('YYYY-MM-DD') === key
                               const clickable = inCycle && !isFuture
-                              const barColor =
-                                statusColors[status] ||
-                                (status ? '#3174ad' : 'transparent')
+                              const barColor = status
+                                ? statusColors[status] || statusColors.default
+                                : 'transparent'
                               return (
                                 <div
                                   key={key}
@@ -631,7 +644,10 @@ const Attendance = () => {
               >
                 <Descriptions column={1} bordered size={isMobile ? 'small' : 'middle'}>
                   <Descriptions.Item label="Status">
-                    <Badge color={statusColors[details?.status]} text={details?.status} />
+                    <Badge
+                      color={statusColors[details?.status] || statusColors.default}
+                      text={details?.status}
+                    />
                   </Descriptions.Item>
                   <Descriptions.Item label="Check-In Time">{details?.checkIn}</Descriptions.Item>
                   <Descriptions.Item label="Check-Out Time">{details?.checkOut}</Descriptions.Item>

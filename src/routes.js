@@ -56,8 +56,15 @@ const BiomaxAttendanceLocationMap = React.lazy(
   () => import('./views/masters/BiomaxAttendanceLocationMap'),
 )
 const LeaveClosingBalance = React.lazy(() => import('./views/masters/LeaveClosingBalance'))
+const OfficialVisit = React.lazy(() => import('./views/officialvisit/OfficialVisit'))
+const OfficialVisitApproval = React.lazy(
+  () => import('./views/officialvisit/OfficialVisitApproval'),
+)
+const OfficialVisitAdmin = React.lazy(() => import('./views/masters/OfficialVisitAdmin'))
 const LocationStateMap = React.lazy(() => import('./views/masters/LocationStateMap'))
-const PathshalaRegistrations = React.lazy(() => import('./views/v2pathshala/PathshalaRegistrations'))
+const PathshalaRegistrations = React.lazy(
+  () => import('./views/v2pathshala/PathshalaRegistrations'),
+)
 const UserAccessControl = React.lazy(() => import('./views/useraccess/UserAccessControl'))
 const RegularizeAccess = React.lazy(() => import('./views/accesswindow/RegularizeAccess'))
 const GeofenceAccess = React.lazy(() => import('./views/accesswindow/GeofenceAccess'))
@@ -850,6 +857,27 @@ const routes = [
     path: '/uploaders/leave-closing-balance',
     name: 'Leave Closing Balance',
     element: LeaveClosingBalance,
+    roles: ['IT Superadmin'],
+  },
+  {
+    // Open to every authenticated user (self-service apply + history) -- no RBAC row exists for
+    // this route, so RoutePermissionGuard's fail-open behavior lets it through for anyone.
+    path: '/official-visit',
+    name: 'Official Visit',
+    element: OfficialVisit,
+  },
+  {
+    // Separate manager-approval page (mirrors Geofence's split). Also open to all -- the query
+    // itself scopes to "requests where I am the reporting manager", so a non-manager just sees
+    // an empty queue.
+    path: '/official-visit-approval',
+    name: 'Official Visit Approval',
+    element: OfficialVisitApproval,
+  },
+  {
+    path: '/official-visit-admin',
+    name: 'Official Visit Admin',
+    element: OfficialVisitAdmin,
     roles: ['IT Superadmin'],
   },
   {
