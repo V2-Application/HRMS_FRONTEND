@@ -158,6 +158,19 @@ const ViewDetails = () => {
               </Col>
 
               <Col span={8}>
+                <DetailItem
+                  label="Sub-Department"
+                  value={[
+                    resource?.subDepartmentName1,
+                    resource?.subDepartmentName2,
+                    resource?.subDepartmentName3,
+                  ]
+                    .filter(Boolean)
+                    .join(' ▸ ')}
+                />
+              </Col>
+
+              <Col span={8}>
                 <DetailItem label="Designation" value={resource?.designationName} />
               </Col>
 

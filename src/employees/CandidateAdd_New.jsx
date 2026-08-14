@@ -20,6 +20,7 @@ import {
   Divider,
   Radio,
   Typography,
+  Alert,
 } from 'antd'
 import {
   PlusOutlined,
@@ -45,6 +46,7 @@ import {
   searchEmployeeDropdown,
   getDesignationByDepartment,
   getMappedDesignations,
+  checkCandidateSeatAvailability,
   validateMinwage,
   getOcrKey,
 } from '../services/Services'
@@ -166,6 +168,8 @@ const EmployeeAddNew = () => {
   const watch_subDept1 = Form.useWatch(['user', 'subDepartmentId1'], form)
   const watch_subDept2 = Form.useWatch(['user', 'subDepartmentId2'], form)
   const watch_subDept3 = Form.useWatch(['user', 'subDepartmentId3'], form)
+
+  const watch_grossSalary = Form.useWatch(['user', 'grossSalary'], form)
 
   // Designation → Apprentice logic
   const watch_designation = Form.useWatch(['user', 'designation'], form)
@@ -2046,7 +2050,7 @@ const EmployeeAddNew = () => {
     Resume: 'isResumeAttachmentUploaded',
     OfferLetter: 'isOfferLetterAttachmentUploaded',
     // OtherAttachment: 'isOtherAttachmenttUploaded',
-     Form11: 'Form11Attachment',
+    Form11: 'Form11Attachment',
     Form2: 'Form2Attachment',
     GratuityForm: 'GratuityFormAttachment',
   }
@@ -2217,6 +2221,54 @@ const EmployeeAddNew = () => {
       fetchDesignationByDepartment(watch_department, watch_subDept1, watch_subDept2, watch_subDept3)
     }
   }, [isStore, watch_department, watch_subDept1, watch_subDept2, watch_subDept3])
+
+  // Budget freeze: warn as soon as Location + Department + Designation are picked if there's
+  // no unfilled BGT seat for this combination. The backend re-checks (and hard-blocks) on submit
+  // regardless, so this is purely an early warning to save the user a wasted submit.
+  const [seatAvailability, setSeatAvailability] = useState(null)
+  const [isCheckingSeat, setIsCheckingSeat] = useState(false)
+
+  useEffect(() => {
+    if (!watch_location || !watch_department || !watch_designation) {
+      setSeatAvailability(null)
+      return
+    }
+
+    let cancelled = false
+    setIsCheckingSeat(true)
+
+    checkCandidateSeatAvailability({
+      locationId: watch_location,
+      departmentId: watch_department,
+      subDepartmentId1: watch_subDept1,
+      subDepartmentId2: watch_subDept2,
+      subDepartmentId3: watch_subDept3,
+      designationId: watch_designation,
+      salary: watch_grossSalary,
+      excludeCandidateId: params.id || undefined,
+    })
+      .then((res) => {
+        if (!cancelled) setSeatAvailability(res?.data || null)
+      })
+      .catch(() => {
+        if (!cancelled) setSeatAvailability(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsCheckingSeat(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    watch_location,
+    watch_department,
+    watch_subDept1,
+    watch_subDept2,
+    watch_subDept3,
+    watch_designation,
+    watch_grossSalary,
+  ])
 
   const dropdowns = ['department', 'designation', 'location']
   const districts = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai']
@@ -2761,7 +2813,7 @@ const EmployeeAddNew = () => {
     Resume: 'ResumeAttachment',
     OfferLetter: 'OfferLetterAttachment',
     AadharBack: 'AadharBackAttachment',
-     Form11: 'Form11Attachment',
+    Form11: 'Form11Attachment',
     Form2: 'Form2Attachment',
     GratuityForm: 'GratuityFormAttachment',
   }
@@ -4660,6 +4712,23 @@ const EmployeeAddNew = () => {
                     </Form.Item>
                   )}
                 </Col>
+
+                {!pathname.includes('/candidate-form') &&
+                  seatAvailability &&
+                  !seatAvailability.isAvailable && (
+                    <Col xs={24}>
+                      <Alert
+                        type="error"
+                        showIcon
+                        message="No budget seat available"
+                        description={
+                          seatAvailability.message ||
+                          'No budgeted seat available for the selected Location, Department, Sub-Department and Designation. Please increase the budget (BGT Seat Master) before hiring.'
+                        }
+                        style={{ marginBottom: 16 }}
+                      />
+                    </Col>
+                  )}
               </Row>
 
               <Row gutter={24} style={{ flexWrap: 'wrap' }}>

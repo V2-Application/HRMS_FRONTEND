@@ -30,6 +30,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import './employee.css'
 import dayjs from 'dayjs'
+import { fmtDate } from '../utils/dateFormat'
 import TextArea from 'antd/es/input/TextArea'
 import AcceptOfferModal from '../components/modals/AcceptOfferModal '
 import { useDispatch, useSelector } from 'react-redux'
@@ -344,12 +345,12 @@ const EmployeeProfile = () => {
     {
       title: 'From',
       dataIndex: ['assignedOnDate', 0],
-      render: (date) => dayjs(date).format('YYYY-MM-DD'),
+      render: (date) => fmtDate(date),
     },
     {
       title: 'To',
       dataIndex: ['releasedOnDate', 1],
-      render: (date) => dayjs(date).format('YYYY-MM-DD'),
+      render: (date) => fmtDate(date),
     },
     {
       title: 'Status',
@@ -2496,6 +2497,7 @@ const EmployeeProfile = () => {
                       labelCol={{ span: 24 }}
                       name={['user', 'lastWorkingDay']}
                       label="Last Working Day"
+                      getValueProps={(value) => ({ value: fmtDate(value) })}
                     >
                       <Input disabled />
                     </Form.Item>

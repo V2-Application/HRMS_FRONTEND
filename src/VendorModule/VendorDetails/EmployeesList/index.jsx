@@ -45,6 +45,14 @@ const Index = () => {
       render: (date) => (date ? String(date).split('T')[0] : '-'),
     },
     { title: 'Department', dataIndex: 'departmentName' },
+    {
+      title: 'Sub-Department',
+      key: 'subDepartment',
+      render: (_, row) =>
+        [row.subDepartmentName1, row.subDepartmentName2, row.subDepartmentName3]
+          .filter(Boolean)
+          .join(' ▸ ') || '-',
+    },
     { title: 'Designation', dataIndex: 'designationName' },
     { title: 'Shift', dataIndex: 'shiftName' },
     {

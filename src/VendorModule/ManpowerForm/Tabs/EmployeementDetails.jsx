@@ -4,6 +4,9 @@ import {
   // CONTRACTOR_NAME,
   DATE_OF_JOINING,
   DEPARTMENT,
+  SUB_DEPARTMENT_1,
+  SUB_DEPARTMENT_2,
+  SUB_DEPARTMENT_3,
   DESIGNATION,
   ECODE,
   employeementDetailsRequiredFields,
@@ -20,6 +23,7 @@ import {
   getDesignationByDepartment,
   getDropdownLocDesDep,
   getNatureOfWorkList,
+  getSubDepartmentsForDropdown,
 } from '../../../services/Services'
 import { getApiError } from '../../helpers'
 
@@ -37,6 +41,8 @@ const EmployeementDetails = ({
   watch_ecode,
 }) => {
   const deptId = Form.useWatch(DEPARTMENT, form)
+  const subDept1Id = Form.useWatch(SUB_DEPARTMENT_1, form)
+  const subDept2Id = Form.useWatch(SUB_DEPARTMENT_2, form)
   const skipClearOnceRef = useRef(true)
 
   const firstRef = useRef(null)
@@ -46,6 +52,15 @@ const EmployeementDetails = ({
 
   const [designations, setDesignations] = useState([])
   const [isDesgLoading, setIsDesgLoading] = useState(false)
+
+  const [subDepts1, setSubDepts1] = useState([])
+  const [isSubDept1Loading, setIsSubDept1Loading] = useState(false)
+
+  const [subDepts2, setSubDepts2] = useState([])
+  const [isSubDept2Loading, setIsSubDept2Loading] = useState(false)
+
+  const [subDepts3, setSubDepts3] = useState([])
+  const [isSubDept3Loading, setIsSubDept3Loading] = useState(false)
 
   const [locations, setLocations] = useState([])
   const [isLocLoading, setIsLocLoading] = useState(false)
@@ -112,6 +127,65 @@ const EmployeementDetails = ({
       message.error(errMsg)
     } finally {
       setIsDesgLoading(false)
+    }
+  }
+
+  const fetchSubDepts1 = async (departmentId) => {
+    try {
+      setIsSubDept1Loading(true)
+
+      const response = await getSubDepartmentsForDropdown({ departmentId, depthLevel: 1 })
+
+      if (response.status === 200) {
+        setSubDepts1(response.data?.data || [])
+      }
+    } catch (error) {
+      const errMsg = getApiError(error, 'Error fetching sub-departments')
+      message.error(errMsg)
+    } finally {
+      setIsSubDept1Loading(false)
+    }
+  }
+
+  const fetchSubDepts2 = async (departmentId, parentSubDepartmentId) => {
+    try {
+      setIsSubDept2Loading(true)
+
+      const response = await getSubDepartmentsForDropdown({
+        departmentId,
+        parentSubDepartmentId,
+        depthLevel: 2,
+      })
+
+      if (response.status === 200) {
+        setSubDepts2(response.data?.data || [])
+      }
+    } catch (error) {
+      const errMsg = getApiError(error, 'Error fetching sub-departments')
+      message.error(errMsg)
+    } finally {
+      setIsSubDept2Loading(false)
+    }
+  }
+
+  const fetchSubDepts3 = async (departmentId, parentSubDepartmentId) => {
+    try {
+      setIsSubDept3Loading(true)
+
+      const response = await getSubDepartmentsForDropdown({
+        departmentId,
+        parentSubDepartmentId,
+        depthLevel: 3,
+      })
+
+      if (response.status === 200) {
+        setSubDepts3(response.data?.data || [])
+      }
+    } catch (error) {
+      const errMsg = getApiError(error, 'Error fetching sub-departments')
+      message.error(errMsg)
+    } finally {
+      setIsSubDept3Loading(false)
     }
   }
 
@@ -206,6 +280,21 @@ const EmployeementDetails = ({
     if (deptId) fetchDesignations(deptId)
   }, [deptId, ecode, vcode])
 
+  useEffect(() => {
+    if (deptId) fetchSubDepts1(deptId)
+    else setSubDepts1([])
+  }, [deptId])
+
+  useEffect(() => {
+    if (deptId && subDept1Id) fetchSubDepts2(deptId, subDept1Id)
+    else setSubDepts2([])
+  }, [deptId, subDept1Id])
+
+  useEffect(() => {
+    if (deptId && subDept2Id) fetchSubDepts3(deptId, subDept2Id)
+    else setSubDepts3([])
+  }, [deptId, subDept2Id])
+
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} md={8}>
@@ -270,6 +359,63 @@ const EmployeementDetails = ({
             <Select.Option>Select department</Select.Option>
             {departments.map((dept) => (
               <Select.Option value={dept.departmentId}>{dept.departmentName}</Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+
+      <Col xs={24} sm={12} md={8}>
+        <Form.Item label="Sub-Department 1" name={SUB_DEPARTMENT_1}>
+          <Select
+            showSearch
+            allowClear
+            optionFilterProp="children"
+            placeholder="Select sub-department"
+            disabled={!deptId}
+            loading={isSubDept1Loading}
+          >
+            {subDepts1.map((sd) => (
+              <Select.Option value={sd.subDepartmentId} key={sd.subDepartmentId}>
+                {sd.subDepartmentName}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+
+      <Col xs={24} sm={12} md={8}>
+        <Form.Item label="Sub-Department 2" name={SUB_DEPARTMENT_2}>
+          <Select
+            showSearch
+            allowClear
+            optionFilterProp="children"
+            placeholder="Select sub-department"
+            disabled={!subDept1Id}
+            loading={isSubDept2Loading}
+          >
+            {subDepts2.map((sd) => (
+              <Select.Option value={sd.subDepartmentId} key={sd.subDepartmentId}>
+                {sd.subDepartmentName}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
+
+      <Col xs={24} sm={12} md={8}>
+        <Form.Item label="Sub-Department 3" name={SUB_DEPARTMENT_3}>
+          <Select
+            showSearch
+            allowClear
+            optionFilterProp="children"
+            placeholder="Select sub-department"
+            disabled={!subDept2Id}
+            loading={isSubDept3Loading}
+          >
+            {subDepts3.map((sd) => (
+              <Select.Option value={sd.subDepartmentId} key={sd.subDepartmentId}>
+                {sd.subDepartmentName}
+              </Select.Option>
             ))}
           </Select>
         </Form.Item>

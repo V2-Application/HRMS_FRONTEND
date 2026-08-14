@@ -32,6 +32,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import './employee_view_mode.css'
 import dayjs from 'dayjs'
+import { fmtDate } from '../utils/dateFormat'
 import TextArea from 'antd/es/input/TextArea'
 import AcceptOfferModal from '../components/modals/AcceptOfferModal '
 import { useDispatch, useSelector } from 'react-redux'
@@ -408,16 +409,12 @@ const EmployeeProfile = () => {
     {
       title: 'From',
       dataIndex: ['assignedOnDate', 0],
-      render: (date, record) => {
-        return record?.assignedOnDate ? dayjs(record?.assignedOnDate).format('YYYY-MM-DD') : null
-      },
+      render: (date, record) => (record?.assignedOnDate ? fmtDate(record.assignedOnDate) : null),
     },
     {
       title: 'To',
       dataIndex: ['releasedOnDate', 1],
-      render: (date, record) => {
-        return record?.releasedOnDate ? dayjs(record?.releasedOnDate).format('YYYY-MM-DD') : null
-      },
+      render: (date, record) => (record?.releasedOnDate ? fmtDate(record.releasedOnDate) : null),
     },
     {
       title: 'Reason',
@@ -792,9 +789,7 @@ const EmployeeProfile = () => {
         CompanyId: apiData?.companyId || '',
         reportingHeadId: apiData?.reportingHeadId,
         isActive: apiData?.isActive,
-        lastWorkingDay: apiData?.lastWorkingDay
-          ? dayjs(apiData?.lastWorkingDay).format('DD/MM/YYYY')
-          : '',
+        lastWorkingDay: apiData?.lastWorkingDay ? fmtDate(apiData?.lastWorkingDay) : '',
         shiftID: apiData?.shiftID,
         isUANRegistered: apiData?.isUANRegistered || false,
         preferredLocation: apiData?.preferredLocation || '',
@@ -934,18 +929,14 @@ const EmployeeProfile = () => {
       dataIndex: 'from',
       key: 'from',
       onCell: () => ({ 'data-label': 'From' }),
-      render: (val) => (
-        <Typography.Text>{val ? dayjs(val).format('DD-MM-YYYY') : 'Not Specified'}</Typography.Text>
-      ),
+      render: (val) => <Typography.Text>{val ? fmtDate(val) : 'Not Specified'}</Typography.Text>,
     },
     {
       title: 'To',
       dataIndex: 'to',
       key: 'to',
       onCell: () => ({ 'data-label': 'To' }),
-      render: (val) => (
-        <Typography.Text>{val ? dayjs(val).format('DD-MM-YYYY') : 'Not Specified'}</Typography.Text>
-      ),
+      render: (val) => <Typography.Text>{val ? fmtDate(val) : 'Not Specified'}</Typography.Text>,
     },
     {
       title: 'Last CTC',
@@ -1614,7 +1605,7 @@ const EmployeeProfile = () => {
                   <Form.Item labelCol={{ span: 24 }} label="Date of Birth">
                     <Typography.Text>
                       &nbsp;&nbsp;
-                      {dayjs(form.getFieldValue(['user', 'dob'])).format('DD-MM-YYYY')}
+                      {fmtDate(form.getFieldValue(['user', 'dob']))}
                     </Typography.Text>
                   </Form.Item>
                 </Col>
@@ -1622,7 +1613,7 @@ const EmployeeProfile = () => {
                   <Form.Item labelCol={{ span: 24 }} label="Joining Date">
                     <Typography.Text>
                       &nbsp;&nbsp;
-                      {dayjs(form.getFieldValue(['user', 'joiningDate'])).format('DD-MM-YYYY')}
+                      {fmtDate(form.getFieldValue(['user', 'joiningDate']))}
                     </Typography.Text>
                   </Form.Item>
                 </Col>
@@ -2077,7 +2068,7 @@ const EmployeeProfile = () => {
                       render: (text) => (
                         <Typography.Text>
                           &nbsp;&nbsp;
-                          {text ? dayjs(text).format('DD-MM-YYYY') : 'Not Specified'}
+                          {text ? fmtDate(text) : 'Not Specified'}
                         </Typography.Text>
                       ),
                     },

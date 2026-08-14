@@ -222,6 +222,34 @@ export const getMappedDesignations = async (departmentId, s1, s2, s3) => {
   return res.data
 }
 
+// "Freeze the budget" — is there an unfilled BGT seat for this Store + Department +
+// Sub-Department(1/2/3) + Designation? Used on the Candidate form both while the user is
+// selecting these fields and (again, server-side) on submit.
+export const checkCandidateSeatAvailability = async ({
+  locationId,
+  departmentId,
+  subDepartmentId1,
+  subDepartmentId2,
+  subDepartmentId3,
+  designationId,
+  salary,
+  excludeCandidateId,
+} = {}) => {
+  const res = await axiosInstance.get('/api/Candidate/CheckSeatAvailability', {
+    params: {
+      locationId,
+      departmentId,
+      subDepartmentId1: subDepartmentId1 || undefined,
+      subDepartmentId2: subDepartmentId2 || undefined,
+      subDepartmentId3: subDepartmentId3 || undefined,
+      designationId,
+      salary: salary || undefined,
+      excludeCandidateId: excludeCandidateId || undefined,
+    },
+  })
+  return res.data
+}
+
 // ---- Punch location (device/store each punch was recorded at) — dev-only, reads prod ATTLOG ----
 export const getPunchLocations = async (ecode, date) => {
   const res = await axiosInstance.get('/api/PunchLocation/ByEcodeDate', {
@@ -3574,6 +3602,28 @@ export const getSubDepartments = async ({
         depthLevel,
         onlyInactive,
         searchTerm: searchTerm || undefined,
+      },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+// Unrestricted (any authenticated user) variant for cascading dropdowns in other modules'
+// forms (e.g. Vendor Manpower onboarding) — callers there don't have Sub-Department master
+// page access, which /api/SubDepartment/All is gated behind.
+export const getSubDepartmentsForDropdown = async ({
+  departmentId,
+  parentSubDepartmentId = null,
+  depthLevel = 1,
+} = {}) => {
+  try {
+    const response = await axiosInstance.get('/api/SubDepartment/Dropdown', {
+      params: {
+        departmentId,
+        parentSubDepartmentId: parentSubDepartmentId ?? undefined,
+        depthLevel,
       },
     })
     return response

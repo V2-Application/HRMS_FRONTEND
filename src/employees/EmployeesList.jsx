@@ -2635,8 +2635,6 @@
 
 // export default EmployeesList
 
-
-
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import useMediaQuery from '../hooks/useMediaQuery'
 import EmployeesUploadModal from './EmployeesUploadModal'
@@ -2700,6 +2698,7 @@ import BulkInactivateModal from '../components/modals/BulkInactivateModal'
 import CardInRow from '../components/shared/CardInRow/CardInRow'
 import useColumnSearch from '../components/shared/columnSearch'
 import styles from './EmployeesList.module.css'
+import { fmtDate, fmtDateTime } from '../utils/dateFormat'
 
 const { Search } = Input
 const { RangePicker } = DatePicker
@@ -2718,8 +2717,7 @@ const STORE_SCOPED_ROLES = new Set([
   'retailzm',
   'retailhierarchy',
 ])
-const isStoreScopedRole = (r) =>
-  STORE_SCOPED_ROLES.has((r || '').replace(/\s+/g, '').toLowerCase())
+const isStoreScopedRole = (r) => STORE_SCOPED_ROLES.has((r || '').replace(/\s+/g, '').toLowerCase())
 
 const FilterDropdown = ({ dataIndex, dataList, filterValues, setFilterValues, confirm, title }) => {
   const [searchText, setSearchText] = useState('')
@@ -2805,10 +2803,7 @@ const InactiveChecklistModal = ({ open, onClose, onSubmit, loading, ecode, emplo
       const disabled = x?.isDisabled ?? false
 
       const isAttachmentRequired =
-        x?.isAttachmentRequired ??
-        x?.attachmentRequired ??
-        x?.isAttachementRequired ??
-        false
+        x?.isAttachmentRequired ?? x?.attachmentRequired ?? x?.isAttachementRequired ?? false
 
       const attachment =
         x?.attachment ?? x?.attachmentName ?? x?.attachmentPath ?? x?.fileName ?? x?.file ?? ''
@@ -3560,7 +3555,9 @@ const EmployeesList = () => {
         allowedList.length === 0 && deptExceptions.length === 0 && desigExceptions.length === 0
       if (!isEmpty) {
         const allowedCodes = new Set(allowedList.map((a) => norm(a.stCode)))
-        const blockedDeptSet = new Set(deptExceptions.map((b) => `${norm(b.stCode)}-${norm(b.deptId)}`))
+        const blockedDeptSet = new Set(
+          deptExceptions.map((b) => `${norm(b.stCode)}-${norm(b.deptId)}`),
+        )
         const blockedDesigSet = new Set(
           desigExceptions.map((b) => `${norm(b.stCode)}-${norm(b.deptId)}-${norm(b.desigId)}`),
         )
@@ -3675,7 +3672,6 @@ const EmployeesList = () => {
           }
         }
       }
-
     } catch (error) {
       console.error('Error fetching data:', error.response?.data || error.message)
       if (!silent) message.error(error?.response?.data?.message || 'Error fetching data')
@@ -3694,7 +3690,12 @@ const EmployeesList = () => {
     setLoadingMore(true)
     const nextPage = serverPageRef.current + 1
     try {
-      const response = await getEmployeeList({ currentPage: nextPage, pageSize, search, mode: 'mainview' })
+      const response = await getEmployeeList({
+        currentPage: nextPage,
+        pageSize,
+        search,
+        mode: 'mainview',
+      })
       const records = response?.employees ?? []
       const filtered = applyVisibility(records, visibilityRef.current)
       serverPageRef.current = nextPage
@@ -3773,7 +3774,10 @@ const EmployeesList = () => {
     if (activeTab === 'inactive') {
       const inactiveKey = `${ecode}|${search}|${currentPage}|${pageSize}`
       // Already showing this exact inactive page -> nothing to do.
-      if (displayedDatasetRef.current === 'inactive' && inactiveLoadedKeyRef.current === inactiveKey)
+      if (
+        displayedDatasetRef.current === 'inactive' &&
+        inactiveLoadedKeyRef.current === inactiveKey
+      )
         return
       // Cached inactive page -> restore instantly, no spinner, no refetch.
       if (inactiveListCache.key === inactiveKey && Array.isArray(inactiveListCache.rows)) {
@@ -4162,7 +4166,7 @@ const EmployeesList = () => {
         key: 'dob',
         width: 110,
         ellipsis: true,
-        render: (date) => (date === null ? null : String(date).trim().split('T')[0]),
+        render: (date) => (date === null ? null : fmtDate(date)),
       },
       {
         title: 'Age',
@@ -4237,7 +4241,7 @@ const EmployeesList = () => {
         key: 'dateOfJoining',
         width: 110,
         ellipsis: true,
-        render: (date) => (date === null ? null : String(date).trim().split('T')[0]),
+        render: (date) => (date === null ? null : fmtDate(date)),
         ...getColumnSearchProps('dateOfJoining', 'D.O.J.'),
       },
       {
@@ -4259,7 +4263,7 @@ const EmployeesList = () => {
         key: 'dateOfLeft',
         width: 110,
         ellipsis: true,
-        render: (date) => (date === null ? null : String(date).trim().split('T')[0]),
+        render: (date) => (date === null ? null : fmtDate(date)),
         ...getColumnSearchProps('dateOfLeft', 'D.O.L.'),
       },
       {
@@ -4285,11 +4289,7 @@ const EmployeesList = () => {
         dataIndex: 'createdOn',
         width: 150,
         ellipsis: true,
-        render: (datetime) => {
-          const date = String(datetime).split('T')[0]
-          const time = String(datetime).split('T')[1]
-          return `${date} - ${time}`
-        },
+        render: (datetime) => fmtDateTime(datetime),
       },
       {
         title: 'Updated By',
@@ -4304,11 +4304,7 @@ const EmployeesList = () => {
         dataIndex: 'updatedOn',
         width: 150,
         ellipsis: true,
-        render: (datetime) => {
-          const date = String(datetime).split('T')[0]
-          const time = String(datetime).split('T')[1]
-          return `${date} - ${time}`
-        },
+        render: (datetime) => fmtDateTime(datetime),
       },
       {
         title: 'Action',
@@ -4508,14 +4504,11 @@ const EmployeesList = () => {
   const getCellValue = (row, colKey) => {
     const v = row?.[colKey]
     if (v == null) return ''
-    if (
-      colKey === 'createdOn' ||
-      colKey === 'updatedOn' ||
-      colKey === 'dob' ||
-      colKey === 'dateOfJoining' ||
-      colKey === 'dateOfLeft'
-    ) {
-      return String(v).includes('T') ? String(v).split('T')[0] : String(v)
+    if (colKey === 'createdOn' || colKey === 'updatedOn') {
+      return fmtDateTime(v)
+    }
+    if (colKey === 'dob' || colKey === 'dateOfJoining' || colKey === 'dateOfLeft') {
+      return fmtDate(v)
     }
     if (colKey === 'isActive') {
       return v === true ? 'Active' : 'Left'
@@ -4843,7 +4836,7 @@ const EmployeesList = () => {
                               DOB
                             </div>
                             <div style={{ fontWeight: 500, fontSize: 9 }}>
-                              {record.dob ? String(record.dob).split('T')[0] : '-'}
+                              {record.dob ? fmtDate(record.dob) : '-'}
                             </div>
                           </Col>
                           <Col span={8}>
@@ -4851,9 +4844,7 @@ const EmployeesList = () => {
                               DOJ
                             </div>
                             <div style={{ fontWeight: 500, fontSize: 9 }}>
-                              {record.dateOfJoining
-                                ? String(record.dateOfJoining).split('T')[0]
-                                : '-'}
+                              {record.dateOfJoining ? fmtDate(record.dateOfJoining) : '-'}
                             </div>
                           </Col>
                           <Col span={8}>
@@ -5233,59 +5224,58 @@ const TableBulkActionIcons = ({
   //     setlodingLocal(false)
   //   }
   // }
-const downloadAbscondReportAsExcel = async () => {
-  try {
-    setlodingLocal(true)
+  const downloadAbscondReportAsExcel = async () => {
+    try {
+      setlodingLocal(true)
 
-    const hasDateRange = Array.isArray(abscondDateRange) && abscondDateRange.length === 2
+      const hasDateRange = Array.isArray(abscondDateRange) && abscondDateRange.length === 2
 
-    const params = {
-      pageNumber: 1,
-      pageSize: 10,
-      asExcel: true,
+      const params = {
+        pageNumber: 1,
+        pageSize: 10,
+        asExcel: true,
+      }
+
+      if (hasDateRange) {
+        const [fromDateObj, toDateObj] = abscondDateRange
+        params.fromDate = fromDateObj.format('YYYY-MM-DD')
+        params.toDate = toDateObj.format('YYYY-MM-DD')
+      }
+
+      const response = await axiosInstance.get('/api/EmployeeNew/GetAbscondReport', {
+        params,
+        responseType: 'blob',
+      })
+
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+
+      const url = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+
+      if (hasDateRange) {
+        anchor.download = `Abscond_Report_${params.fromDate}_to_${params.toDate}.xlsx`
+      } else {
+        anchor.download = `Abscond_Report_${new Date().toISOString().split('T')[0]}.xlsx`
+      }
+
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(url)
+
+      message.success('Abscond report downloaded successfully')
+      setIsAbscondReportModalOpen(false)
+      setAbscondDateRange([])
+    } catch (error) {
+      console.error('Abscond report download failed:', error)
+      message.error(error?.response?.data?.message || 'Failed to download abscond report')
+    } finally {
+      setlodingLocal(false)
     }
-
-    if (hasDateRange) {
-      const [fromDateObj, toDateObj] = abscondDateRange
-      params.fromDate = fromDateObj.format('YYYY-MM-DD')
-      params.toDate = toDateObj.format('YYYY-MM-DD')
-    }
-
-    const response = await axiosInstance.get('/api/EmployeeNew/GetAbscondReport', {
-      params,
-      responseType: 'blob',
-    })
-
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-
-    const url = window.URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-
-    if (hasDateRange) {
-      anchor.download = `Abscond_Report_${params.fromDate}_to_${params.toDate}.xlsx`
-    } else {
-      anchor.download = `Abscond_Report_${new Date().toISOString().split('T')[0]}.xlsx`
-    }
-
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    window.URL.revokeObjectURL(url)
-
-    message.success('Abscond report downloaded successfully')
-    setIsAbscondReportModalOpen(false)
-    setAbscondDateRange([])
-  } catch (error) {
-    console.error('Abscond report download failed:', error)
-    message.error(error?.response?.data?.message || 'Failed to download abscond report')
-  } finally {
-    setlodingLocal(false)
   }
-}
-
 
   const items = [
     {
@@ -5483,7 +5473,6 @@ const downloadAbscondReportAsExcel = async () => {
         </div>
       </Modal>
 
-
       <div
         style={{
           padding: 5,
@@ -5542,7 +5531,11 @@ const downloadAbscondReportAsExcel = async () => {
 
             {(role || '').replace(/\s+/g, '').toLowerCase() === 'itsuperadmin' && (
               <Tooltip placement="top" title={'Bulk Inactivate Employees'}>
-                <Button style={{ marginLeft: 5 }} danger onClick={() => setIsBulkInactiveOpen(true)}>
+                <Button
+                  style={{ marginLeft: 5 }}
+                  danger
+                  onClick={() => setIsBulkInactiveOpen(true)}
+                >
                   Bulk Inactive
                 </Button>
               </Tooltip>

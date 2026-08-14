@@ -327,6 +327,10 @@ export default function VendorEmployeesBulkUploadModal({ contractorCode, refresh
               <Col span={12}>7. D.O.B.</Col>
               <Col span={12}>8. Gender</Col>
             </Row>
+            <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 6, marginBottom: 0 }}>
+              * Optional: SubDepartment1, SubDepartment2, SubDepartment3 columns (must match the
+              sub-department set up under the row's Department).
+            </Paragraph>
           </Col>
         </Row>
       </Modal>
