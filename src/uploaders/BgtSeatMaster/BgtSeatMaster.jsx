@@ -950,11 +950,15 @@ const BgtSeatMaster = () => {
   }
 
   // Build the precise delete identifier for a seat row.
+  // seatOrStatus is a DISPLAY column -- for vacant seats it now reads
+  // "<SEAT_MASTER_NO> (VACANT)" (see proc_BGTSEATMASTER), so strip that suffix
+  // to recover the raw SEAT_MASTER_NO the backend matches against, otherwise
+  // the delete silently matches 0 rows.
   const toSeatDeleteItem = (r) => ({
     stCode: r?.stCode,
     deptSno: String(r?.departmentId ?? ''),
     desgSno: String(r?.designationId ?? ''),
-    seatNo: r?.seatOrStatus,
+    seatNo: String(r?.seatOrStatus ?? '').replace(/\s*\(VACANT\)\s*$/i, ''),
   })
   const isExcessRow = (r) => String(r?.seatOrStatus).toLowerCase().trim() === 'excess'
 

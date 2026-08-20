@@ -2176,7 +2176,9 @@ const EmployeeAddNew = () => {
       : data
 
   const fetchDesignationByDepartment = async (deptId, s1, s2, s3) => {
-    const effDept = isStore ? 36 : deptId
+    // Store logins now pick a real Department from the dropdown like everyone else —
+    // designations follow whatever department is actually selected, nothing hardcoded.
+    const effDept = deptId
     if (!effDept) {
       setDesignations([])
       return
@@ -2216,11 +2218,11 @@ const EmployeeAddNew = () => {
 
   useEffect(() => {
     // Reload designations from the Dept+Sub-Dept -> Designation mapping whenever the
-    // department or any sub-department changes (store users are pinned to dept 36 inside the fn).
-    if (isStore || watch_department) {
+    // department or any sub-department changes.
+    if (watch_department) {
       fetchDesignationByDepartment(watch_department, watch_subDept1, watch_subDept2, watch_subDept3)
     }
-  }, [isStore, watch_department, watch_subDept1, watch_subDept2, watch_subDept3])
+  }, [watch_department, watch_subDept1, watch_subDept2, watch_subDept3])
 
   // Budget freeze: warn as soon as Location + Department + Designation are picked if there's
   // no unfilled BGT seat for this combination. The backend re-checks (and hard-blocks) on submit
@@ -3991,7 +3993,9 @@ const EmployeeAddNew = () => {
           layout="vertical"
           initialValues={{
             user: {
-              department: isStore ? 'Retail Operation' : undefined,
+              // Store-code logins leave Department blank — no department is submitted for
+              // these; the field is shown read-only purely as a visual placeholder.
+              department: undefined,
             },
           }}
         >
@@ -4611,13 +4615,31 @@ const EmployeeAddNew = () => {
 
                 {isStore ? (
                   <Col xs={24} sm={12} md={8}>
+                    {/* Optional for store logins — no default value, nothing forced. */}
                     <Form.Item
                       labelCol={{ span: 24 }}
                       name={['user', 'department']}
                       label="Department"
-                      rules={[{ required: true, message: 'Department is required' }]}
                     >
-                      <Input readOnly />
+                      <Select
+                        allowClear
+                        showSearch
+                        optionFilterProp="children"
+                        tabIndex={26}
+                        placeholder="Select department"
+                        onChange={(value) => {
+                          markFieldTouched('department')
+                          form.resetFields([['user', 'designation']])
+                        }}
+                      >
+                        {departments && departments.length > 0
+                          ? departments.map((dept) => (
+                              <Select.Option value={dept.departmentId} key={dept.departmentId}>
+                                {dept.departmentName}
+                              </Select.Option>
+                            ))
+                          : null}
+                      </Select>
                     </Form.Item>
                   </Col>
                 ) : (

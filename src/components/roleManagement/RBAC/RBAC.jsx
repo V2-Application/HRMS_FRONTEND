@@ -20,6 +20,7 @@ import {
   UpOutlined,
   DeleteOutlined,
   PlusOutlined,
+  ExportOutlined,
 } from '@ant-design/icons'
 import axiosInstance from '../../../services/axiosInstance'
 import NewRole from './NewRole'
@@ -27,6 +28,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { set } from '../../../redux/uiSlice'
 import EmpRoleMap from './EmpRoleMap'
 import { useActionsMap } from '../../../utils/useActionsMap'
+import { exportExcelFromFrontend } from '../../shared/ExportExceFromFrontend'
 
 const { Title, Text } = Typography
 
@@ -657,6 +659,56 @@ const RBAC = () => {
     })
   }
 
+  const [exportLoading, setExportLoading] = useState(false)
+
+  const handleExportRBAC = () => {
+    setExportLoading(true)
+    try {
+      const rows = []
+      hierarchy.forEach((roleData) => {
+        roleData?.modules?.forEach((module) => {
+          module?.subModules?.forEach((subModule) => {
+            const checkedActions = (subModule?.actions || [])
+              .filter((a) => a.actionStatus)
+              .map((a) => a.actionName)
+              .join(', ')
+            const checkedFurtherParts = (subModule?.actions || [])
+              .flatMap((a) => a?.furtherParts || [])
+              .filter((p) => p.furtherPartStatus)
+              .map((p) => p.actionFurtherPartName)
+              .join(', ')
+
+            if (subModule?.subModuleStatus || checkedActions || checkedFurtherParts) {
+              rows.push({
+                roleName: roleData.roleName,
+                moduleName: module.moduleName,
+                subModuleName: subModule.subModuleName,
+                checkedActions,
+                checkedFurtherParts,
+              })
+            }
+          })
+        })
+      })
+
+      const cols = [
+        { header: 'Role Name', key: 'roleName' },
+        { header: 'Module', key: 'moduleName' },
+        { header: 'Sub Module', key: 'subModuleName' },
+        { header: 'Checked Actions', key: 'checkedActions' },
+        { header: 'Checked Further Parts', key: 'checkedFurtherParts' },
+      ]
+
+      const response = exportExcelFromFrontend(cols, rows, 'RBAC_Role_Permissions.xlsx', {
+        sheetName: 'Role Permissions',
+      })
+      if (response.success) message.success(response.message)
+      else message.error(response.message)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   // columns: first column Roles, then one column per module
   const columns = [
     {
@@ -752,11 +804,16 @@ const RBAC = () => {
       <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
         {actionsMap?.emproleform?.actionStatus && <EmpRoleMap roles={roles} />}
 
-        {actionsMap?.newrole?.actionStatus && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => openRoleModal()}>
-            New Role
+        <Space>
+          <Button loading={exportLoading} icon={<ExportOutlined />} onClick={handleExportRBAC}>
+            Export
           </Button>
-        )}
+          {actionsMap?.newrole?.actionStatus && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => openRoleModal()}>
+              New Role
+            </Button>
+          )}
+        </Space>
         {/* <NewRole getRoles={getRoles} /> */}
       </Space>
 

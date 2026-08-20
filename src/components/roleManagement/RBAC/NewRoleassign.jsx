@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Table, Button, Space, Card, Typography, Input, message, Select } from 'antd'
-import { EditOutlined } from '@ant-design/icons'
+import { EditOutlined, ExportOutlined } from '@ant-design/icons'
 import {
   fetchRoles,
   getEmpRole,
@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { set } from '../../../redux/uiSlice'
 import EmpRoleMap from './EmpRoleMap'
 import { useActionsMap } from '../../../utils/useActionsMap'
+import { exportExcelFromFrontend } from '../../shared/ExportExceFromFrontend'
 
 const { Title } = Typography
 
@@ -127,6 +128,7 @@ const NewRoleassign = () => {
         employeeId: r.employeeId ?? r.empId ?? r.id ?? null,
         employeeName: r.employeeName ?? r.name ?? r.fullName ?? r.empName ?? '-',
         ecode: r.ecode ?? r.employeeCode ?? r.empCode ?? '-',
+        isActive: r.isActive ?? r.IsActive ?? false,
         roleId: r.roleId != null ? String(r.roleId) : r.role_id != null ? String(r.role_id) : null,
         roleName: r.roleName ?? r.role ?? r.role_title ?? '-',
         _raw: r,
@@ -380,6 +382,30 @@ const NewRoleassign = () => {
       .includes(empRoleSearch.trim().toLowerCase()),
   )
 
+  const [exportLoading, setExportLoading] = useState(false)
+
+  const handleExportEmpRoles = () => {
+    setExportLoading(true)
+    try {
+      const cols = [
+        { header: 'Employee Name', key: 'employeeName' },
+        { header: 'Ecode', key: 'ecode' },
+        { header: 'Role Name', key: 'roleName' },
+      ]
+      const activeData = filteredData.filter((r) => r.isActive)
+      const response = exportExcelFromFrontend(
+        cols,
+        activeData,
+        'Employee_Role_Assignment.xlsx',
+        { sheetName: 'Employee Roles' },
+      )
+      if (response.success) message.success(response.message)
+      else message.error(response.message)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   return (
     <div>
       {/* PAGE HEADING */}
@@ -414,6 +440,13 @@ const NewRoleassign = () => {
               style={{ width: 260 }}
             />
             <Button onClick={handleRefresh}>Refresh</Button>
+            <Button
+              loading={exportLoading}
+              icon={<ExportOutlined />}
+              onClick={handleExportEmpRoles}
+            >
+              Export
+            </Button>
           </Space>
         }
         style={{ marginTop: 8, marginBottom: 16 }}
