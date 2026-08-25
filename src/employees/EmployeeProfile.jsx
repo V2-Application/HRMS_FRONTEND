@@ -2640,7 +2640,14 @@ const EmployeeProfile = () => {
                       labelCol={{ span: 24 }}
                       name={['user', 'joiningDate']}
                       label="Joining Date"
-                      rules={[{ required: true, message: 'Joining date is required' }]}
+                      rules={[
+                        {
+                          required: true,
+                          // Field is read-only here, so it cannot be corrected on this
+                          // screen - point the user at the form that owns the value.
+                          message: 'Joining date is missing - set it on the candidate form',
+                        },
+                      ]}
                       getValueProps={(value) => ({
                         value: value ? dayjs(value) : null,
                       })}
@@ -2650,16 +2657,9 @@ const EmployeeProfile = () => {
                         style={{ width: '100%' }}
                         format="DD-MM-YYYY"
                         tabIndex={16}
-                        disabled={actionMap?.CanChangeJoiningDate === false}
-                        disabledDate={(current) => {
-                          // if (!actionMap?.CanChangeJoiningDate) return true
-                          if (actionMap?.JoiningDateUpdate) return false
-
-                          const today = dayjs().startOf('day')
-                          const minDate = today.subtract(3, 'day')
-                          const maxDate = today.add(3, 'day')
-                          return current < minDate || current > maxDate
-                        }}
+                        // Joining date is set on the candidate form only; it is read-only
+                        // everywhere in employee master (edit and view).
+                        disabled
                       />
                     </Form.Item>
                   )}
