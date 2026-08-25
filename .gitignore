@@ -31,3 +31,7 @@ build
 bun.lock
 # build output snapshots (build_localhost_*, build_prod_*)
 build_*/
+
+# local env backups — never commit
+.env.bak*
+.env.*.bak
