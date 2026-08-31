@@ -88,6 +88,10 @@ const EmployeeProfile = () => {
   const { pathname, state = {} } = useLocation()
   const isEmployeeUpdateRoute = pathname.includes('/employee/update')
   const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
+  // Joining date is editable on the candidate / joining screens, restricted to a
+  // +/-3 day window around today. On employee master edit it stays read-only --
+  // back-dated corrections there go through the employee master uploader.
+  const isJoiningDateEditable = !isEmployeeUpdateRoute
   // const { furtherParts = [] } = state || {}
   const navigate = useNavigate()
   const [imageValue, setImageValue] = useState([])
@@ -2643,9 +2647,11 @@ const EmployeeProfile = () => {
                       rules={[
                         {
                           required: true,
-                          // Field is read-only here, so it cannot be corrected on this
-                          // screen - point the user at the form that owns the value.
-                          message: 'Joining date is missing - set it on the candidate form',
+                          message: isJoiningDateEditable
+                            ? 'Joining date is required'
+                            : // Read-only on employee master edit, so it cannot be corrected
+                              // here - point the user at the form that owns the value.
+                              'Joining date is missing - set it on the candidate form',
                         },
                       ]}
                       getValueProps={(value) => ({
@@ -2657,9 +2663,16 @@ const EmployeeProfile = () => {
                         style={{ width: '100%' }}
                         format="DD-MM-YYYY"
                         tabIndex={16}
-                        // Joining date is set on the candidate form only; it is read-only
-                        // everywhere in employee master (edit and view).
-                        disabled
+                        // Editable on the candidate / joining screens only (see
+                        // isJoiningDateEditable); read-only on employee master edit.
+                        disabled={!isJoiningDateEditable}
+                        // Only 3 days back and 3 days ahead of today may be picked.
+                        disabledDate={(current) => {
+                          const today = dayjs().startOf('day')
+                          return (
+                            current < today.subtract(3, 'day') || current > today.add(3, 'day')
+                          )
+                        }}
                       />
                     </Form.Item>
                   )}

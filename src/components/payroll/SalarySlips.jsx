@@ -1283,7 +1283,8 @@ const SalarySlips = ({
                     m !== 'April'&&
                     m !== 'May' &&
                     m !== 'June' &&
-                    m !== 'July'
+                    m !== 'July' &&
+                     m !== 'August' 
 
                   }
                 >
@@ -1470,7 +1471,8 @@ const SalarySlips = ({
                     m !== 'April'&&
                     m !== 'May' &&
                      m !== 'June' &&
-                     m !== 'July'
+                     m !== 'July' &&
+                      m !== 'August' 
                   }
                 >
                   {m}

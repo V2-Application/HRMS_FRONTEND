@@ -153,16 +153,21 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
             3. Fill out the downloaded sheet and then upload it here.
           </Paragraph>
           <Paragraph style={{ marginBottom: 4 }}>
-            4. "Sub-Department 1/2/3" (last 3 columns) are optional. If filled, the names must
-            match the department's sub-department hierarchy; otherwise they're skipped and reported.
+            4. "Sub-Department 1/2/3" are optional. If filled, the names must match the
+            department's sub-department hierarchy; otherwise they're skipped and reported.
+          </Paragraph>
+          <Paragraph style={{ marginBottom: 4 }}>
+            5. "Date of Joining" and "Last Working Day" (last column) both update the employee.
+            Use DD-MM-YYYY. Leave a date blank to keep the existing value; a Last Working Day
+            cannot be earlier than the Date of Joining.
           </Paragraph>
           {mode === 'insert' && (
             <>
               <Paragraph style={{ marginBottom: 4 }}>
-                4. Company and Mobile columns are required for new employees.
+                6. Company and Mobile columns are required for new employees.
               </Paragraph>
               <Paragraph style={{ marginBottom: 4 }}>
-                5. Employee Code will be auto-generated (e.g., E0001 for Aquatica).
+                7. Employee Code will be auto-generated (e.g., E0001 for Aquatica).
               </Paragraph>
             </>
           )}

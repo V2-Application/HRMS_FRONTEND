@@ -1023,6 +1023,61 @@ const BgtSeatMaster = () => {
     }
   }
 
+  /**
+   * Count what a department delete would remove, without deleting anything.
+   * Stores are optional -- an empty list means pan-India for those departments.
+   */
+  const handlePreviewDeleteByDepartment = async (deptSnos, locCodes) => {
+    const response = await axiosInstance.post('/api/BgtSeatMaster/PreviewDeleteByDepartment', {
+      deptSnos: (deptSnos || []).map(Number).filter(Boolean),
+      locCodes: (locCodes || []).filter(Boolean),
+    })
+    return response?.data?.data ?? null
+  }
+
+  /**
+   * Delete budget seats by department. With no store selected this deletes the department's
+   * seats across every store (pan-India); with stores selected it is limited to those stores.
+   * Server backs the affected rows up to a timestamped table first.
+   */
+  const handleDeleteByDepartment = async (deptSnos, locCodes) => {
+    const depts = (deptSnos || []).map(Number).filter(Boolean)
+    if (depts.length === 0) {
+      message.warning('Select at least one department first.')
+      return false
+    }
+    try {
+      const response = await axiosInstance.post('/api/BgtSeatMaster/DeleteByDepartment', {
+        deptSnos: depts,
+        locCodes: (locCodes || []).filter(Boolean),
+      })
+      if (response?.status === 200) {
+        message.success(response?.data?.message || 'Deleted department budget seats')
+        fetchData()
+        setSelectedRowKeys([])
+        setSelectedRows([])
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('error deleting department bgt: ', error)
+      message.error(error?.response?.data?.message || 'Error deleting department budget seats')
+      return false
+    }
+  }
+
+  /** Unique department list for the "Delete by Department" picker */
+  const departmentOptions = useMemo(() => {
+    const m = new Map()
+    for (const r of employeesListData) {
+      const id = r?.departmentId
+      if (id != null && id !== '' && !m.has(String(id))) m.set(String(id), r?.departmentName || '')
+    }
+    return Array.from(m.entries())
+      .map(([id, name]) => ({ value: id, label: name || `Dept ${id}` }))
+      .sort((a, b) => String(a.label).localeCompare(String(b.label)))
+  }, [employeesListData])
+
   /** Unique store list (Loc Code — Loc Name) for the "Delete by Store" picker */
   const storeOptions = useMemo(() => {
     const m = new Map()
@@ -1485,6 +1540,9 @@ const BgtSeatMaster = () => {
           storeOptions={storeOptions}
           handleDeleteByStore={handleDeleteByStore}
           handleDeleteAll={handleDeleteAll}
+          departmentOptions={departmentOptions}
+          handlePreviewDeleteByDepartment={handlePreviewDeleteByDepartment}
+          handleDeleteByDepartment={handleDeleteByDepartment}
         />
 
         {/* Tabs for HO / Active / HUBDC / UPC */}
@@ -1588,12 +1646,62 @@ const TableBulkActionIcons = ({
   storeOptions = [],
   handleDeleteByStore,
   handleDeleteAll,
+  departmentOptions = [],
+  handlePreviewDeleteByDepartment,
+  handleDeleteByDepartment,
 }) => {
   const { theme } = useSelector((state) => state.ui)
   const [isEmpUploadVisible, setIsEmpUploadVisible] = useState(false)
   const [deleteStores, setDeleteStores] = useState([])
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [deleteAllText, setDeleteAllText] = useState('')
+
+  // "Delete by Department" modal. Departments are required; stores are optional and
+  // narrow the delete -- leaving them empty deletes the department's seats pan-India.
+  const [deptModalOpen, setDeptModalOpen] = useState(false)
+  const [deptSelection, setDeptSelection] = useState([])
+  const [deptStoreSelection, setDeptStoreSelection] = useState([])
+  const [deptPreview, setDeptPreview] = useState(null)
+  const [deptPreviewLoading, setDeptPreviewLoading] = useState(false)
+  const [deptConfirmText, setDeptConfirmText] = useState('')
+  const [deptDeleting, setDeptDeleting] = useState(false)
+
+  const isPanIndiaDelete = deptStoreSelection.length === 0
+  // A pan-India wipe of a whole department is the widest delete here, so it needs the
+  // same typed confirmation as "Delete All". Store-scoped deletes just need the count.
+  const deptConfirmOk = !isPanIndiaDelete || deptConfirmText.trim().toUpperCase() === 'DELETE'
+
+  const resetDeptModal = () => {
+    setDeptModalOpen(false)
+    setDeptSelection([])
+    setDeptStoreSelection([])
+    setDeptPreview(null)
+    setDeptConfirmText('')
+  }
+
+  // Re-count whenever the selection changes, so the confirm button always reflects
+  // exactly what is about to be deleted.
+  useEffect(() => {
+    if (!deptModalOpen || deptSelection.length === 0) {
+      setDeptPreview(null)
+      return
+    }
+    let cancelled = false
+    setDeptPreviewLoading(true)
+    handlePreviewDeleteByDepartment?.(deptSelection, deptStoreSelection)
+      .then((data) => {
+        if (!cancelled) setDeptPreview(data)
+      })
+      .catch(() => {
+        if (!cancelled) setDeptPreview(null)
+      })
+      .finally(() => {
+        if (!cancelled) setDeptPreviewLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [deptModalOpen, deptSelection, deptStoreSelection])
 
   const [statusSummary, setstatusSummary] = useState([
     {
@@ -1718,6 +1826,26 @@ const TableBulkActionIcons = ({
             </Button>
           </Popconfirm>
 
+          {/* Delete a department's budget - pan-India, or limited to chosen stores */}
+          <Tooltip
+            placement="top"
+            title={'Delete budget by department (all stores, or only the stores you pick)'}
+          >
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                setDeptSelection([])
+                setDeptStoreSelection([])
+                setDeptPreview(null)
+                setDeptConfirmText('')
+                setDeptModalOpen(true)
+              }}
+            >
+              Delete Dept BGT
+            </Button>
+          </Tooltip>
+
           {/* Delete EVERYTHING (typed confirmation) */}
           <Tooltip placement="top" title={'Delete ALL budget seats (every line item)'}>
             <Button
@@ -1742,6 +1870,125 @@ const TableBulkActionIcons = ({
           />
         </Space>
       </div>
+
+      {/* Delete by department, optionally narrowed to stores. Nothing is deleted until the
+          preview count is shown and confirmed. */}
+      <Modal
+        title="Delete budget seats by department"
+        open={deptModalOpen}
+        width={640}
+        okText={
+          deptPreview?.totalRows > 0 ? `Delete ${deptPreview.totalRows} seat(s)` : 'Delete'
+        }
+        okButtonProps={{
+          danger: true,
+          loading: deptDeleting,
+          disabled: !deptPreview?.totalRows || !deptConfirmOk,
+        }}
+        cancelText="Cancel"
+        onCancel={resetDeptModal}
+        onOk={async () => {
+          setDeptDeleting(true)
+          const ok = await handleDeleteByDepartment?.(deptSelection, deptStoreSelection)
+          setDeptDeleting(false)
+          if (ok) resetDeptModal()
+        }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 4 }}>
+            <b>Department(s)</b> <span style={{ color: '#ff4d4f' }}>*</span>
+          </div>
+          <Select
+            mode="multiple"
+            showSearch
+            allowClear
+            maxTagCount="responsive"
+            placeholder="Select one or more departments"
+            style={{ width: '100%' }}
+            value={deptSelection}
+            onChange={setDeptSelection}
+            options={departmentOptions}
+            optionFilterProp="label"
+          />
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 4 }}>
+            <b>Store(s)</b> <span style={{ color: '#8c8c8c' }}>(optional)</span>
+          </div>
+          <Select
+            mode="multiple"
+            showSearch
+            allowClear
+            maxTagCount="responsive"
+            placeholder="Leave blank to delete across ALL stores (pan-India)"
+            style={{ width: '100%' }}
+            value={deptStoreSelection}
+            onChange={setDeptStoreSelection}
+            options={storeOptions}
+            optionFilterProp="label"
+          />
+          <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+            No store selected = the whole department&apos;s budget is deleted across every store.
+            Selecting stores limits the delete to those stores only.
+          </div>
+        </div>
+
+        {deptSelection.length > 0 && (
+          <div
+            style={{
+              border: '1px solid #f0f0f0',
+              borderRadius: 6,
+              padding: 12,
+              marginBottom: 12,
+            }}
+          >
+            {deptPreviewLoading ? (
+              <span>Counting…</span>
+            ) : deptPreview?.totalRows > 0 ? (
+              <>
+                <div style={{ marginBottom: 8 }}>
+                  <b>{deptPreview.totalRows}</b> budget seat(s) will be deleted{' '}
+                  {isPanIndiaDelete ? (
+                    <b>across ALL stores (pan-India)</b>
+                  ) : (
+                    <>
+                      in <b>{deptStoreSelection.length}</b> selected store(s)
+                    </>
+                  )}
+                  . A backup table is saved first.
+                </div>
+                <Table
+                  size="small"
+                  pagination={false}
+                  rowKey={(r) => r.deptSno}
+                  dataSource={deptPreview.lines || []}
+                  columns={[
+                    { title: 'Department', dataIndex: 'departmentName', key: 'departmentName' },
+                    { title: 'Seats', dataIndex: 'rows', key: 'rows', width: 90 },
+                    { title: 'Stores', dataIndex: 'stores', key: 'stores', width: 90 },
+                  ]}
+                />
+              </>
+            ) : (
+              <span>No budget seats match this selection.</span>
+            )}
+          </div>
+        )}
+
+        {isPanIndiaDelete && deptPreview?.totalRows > 0 && (
+          <>
+            <p style={{ marginBottom: 8 }}>
+              This is a pan-India delete. Type <b>DELETE</b> to confirm:
+            </p>
+            <Input
+              value={deptConfirmText}
+              onChange={(e) => setDeptConfirmText(e.target.value)}
+              placeholder="DELETE"
+            />
+          </>
+        )}
+      </Modal>
 
       <Modal
         title="Delete ALL budget seats?"
