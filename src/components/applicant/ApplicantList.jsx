@@ -137,7 +137,7 @@ const ApplicantList = () => {
   const actionsMap = useActionsMap(filteredSideMenu) // ✅ NEW
 
   const { loading, theme } = useSelector((state) => state?.ui)
-  const { Designation } = useSelector((state) => state?.dropdown?.response || [])
+  const { Designation, Department } = useSelector((state) => state?.dropdown?.response || [])
   const [candidateListData, setcandidateListData] = useState([])
   const [remarks, setRemarks] = useState({})
   // ✅ REOPEN MODAL STATES
@@ -559,6 +559,64 @@ const handleSubmitReopen = async () => {
     }
   }
 
+  // Candidate.DEPARTMENT holds the department id (as a string), not the name — so
+  // resolve it through the Department master the same way Designation does.
+  const getDepartmentFilterDropdown = (Department, currentTabData) => {
+    return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => {
+      const [searchText, setSearchText] = useState('')
+
+      const filteredOptions = [...new Set(currentTabData.map((item) => item.department))]
+        .filter((id) => id !== null && id !== undefined && String(id).trim() !== '')
+        .map((id) => {
+          const dep = (Department || []).find(
+            (d) => Number(d.departmentId) === Number(id),
+          )
+          return {
+            text: dep?.departmentName || `ID: ${id}`,
+            value: id,
+          }
+        })
+        .filter((opt) => opt.text.toLowerCase().includes(searchText.toLowerCase()))
+
+      return (
+        <div style={{ padding: 8, width: 250 }}>
+          <Input
+            placeholder="Search Department"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ marginBottom: 8, display: 'block' }}
+          />
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            {Array.isArray(filteredOptions) && filteredOptions.map((option) => (
+              <div key={option.value}>
+                <Checkbox
+                  checked={selectedKeys.includes(option.value)}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    const nextSelectedKeys = checked
+                      ? [...selectedKeys, option.value]
+                      : selectedKeys.filter((k) => k !== option.value)
+                    setSelectedKeys(nextSelectedKeys)
+                  }}
+                >
+                  {option.text}
+                </Checkbox>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, textAlign: 'right' }}>
+            <Button onClick={() => clearFilters()} size="small">
+              Reset
+            </Button>
+            <Button type="primary" size="small" onClick={() => confirm()} style={{ marginLeft: 8 }}>
+              Filter
+            </Button>
+          </div>
+        </div>
+      )
+    }
+  }
+
   const getPhoneFilterDropdown = (currentTabData) => {
     return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => {
       const [searchText, setSearchText] = useState('')
@@ -732,6 +790,26 @@ const handleSubmitReopen = async () => {
           (desg) => Number(desg.designationId) === Number(designationId),
         )
         const title = result?.designationName || 'N/A'
+        return (
+          <Tooltip title={title}>
+            <span>{title}</span>
+          </Tooltip>
+        )
+      },
+      width: 180,
+    },
+    department: {
+      title: 'Department',
+      dataIndex: 'department', // departmentId, stored as a string on Candidate.DEPARTMENT
+      key: 'department',
+      filterDropdown: getDepartmentFilterDropdown(Department, currentTabData),
+      onFilter: (value, record) => Number(record.department) === Number(value),
+      ellipsis: true,
+      render: (departmentId) => {
+        const result = (Department || []).find(
+          (dep) => Number(dep.departmentId) === Number(departmentId),
+        )
+        const title = result?.departmentName || 'N/A'
         return (
           <Tooltip title={title}>
             <span>{title}</span>
@@ -1191,6 +1269,7 @@ const handleSubmitReopen = async () => {
     columnTemplates.name,
     columnTemplates.email,
     columnTemplates.designation,
+    columnTemplates.department,
     columnTemplates.phone,
     columnTemplates.experience,
     columnTemplates.currentCompany,
@@ -1216,6 +1295,7 @@ const handleSubmitReopen = async () => {
     columnTemplates.name,
     columnTemplates.email,
     columnTemplates.designation,
+    columnTemplates.department,
     columnTemplates.phone,
     columnTemplates.experience,
     columnTemplates.currentCompany,
@@ -1242,6 +1322,7 @@ const handleSubmitReopen = async () => {
     columnTemplates.name,
     columnTemplates.email,
     columnTemplates.designation,
+    columnTemplates.department,
     columnTemplates.phone,
     columnTemplates.resume,
     columnTemplates.createdBy,

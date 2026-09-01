@@ -156,11 +156,37 @@ function AddApplicant() {
     newFormData.append('dob', values?.dob?.format('YYYY-MM-DD'))
     newFormData.append('mobile', values?.phone)
     newFormData.append('emailAddress', values?.email)
-    newFormData.append('company1', values?.previousCompany)
-    newFormData.append('positionHeldInPreviousCompany', values?.previousDesignation)
-    newFormData.append('SalaryExpectation', values?.previousSalary)
+    // Current employment. These go to the Candidate columns the applicant grid reads
+    // (company1 / positionHeldInPreviousCompany / lastCtcAnnual) AND, below, to
+    // experienceList so they persist to tblExperience for the Excel export.
+    newFormData.append('company1', values?.previousCompany ?? '')
+    newFormData.append('positionHeldInPreviousCompany', values?.previousDesignation ?? '')
+    newFormData.append('lastCtcAnnual', values?.previousSalary ?? '')
     newFormData.append('TotalExperience', values?.totalExperience)
-    newFormData.append('SalaryExpectation', values?.salaryExpectation)
+    // Expected salary is a separate field — it must not overwrite the current salary.
+    newFormData.append('SalaryExpectation', values?.salaryExpectation ?? '')
+
+    // Same current-employment values as an experience row, which the API persists to
+    // tblExperience — the source the applicant Excel export reads for Current Company /
+    // Current Designation / Current Salary. Must be sent as ExperienceListJson: the
+    // controller deserializes that into details.experienceList, overwriting anything
+    // bound from indexed form fields. Only sent when the applicant actually has
+    // experience, so freshers don't get an empty row.
+    if (values?.totalExperience > 0 && values?.previousCompany) {
+      newFormData.append(
+        'ExperienceListJson',
+        JSON.stringify([
+          {
+            nameOfCompany: values.previousCompany,
+            positionHeld: values?.previousDesignation ?? '',
+            lastCtc: Number(values?.previousSalary) || 0,
+            workLocation: null,
+            from: null,
+            to: null,
+          },
+        ]),
+      )
+    }
     newFormData.append('AdditionalInfoApplicant', values?.additionalInfo)
     newFormData.append('Aggreement', values?.agreement)
     newFormData.append('IsApplicant', true)
