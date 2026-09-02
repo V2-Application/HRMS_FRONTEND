@@ -88,6 +88,14 @@ const EmployeeProfile = () => {
   const { pathname, state = {} } = useLocation()
   const isEmployeeUpdateRoute = pathname.includes('/employee/update')
   const disableDeptDesgUanForStoreHrOnUpdate = isStoreHR && isEmployeeUpdateRoute
+  // Profile-update screens where Store HR is allowed to change Location:
+  //   /employee/add_new/:id   candidate profile, opened from the Candidate list
+  //                           (CandidateList.handleEditClick)
+  //   /applicant/add_new/:id  applicant profile
+  // The numeric-id test keeps this false for /employee/add_new (blank new record)
+  // and for /employee/add_new/view/:id (read-only view).
+  // Everywhere else Location stays read-only for Store HR -- see the field below.
+  const isProfileUpdateRoute = /\/(?:employee|applicant)\/add_new\/\d+(?:\/|$)/.test(pathname)
   // Joining date is editable on the candidate / joining screens, restricted to a
   // +/-3 day window around today. On employee master edit it stays read-only --
   // back-dated corrections there go through the employee master uploader.
@@ -2827,7 +2835,15 @@ const EmployeeProfile = () => {
                         showSearch
                         optionFilterProp="children"
                         tabIndex={25}
-                        disabled={isStoreHR && !actionMap?.CanStoreHrEditLocation}
+                        // Store HR can change Location ONLY while updating a candidate
+                        // profile (/employee/add_new/:id, from the Candidate list) or an
+                        // applicant profile (/applicant/add_new/:id). On every other
+                        // screen it stays read-only for them, unless the
+                        // CanStoreHrEditLocation permission is granted to the role.
+                        // Other roles are unaffected.
+                        disabled={
+                          isStoreHR && !isProfileUpdateRoute && !actionMap?.CanStoreHrEditLocation
+                        }
                       >
                         <Select.Option value="none">Select Location</Select.Option>
                         {locations.map((loc) => (
