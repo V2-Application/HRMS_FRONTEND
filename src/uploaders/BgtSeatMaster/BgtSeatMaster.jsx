@@ -1090,6 +1090,30 @@ const BgtSeatMaster = () => {
       .map(([code, name]) => ({ value: code, label: name ? `${code} — ${name}` : code }))
   }, [employeesListData])
 
+  /**
+   * Departments present in each store, so the "Delete Store BGT" picker only offers
+   * departments that actually have budget in the chosen store (searchable).
+   * Shape: { [stCode]: [{ value: deptId, label: deptName }] }
+   */
+  const departmentsByStore = useMemo(() => {
+    const byStore = new Map()
+    for (const r of employeesListData) {
+      const code = r?.stCode
+      const id = r?.departmentId
+      if (!code || id == null || id === '') continue
+      if (!byStore.has(code)) byStore.set(code, new Map())
+      const deptMap = byStore.get(code)
+      if (!deptMap.has(String(id))) deptMap.set(String(id), r?.departmentName || '')
+    }
+    const out = {}
+    for (const [code, deptMap] of byStore.entries()) {
+      out[code] = Array.from(deptMap.entries())
+        .map(([id, name]) => ({ value: id, label: name || `Dept ${id}` }))
+        .sort((a, b) => String(a.label).localeCompare(String(b.label)))
+    }
+    return out
+  }, [employeesListData])
+
   /** Bulk delete the selected seat entries */
   const handleBulkDelete = async () => {
     const items = (selectedRows || []).map(toSeatDeleteItem)
@@ -1541,6 +1565,7 @@ const BgtSeatMaster = () => {
           handleDeleteByStore={handleDeleteByStore}
           handleDeleteAll={handleDeleteAll}
           departmentOptions={departmentOptions}
+          departmentsByStore={departmentsByStore}
           handlePreviewDeleteByDepartment={handlePreviewDeleteByDepartment}
           handleDeleteByDepartment={handleDeleteByDepartment}
         />
@@ -1647,61 +1672,98 @@ const TableBulkActionIcons = ({
   handleDeleteByStore,
   handleDeleteAll,
   departmentOptions = [],
+  departmentsByStore = {},
   handlePreviewDeleteByDepartment,
   handleDeleteByDepartment,
 }) => {
   const { theme } = useSelector((state) => state.ui)
   const [isEmpUploadVisible, setIsEmpUploadVisible] = useState(false)
-  const [deleteStores, setDeleteStores] = useState([])
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [deleteAllText, setDeleteAllText] = useState('')
 
-  // "Delete by Department" modal. Departments are required; stores are optional and
-  // narrow the delete -- leaving them empty deletes the department's seats pan-India.
-  const [deptModalOpen, setDeptModalOpen] = useState(false)
-  const [deptSelection, setDeptSelection] = useState([])
-  const [deptStoreSelection, setDeptStoreSelection] = useState([])
-  const [deptPreview, setDeptPreview] = useState(null)
-  const [deptPreviewLoading, setDeptPreviewLoading] = useState(false)
-  const [deptConfirmText, setDeptConfirmText] = useState('')
-  const [deptDeleting, setDeptDeleting] = useState(false)
+  // "Delete Store BGT": one store, then optionally specific departments within it.
+  // No departments picked = the store's entire budget. Departments picked = only
+  // those departments in that store.
+  const [deleteStore, setDeleteStore] = useState(undefined)
+  const [deleteStoreDepts, setDeleteStoreDepts] = useState([])
+  const [storePreview, setStorePreview] = useState(null)
+  const [storePreviewLoading, setStorePreviewLoading] = useState(false)
+  const [storeDeleting, setStoreDeleting] = useState(false)
 
-  const isPanIndiaDelete = deptStoreSelection.length === 0
-  // A pan-India wipe of a whole department is the widest delete here, so it needs the
-  // same typed confirmation as "Delete All". Store-scoped deletes just need the count.
-  const deptConfirmOk = !isPanIndiaDelete || deptConfirmText.trim().toUpperCase() === 'DELETE'
+  // Departments that actually have budget in the chosen store (searchable list).
+  const deptOptionsForStore = deleteStore ? departmentsByStore[deleteStore] || [] : []
 
-  const resetDeptModal = () => {
-    setDeptModalOpen(false)
-    setDeptSelection([])
-    setDeptStoreSelection([])
-    setDeptPreview(null)
-    setDeptConfirmText('')
+  const resetStoreDelete = () => {
+    setDeleteStore(undefined)
+    setDeleteStoreDepts([])
+    setStorePreview(null)
   }
 
-  // Re-count whenever the selection changes, so the confirm button always reflects
-  // exactly what is about to be deleted.
+  // Count exactly what will be removed whenever the department selection changes,
+  // so the button always states the real number before anything is deleted.
   useEffect(() => {
-    if (!deptModalOpen || deptSelection.length === 0) {
-      setDeptPreview(null)
+    if (!deleteStore || deleteStoreDepts.length === 0) {
+      setStorePreview(null)
       return
     }
     let cancelled = false
-    setDeptPreviewLoading(true)
-    handlePreviewDeleteByDepartment?.(deptSelection, deptStoreSelection)
+    setStorePreviewLoading(true)
+    handlePreviewDeleteByDepartment?.(deleteStoreDepts, [deleteStore])
       .then((data) => {
-        if (!cancelled) setDeptPreview(data)
+        if (!cancelled) setStorePreview(data)
       })
       .catch(() => {
-        if (!cancelled) setDeptPreview(null)
+        if (!cancelled) setStorePreview(null)
       })
       .finally(() => {
-        if (!cancelled) setDeptPreviewLoading(false)
+        if (!cancelled) setStorePreviewLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [deptModalOpen, deptSelection, deptStoreSelection])
+  }, [deleteStore, deleteStoreDepts])
+
+  // Pan-India department delete: one or more departments, across EVERY store. This is
+  // the widest delete on the page, so it needs a preview count AND a typed confirmation.
+  const [panDeptOpen, setPanDeptOpen] = useState(false)
+  const [panDeptSelection, setPanDeptSelection] = useState([])
+  const [panDeptPreview, setPanDeptPreview] = useState(null)
+  const [panDeptPreviewLoading, setPanDeptPreviewLoading] = useState(false)
+  const [panDeptConfirmText, setPanDeptConfirmText] = useState('')
+  const [panDeptDeleting, setPanDeptDeleting] = useState(false)
+
+  const panDeptConfirmOk = panDeptConfirmText.trim().toUpperCase() === 'DELETE'
+
+  const resetPanDept = () => {
+    setPanDeptOpen(false)
+    setPanDeptSelection([])
+    setPanDeptPreview(null)
+    setPanDeptConfirmText('')
+  }
+
+  // Recount on every change so the confirm button states exactly what will go.
+  useEffect(() => {
+    if (!panDeptOpen || panDeptSelection.length === 0) {
+      setPanDeptPreview(null)
+      return
+    }
+    let cancelled = false
+    setPanDeptPreviewLoading(true)
+    // empty store list = every store (pan-India)
+    handlePreviewDeleteByDepartment?.(panDeptSelection, [])
+      .then((data) => {
+        if (!cancelled) setPanDeptPreview(data)
+      })
+      .catch(() => {
+        if (!cancelled) setPanDeptPreview(null)
+      })
+      .finally(() => {
+        if (!cancelled) setPanDeptPreviewLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [panDeptOpen, panDeptSelection])
 
   const [statusSummary, setstatusSummary] = useState([
     {
@@ -1759,14 +1821,26 @@ const TableBulkActionIcons = ({
         />
       )}
 
-      <div style={{ padding: 5, display: 'flex', justifyContent: 'end', alignItems: 'center' }}>
+      {/* Toolbar wraps onto more rows rather than overflowing: with the store/department
+          delete pickers added, a single non-wrapping row clipped the left-hand buttons. */}
+      <div
+        style={{
+          padding: 5,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         <Space
+          wrap
+          size={[8, 8]}
           style={{
             width: '100%',
             display: 'flex',
-            gap: '0.2rem !important',
             alignItems: 'center',
-            justifyContent: 'end',
+            justifyContent: 'flex-end',
+            rowGap: 8,
           }}
         >
           <Tooltip placement="top" title={'Clear All Filters'}>
@@ -1791,58 +1865,103 @@ const TableBulkActionIcons = ({
             </Tooltip>
           )}
 
-          {/* Delete all budget seats of one or more chosen stores */}
-          <Select
-            mode="multiple"
-            showSearch
-            allowClear
-            maxTagCount="responsive"
-            placeholder="Delete by store(s)…"
-            style={{ minWidth: 260, maxWidth: 420, marginLeft: 5 }}
-            value={deleteStores}
-            onChange={setDeleteStores}
-            options={storeOptions}
-            optionFilterProp="label"
-          />
-          <Popconfirm
-            title="Delete these stores' budget?"
-            description={
-              deleteStores.length
-                ? `All budget seats for ${deleteStores.length} store(s) will be deleted (a backup is saved first).`
-                : 'Select one or more stores first.'
-            }
-            okText="Yes, delete"
-            okButtonProps={{ danger: true }}
-            cancelText="No"
-            placement="bottomRight"
-            disabled={!deleteStores.length}
-            onConfirm={async () => {
-              await handleDeleteByStore?.(deleteStores)
-              setDeleteStores([])
+          {/* Delete a single store's budget - whole store, or only chosen departments.
+              Kept as one cluster so the store, its departments and the button wrap
+              together instead of splitting across rows. */}
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              flexWrap: 'nowrap',
             }}
           >
-            <Button danger disabled={!deleteStores.length}>
-              Delete Store BGT ({deleteStores.length})
-            </Button>
-          </Popconfirm>
+            <Select
+              showSearch
+              allowClear
+              size="middle"
+              placeholder="Select store…"
+              style={{ width: 170 }}
+              value={deleteStore}
+              onChange={(v) => {
+                setDeleteStore(v)
+                setDeleteStoreDepts([])
+                setStorePreview(null)
+              }}
+              options={storeOptions}
+              optionFilterProp="label"
+            />
+            <Select
+              mode="multiple"
+              showSearch
+              allowClear
+              size="middle"
+              maxTagCount="responsive"
+              disabled={!deleteStore}
+              placeholder={deleteStore ? 'Search dept — blank = all' : 'Select a store first'}
+              style={{ width: 210 }}
+              value={deleteStoreDepts}
+              onChange={setDeleteStoreDepts}
+              options={deptOptionsForStore}
+              optionFilterProp="label"
+              notFoundContent={deleteStore ? 'No departments in this store' : null}
+            />
+            <Popconfirm
+            title="Delete this store's budget?"
+            description={
+              !deleteStore
+                ? 'Select a store first.'
+                : deleteStoreDepts.length === 0
+                  ? `The ENTIRE budget for ${deleteStore} will be deleted (a backup is saved first).`
+                  : storePreviewLoading
+                    ? 'Counting seats…'
+                    : `${storePreview?.totalRows ?? 0} seat(s) in ${deleteStoreDepts.length} department(s) of ${deleteStore} will be deleted (a backup is saved first).`
+            }
+            okText="Yes, delete"
+            okButtonProps={{ danger: true, loading: storeDeleting }}
+            cancelText="No"
+            placement="bottomRight"
+            disabled={!deleteStore}
+            onConfirm={async () => {
+              setStoreDeleting(true)
+              try {
+                if (deleteStoreDepts.length === 0) {
+                  // whole store
+                  await handleDeleteByStore?.([deleteStore])
+                } else {
+                  // only the chosen departments, scoped to this one store
+                  await handleDeleteByDepartment?.(deleteStoreDepts, [deleteStore])
+                }
+                resetStoreDelete()
+              } finally {
+                setStoreDeleting(false)
+              }
+            }}
+          >
+              <Button danger disabled={!deleteStore} icon={<DeleteOutlined />}>
+                {deleteStoreDepts.length === 0
+                  ? 'Delete Store BGT'
+                  : `Delete Store BGT (${deleteStoreDepts.length} dept)`}
+              </Button>
+            </Popconfirm>
+          </span>
 
-          {/* Delete a department's budget - pan-India, or limited to chosen stores */}
+          {/* Pan-India: delete one or more departments' budget across EVERY store */}
           <Tooltip
             placement="top"
-            title={'Delete budget by department (all stores, or only the stores you pick)'}
+            title={"Delete department budget across ALL stores (pan-India)"}
           >
             <Button
               danger
               icon={<DeleteOutlined />}
               onClick={() => {
-                setDeptSelection([])
-                setDeptStoreSelection([])
-                setDeptPreview(null)
-                setDeptConfirmText('')
-                setDeptModalOpen(true)
+                setPanDeptSelection([])
+                setPanDeptPreview(null)
+                setPanDeptConfirmText('')
+                setPanDeptOpen(true)
               }}
             >
-              Delete Dept BGT
+              Delete Dept BGT (All India)
             </Button>
           </Tooltip>
 
@@ -1871,27 +1990,28 @@ const TableBulkActionIcons = ({
         </Space>
       </div>
 
-      {/* Delete by department, optionally narrowed to stores. Nothing is deleted until the
-          preview count is shown and confirmed. */}
+      {/* Pan-India department delete. Nothing is removed until the preview count is
+          shown and DELETE is typed. */}
       <Modal
-        title="Delete budget seats by department"
-        open={deptModalOpen}
+        title="Delete department budget across ALL stores (pan-India)"
+        open={panDeptOpen}
         width={640}
         okText={
-          deptPreview?.totalRows > 0 ? `Delete ${deptPreview.totalRows} seat(s)` : 'Delete'
+          panDeptPreview?.totalRows > 0 ? `Delete ${panDeptPreview.totalRows} seat(s)` : 'Delete'
         }
         okButtonProps={{
           danger: true,
-          loading: deptDeleting,
-          disabled: !deptPreview?.totalRows || !deptConfirmOk,
+          loading: panDeptDeleting,
+          disabled: !panDeptPreview?.totalRows || !panDeptConfirmOk,
         }}
         cancelText="Cancel"
-        onCancel={resetDeptModal}
+        onCancel={resetPanDept}
         onOk={async () => {
-          setDeptDeleting(true)
-          const ok = await handleDeleteByDepartment?.(deptSelection, deptStoreSelection)
-          setDeptDeleting(false)
-          if (ok) resetDeptModal()
+          setPanDeptDeleting(true)
+          // empty store list = every store
+          const ok = await handleDeleteByDepartment?.(panDeptSelection, [])
+          setPanDeptDeleting(false)
+          if (ok) resetPanDept()
         }}
       >
         <div style={{ marginBottom: 12 }}>
@@ -1903,38 +2023,20 @@ const TableBulkActionIcons = ({
             showSearch
             allowClear
             maxTagCount="responsive"
-            placeholder="Select one or more departments"
+            placeholder="Search and select one or more departments"
             style={{ width: '100%' }}
-            value={deptSelection}
-            onChange={setDeptSelection}
+            value={panDeptSelection}
+            onChange={setPanDeptSelection}
             options={departmentOptions}
             optionFilterProp="label"
           />
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 4 }}>
-            <b>Store(s)</b> <span style={{ color: '#8c8c8c' }}>(optional)</span>
-          </div>
-          <Select
-            mode="multiple"
-            showSearch
-            allowClear
-            maxTagCount="responsive"
-            placeholder="Leave blank to delete across ALL stores (pan-India)"
-            style={{ width: '100%' }}
-            value={deptStoreSelection}
-            onChange={setDeptStoreSelection}
-            options={storeOptions}
-            optionFilterProp="label"
-          />
           <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
-            No store selected = the whole department&apos;s budget is deleted across every store.
-            Selecting stores limits the delete to those stores only.
+            This deletes the selected department&apos;s budget in <b>every store</b>. To remove a
+            department in just one store, use <b>Delete Store BGT</b> instead.
           </div>
         </div>
 
-        {deptSelection.length > 0 && (
+        {panDeptSelection.length > 0 && (
           <div
             style={{
               border: '1px solid #f0f0f0',
@@ -1943,26 +2045,19 @@ const TableBulkActionIcons = ({
               marginBottom: 12,
             }}
           >
-            {deptPreviewLoading ? (
+            {panDeptPreviewLoading ? (
               <span>Counting…</span>
-            ) : deptPreview?.totalRows > 0 ? (
+            ) : panDeptPreview?.totalRows > 0 ? (
               <>
                 <div style={{ marginBottom: 8 }}>
-                  <b>{deptPreview.totalRows}</b> budget seat(s) will be deleted{' '}
-                  {isPanIndiaDelete ? (
-                    <b>across ALL stores (pan-India)</b>
-                  ) : (
-                    <>
-                      in <b>{deptStoreSelection.length}</b> selected store(s)
-                    </>
-                  )}
-                  . A backup table is saved first.
+                  <b>{panDeptPreview.totalRows}</b> budget seat(s) will be deleted{' '}
+                  <b>across ALL stores (pan-India)</b>. A backup table is saved first.
                 </div>
                 <Table
                   size="small"
                   pagination={false}
                   rowKey={(r) => r.deptSno}
-                  dataSource={deptPreview.lines || []}
+                  dataSource={panDeptPreview.lines || []}
                   columns={[
                     { title: 'Department', dataIndex: 'departmentName', key: 'departmentName' },
                     { title: 'Seats', dataIndex: 'rows', key: 'rows', width: 90 },
@@ -1976,14 +2071,14 @@ const TableBulkActionIcons = ({
           </div>
         )}
 
-        {isPanIndiaDelete && deptPreview?.totalRows > 0 && (
+        {panDeptPreview?.totalRows > 0 && (
           <>
             <p style={{ marginBottom: 8 }}>
               This is a pan-India delete. Type <b>DELETE</b> to confirm:
             </p>
             <Input
-              value={deptConfirmText}
-              onChange={(e) => setDeptConfirmText(e.target.value)}
+              value={panDeptConfirmText}
+              onChange={(e) => setPanDeptConfirmText(e.target.value)}
               placeholder="DELETE"
             />
           </>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
+  Alert,
   Checkbox,
   Col,
   DatePicker,
@@ -331,6 +332,16 @@ const AttendanceRequestModal = ({
     })
   })
 
+  // Reporting manager shown for this request. The API blanks it when the stored
+  // manager has gone inactive/separated, so an empty value here means "needs to be
+  // assigned" — we surface that but never block the request.
+  const effectiveReportHeadName = (
+    (regulistAttandanceUpdatedData
+      ? regulistAttandanceUpdatedData.reportHeadName
+      : reportHeadName) || ''
+  ).trim()
+  const hasNoReportingManager = effectiveReportHeadName === ''
+
   return (
     <>
       {contextHolder}
@@ -346,12 +357,7 @@ const AttendanceRequestModal = ({
             }}
           >
             <span>Attendance Request</span>
-            <span>
-              RM:{' '}
-              {regulistAttandanceUpdatedData
-                ? regulistAttandanceUpdatedData.reportHeadName
-                : reportHeadName}
-            </span>
+            <span>RM: {effectiveReportHeadName || 'Not assigned'}</span>
           </div>
         }
         centered
@@ -362,6 +368,15 @@ const AttendanceRequestModal = ({
         className="custom-scrollbar-modal"
         bodyStyle={{ padding: '24px' }}
       >
+        {hasNoReportingManager && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="No reporting manager assigned"
+            description="This request has no reporting manager to approve it, either because none is assigned or because the assigned manager has left. Please ask HR to assign a reporting manager. You can still submit this request."
+          />
+        )}
         <Form layout="vertical" form={form} onFinish={onFinish}>
           <Row gutter={16}>
             <Col xs={24} sm={12} md={8}>

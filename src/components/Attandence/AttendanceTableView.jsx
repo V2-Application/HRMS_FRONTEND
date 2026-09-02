@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import {
+  Alert,
   Select,
   DatePicker,
   Table,
@@ -422,8 +423,12 @@ const PunchLocationPopoverContent = ({ row, ecode }) => {
 const AttendanceTableView = ({ actionsMap = {} }) => {
   const allEmployeesAllowed = ['master', 'hr', 'superadmin', 'it superadmin', 'retail hierarchy']
   const [ip, setIp] = useState('')
-  const { ecode, firstName, role, employeeId, hasReports, storeCode } =
+  const { ecode, firstName, role, employeeId, hasReports, storeCode, reportHeadName } =
     useSelector((state) => state?.auth?.data) || {}
+  // The API blanks reportHeadName when the stored manager is inactive/separated, so an
+  // empty value means the employee has nobody to approve geo attendance. We warn, but
+  // never block the punch.
+  const hasNoReportingManager = !String(reportHeadName || '').trim()
   const { selectedAttendanceEmpCode: empCodeObj } = useSelector((state) => state?.auth)
   const { isGeofenceEnabled } = useSelector((state) => state?.auth?.data || {})
   const dispatch = useDispatch()
@@ -2416,6 +2421,14 @@ const AttendanceTableView = ({ actionsMap = {} }) => {
         destroyOnClose
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {hasNoReportingManager && (
+            <Alert
+              type="warning"
+              showIcon
+              message="No reporting manager assigned"
+              description="You have no reporting manager to approve this attendance, either because none is assigned or because the assigned manager has left. Please ask HR to assign one. You can still clock in/out."
+            />
+          )}
           <div>
             <Upload
               multiple={false}
