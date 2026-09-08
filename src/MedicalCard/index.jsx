@@ -66,34 +66,40 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
   const [bulkSkipReparse, setBulkSkipReparse] = useState(true)
   const [bulkProgress, setBulkProgress] = useState(null) // { done, total, phase }
 
-  // Expand the user's selection into a flat list of PDF File objects.
-  // Loose PDFs pass through; ZIPs are unzipped in the browser (JSZip) so their
-  // PDFs can be re-batched into small requests instead of one huge upload.
-  const expandToPdfFiles = async (rawFiles) => {
+  // Split the user's selection into what the browser can expand itself and what
+  // the server has to expand.
+  //
+  //   pdfs      — loose PDFs, plus PDFs pulled out of any ZIP by JSZip, so they
+  //               can be re-batched into small requests instead of one huge one.
+  //   archives  — everything else (.7z, .rar, .tar, .gz). JSZip only reads ZIP,
+  //               and the insurer now ships .7z, so these go up untouched and the
+  //               API unpacks them (SharpCompress). Sent whole, one per request.
+  const splitSelection = async (rawFiles) => {
     const pdfs = []
+    const archives = []
     for (const f of rawFiles) {
       const name = (f.name || '').toLowerCase()
-      if (name.endsWith('.zip')) {
+      if (name.endsWith('.pdf')) {
+        pdfs.push(f)
+      } else if (name.endsWith('.zip')) {
         const zip = await JSZip.loadAsync(f)
-        const entries = Object.values(zip.files).filter(
-          (e) => !e.dir && /\.pdf$/i.test(e.name),
-        )
+        const entries = Object.values(zip.files).filter((e) => !e.dir && /\.pdf$/i.test(e.name))
         for (const entry of entries) {
           const blob = await entry.async('blob')
-          // Strip any folder path inside the zip — filename (basename) = Ecode.
+          // Strip any folder path inside the zip — the basename carries the Ecode.
           const base = entry.name.split('/').pop()
           pdfs.push(new File([blob], base, { type: 'application/pdf' }))
         }
-      } else if (name.endsWith('.pdf')) {
-        pdfs.push(f)
+      } else {
+        archives.push(f)
       }
     }
-    return pdfs
+    return { pdfs, archives }
   }
 
   const submitBulkUpload = async () => {
     if (bulkFiles.length === 0) {
-      message.warning('Pick one or more PDFs (or a ZIP) first.')
+      message.warning('Pick one or more PDFs (or an archive) first.')
       return
     }
     setBulkLoading(true)
@@ -101,21 +107,27 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
     setBulkProgress({ done: 0, total: 0, phase: 'Reading files…' })
 
     try {
-      // 1) Flatten selection (unzip any ZIPs client-side) into individual PDFs.
+      // 1) Split the selection: PDFs (incl. those unzipped here) vs archives the
+      //    server must open.
       const rawFiles = bulkFiles.map((f) => f.originFileObj || f)
-      const pdfFiles = await expandToPdfFiles(rawFiles)
+      const { pdfFiles, archiveFiles } = await splitSelection(rawFiles).then((r) => ({
+        pdfFiles: r.pdfs,
+        archiveFiles: r.archives,
+      }))
 
-      if (pdfFiles.length === 0) {
-        message.warning('No PDF files found in the selection / ZIP.')
+      if (pdfFiles.length === 0 && archiveFiles.length === 0) {
+        message.warning('No PDFs or archives found in the selection.')
         setBulkProgress(null)
         return
       }
 
-      // 2) Split into batches of BULK_BATCH_SIZE and upload sequentially.
+      // 2) Batch the PDFs; each archive is its own single-file batch, since the
+      //    server expands it into however many PDFs it holds.
       const batches = []
       for (let i = 0; i < pdfFiles.length; i += BULK_BATCH_SIZE) {
         batches.push(pdfFiles.slice(i, i + BULK_BATCH_SIZE))
       }
+      archiveFiles.forEach((a) => batches.push([a]))
 
       // Aggregate the per-batch results into one combined summary.
       const agg = {
@@ -127,7 +139,11 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
         items: [],
       }
 
-      setBulkProgress({ done: 0, total: pdfFiles.length, phase: 'Uploading…' })
+      // An archive counts as one unit of progress here — how many PDFs are inside
+      // is only known once the server has opened it.
+      const progressTotal = pdfFiles.length + archiveFiles.length
+      let sentUnits = 0
+      setBulkProgress({ done: 0, total: progressTotal, phase: 'Uploading…' })
 
       for (let b = 0; b < batches.length; b++) {
         const batch = batches[b]
@@ -163,9 +179,13 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
           agg.errors.push(`Batch ${b + 1}/${batches.length}: ${msg}`)
         }
 
+        // Count what has actually been sent, not batch-index × batch-size — the
+        // archive batches hold one file each, so scaling by BULK_BATCH_SIZE would
+        // run the bar past 100%.
+        sentUnits += batch.length
         setBulkProgress({
-          done: Math.min((b + 1) * BULK_BATCH_SIZE, pdfFiles.length),
-          total: pdfFiles.length,
+          done: Math.min(sentUnits, progressTotal),
+          total: progressTotal,
           phase: `Uploading… (batch ${b + 1}/${batches.length})`,
         })
         // Reflect progress live in the result panel as batches complete.
@@ -481,7 +501,7 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message="Drop loose PDFs or a ZIP containing PDFs. Each PDF's filename (without extension) must be the employee Ecode — e.g. V00362.pdf → V00362."
+          message="Drop loose PDFs or an archive of PDFs (.zip, .7z, .rar, .tar, .gz). The Ecode is read out of each PDF's filename — V00362.pdf and V00362_family.pdf both map to V00362."
         />
 
         <div
@@ -523,7 +543,7 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
         <div className="mc-bulk-dragger">
           <Upload.Dragger
             multiple
-            accept=".pdf,.zip,application/pdf,application/zip,application/x-zip-compressed"
+            accept=".pdf,.zip,.7z,.rar,.tar,.gz,.tgz,application/pdf,application/zip,application/x-zip-compressed,application/x-7z-compressed,application/vnd.rar,application/x-tar,application/gzip"
             beforeUpload={() => false}
             fileList={bulkFiles}
             onChange={({ fileList }) => setBulkFiles(fileList)}
@@ -533,13 +553,15 @@ export default function MedicalCardAdmin({ ecodeProp, embedded = false } = {}) {
               <CloudUploadOutlined />
             </p>
             <p className="ant-upload-text" style={{ margin: 0 }}>
-              Click or drag PDFs or a ZIP here
+              Click or drag PDFs or an archive here
             </p>
             <p
               className="ant-upload-hint"
               style={{ marginTop: 4, paddingInline: 16, fontSize: 12 }}
             >
-              PDF filename = Ecode. Unknown ecodes are skipped, not failed. ZIPs are unpacked server-side.
+              Ecode is taken from the PDF filename (suffixes like _family are ignored). Unknown
+              ecodes are skipped, not failed. ZIPs are unpacked in the browser; .7z / .rar / .tar /
+              .gz are unpacked server-side.
             </p>
           </Upload.Dragger>
         </div>

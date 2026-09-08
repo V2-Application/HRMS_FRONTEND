@@ -344,6 +344,13 @@ const CandidateList = () => {
       const candidateInfo = res?.data?.data?.candidateInfo || null
 
       if (!candidateInfo) {
+        // Moving a rejection back to Pending doesn't need the full candidate record
+        // (no mandatory-field check runs for it), so don't let a failed lookup
+        // trap a rejected candidate with no way back.
+        if (canRevertToPending(record)) {
+          setInitiateModalOpen(true)
+          return
+        }
         message.error('Candidate details not found. Please try again.')
         return
       }
@@ -351,16 +358,25 @@ const CandidateList = () => {
       setCandidateByIdData(candidateInfo)
       setInitiateModalOpen(true)
     } catch (e) {
-      message.error(e?.response?.data?.message || 'Failed to fetch candidate details')
       setCandidateByIdData(null)
+      if (canRevertToPending(record)) {
+        setInitiateModalOpen(true)
+        return
+      }
+      message.error(e?.response?.data?.message || 'Failed to fetch candidate details')
     } finally {
       await dispatch(set({ loading: false }))
     }
   }
 
   const handleInitializeCandidate = async (val) => {
+    // Reverting a rejection back to Pending is not an approval — it neither issues an
+    // ecode nor advances the pipeline, so the ecode-time gates (mandatory candidate
+    // fields, RM code) must not block it. Only remarks stay mandatory, for the audit trail.
+    const isRevertToPending = val?.selectedOption === 4
+
     // ✅ HR / SuperAdmin mandatory validation (ONLY missing field names)
-    if (role === 'HR' || role === 'SuperAdmin') {
+    if (!isRevertToPending && (role === 'HR' || role === 'SuperAdmin')) {
       if (!candidateByIdData) {
         message.error('Candidate details not loaded. Please click Initiate again.')
         return
@@ -393,7 +409,11 @@ const CandidateList = () => {
 
     const { remarks, selectedOption, selectedEmpCode } = val
 
-    if (rmAllowedRoles.includes(String(role).trim().toLowerCase()) && !selectedEmpCode?.trim()) {
+    if (
+      !isRevertToPending &&
+      rmAllowedRoles.includes(String(role).trim().toLowerCase()) &&
+      !selectedEmpCode?.trim()
+    ) {
       message.error('Reporting Head ECode is mandatory')
       return
     }
@@ -428,18 +448,44 @@ const CandidateList = () => {
           hrReviewedBy: `${remarks} - by ${firstName}(${role})`,
           reportHeadEcode: selectedEmpCode,
         }),
+        // Store HR owns no stage, so it submits all three (only ever as Pending —
+        // the UI offers nothing else and the backend refuses anything else). The
+        // backend resets ONLY the stages that are actually Rejected, so approvals
+        // already given are left standing. No reportHeadEcode: no ecode is issued.
+        ...(role === 'StoreHR' && {
+          auditApprovalStatus: selectedOption,
+          hrApprovalStatus: selectedOption,
+          clusterManagerApprovalStatus: selectedOption,
+          auditReviewedBy: `${remarks} - by ${firstName}(${role})`,
+          clusterManagerReviewedBy: `${remarks} - by ${firstName}(${role})`,
+          hrReviewedBy: `${remarks} - by ${firstName}(${role})`,
+        }),
       }
 
       const response = await candidateApproval(requestBody)
 
       if (response?.status) {
-        toast.success('Initialized successfully!')
+        toast.success(
+          isRevertToPending ? 'Moved back to Pending successfully!' : 'Initialized successfully!',
+        )
+        // Close the dialog as soon as the action has actually landed. The refresh
+        // below re-pulls the whole list and can take a while on a slow environment;
+        // leaving the modal spinning until it finishes makes a completed action look
+        // like it is still submitting (or hung).
+        setInitiateModalOpen(false)
         await fetchData(pageSize)
       } else {
-        toast.error(response?.data || response?.data?.message || 'Could not initialize!')
+        toast.error(
+          response?.data ||
+            response?.data?.message ||
+            (isRevertToPending ? 'Could not move to Pending!' : 'Could not initialize!'),
+        )
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Could not initialize!')
+      toast.error(
+        error?.response?.data?.message ||
+          (isRevertToPending ? 'Could not move to Pending!' : 'Could not initialize!'),
+      )
       console.error('Error fetching data:', error)
     } finally {
       setInitiateModalOpen(false)
@@ -583,9 +629,47 @@ const CandidateList = () => {
     8: { color: 'red', label: 'Completed' },
   }
 
+  // Rejected candidates can be pulled back into the pipeline. A reviewer may only
+  // undo THEIR OWN stage rejection (Cluster / HR / LP-Audit); SuperAdmin and Master
+  // may undo any stage. Submitting stage status 4 makes the backend cascade the
+  // candidate's overall status from Rejected back to Pending once no stage is
+  // rejected any more (CandidateService.CandidateInitiate, "Any-reject-wins" block).
+  const canRevertToPending = (record) => {
+    if (!record) return false
+    const { statusId, auditApprovalStatus, clusterManagerApprovalStatus, hrApprovalStatus } = record
+
+    if (statusId !== 2) return false // only rejected candidates
+
+    const audit = auditApprovalStatus ?? 4
+    const cluster = clusterManagerApprovalStatus ?? 4
+    const hr = hrApprovalStatus ?? 4
+
+    // Only the roles CandidateInitiate actually handles server-side. Master and
+    // IT Superadmin are deliberately excluded: the backend has no branch for them, so
+    // offering the option would show a button that always fails ("Unauthorized role
+    // for this operation").
+    if (role === 'SuperAdmin') return true
+    if (role === 'ClusterManager') return cluster === 2
+    if (role === 'Audit') return audit === 2 // Audit is the LP role
+    if (role === 'HR') return hr === 2
+    // Store HR has no approval stage of its own, so there is no "own rejection" to
+    // check — it may pull back any rejected candidate in its store, which resets
+    // every rejected stage at once. It gets NO approve/reject (see revertToPendingOnly).
+    if (role === 'StoreHR') return true
+    return false
+  }
+
+  // Store HR's only action on a candidate is undoing a rejection, so the modal must
+  // not offer Approve or Reject to it at all.
+  const isRevertOnlyRole = role === 'StoreHR'
+
   const shouldShowInitiateButton = (record) => {
     if (!record) return false
     const { statusId, auditApprovalStatus, clusterManagerApprovalStatus, hrApprovalStatus } = record
+
+    // Rejected candidate + this role owns the rejection -> show the button so the
+    // "Move to Pending" option in the modal is reachable.
+    if (canRevertToPending(record)) return true
 
     const audit = auditApprovalStatus ?? 4
     const cluster = clusterManagerApprovalStatus ?? 4
@@ -1000,7 +1084,10 @@ const CandidateList = () => {
           )}
 
           {actionsMap?.initiate?.actionStatus && shouldShowInitiateButton(record) && (
-            <Tooltip placement="top" title={'Initiate'}>
+            <Tooltip
+              placement="top"
+              title={canRevertToPending(record) ? 'Move to Pending' : 'Initiate'}
+            >
               <StepForwardOutlined
                 style={{ fontSize: 18 }}
                 onClick={() => handleInitiateClick(record)}
@@ -1096,11 +1183,13 @@ const CandidateList = () => {
       </div>
 
       <CandidateInitializeModal
-        label="Initiate Candidate"
+        label={isRevertOnlyRole ? 'Move Candidate to Pending' : 'Initiate Candidate'}
         initiateModalOpen={initiateModalOpen}
         setInitiateModalOpen={setInitiateModalOpen}
         handleInitializeCandidate={handleInitializeCandidate}
         selectedCandidateData={selectedCandidateData}
+        allowRevertToPending={canRevertToPending(selectedCandidateData)}
+        revertToPendingOnly={isRevertOnlyRole}
       />
 
       <RightSideFilter onFilter={onFilter} resetFilters={() => fetchData(pageSize)} />

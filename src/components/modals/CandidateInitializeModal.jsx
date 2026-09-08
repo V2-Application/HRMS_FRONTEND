@@ -13,6 +13,14 @@ function CandidateInitializeModal({
   approvalContext,
   label = 'Initialize Applicant',
   selectedCandidateData,
+  // Cluster / HR / LP(Audit) reverting their own rejection back to Pending.
+  // Offered only for candidates that are actually Rejected -- see
+  // canRevertToPending in CandidateList.jsx.
+  allowRevertToPending = false,
+  // Store HR: "Move to Pending" is its ONLY action, so Approve / Reject are hidden
+  // rather than merely disabled -- it has no approval stage of its own and the
+  // backend refuses anything but Pending from it.
+  revertToPendingOnly = false,
   ...props
 }) {
   const rmAllowedRoles = ['hr', 'superadmin']
@@ -91,8 +99,13 @@ function CandidateInitializeModal({
     if (!initiateModalOpen) {
       setSelectedOption(null)
       setRemarks('')
+      return
     }
-  }, [initiateModalOpen])
+
+    // Store HR gets exactly one option, so pre-select it — leaving the lone
+    // checkbox blank only disables Submit for no reason.
+    if (revertToPendingOnly && allowRevertToPending) setSelectedOption(4)
+  }, [initiateModalOpen, revertToPendingOnly, allowRevertToPending])
 
   return (
     <Modal
@@ -142,7 +155,7 @@ function CandidateInitializeModal({
         </Space>
       )}
 
-      {!isRevoked && (
+      {!isRevoked && !revertToPendingOnly && (
         <Checkbox
           checked={selectedOption === 1}
           onChange={() => handleCheckboxChange(1)}
@@ -151,7 +164,7 @@ function CandidateInitializeModal({
           Approve
         </Checkbox>
       )}
-      {!isRevoked && (
+      {!isRevoked && !revertToPendingOnly && (
         <Checkbox
           checked={selectedOption === 2}
           onChange={() => handleCheckboxChange(2)}
@@ -161,7 +174,7 @@ function CandidateInitializeModal({
           Reject
         </Checkbox>
       )}
-      {isRevoked && (
+      {isRevoked && !revertToPendingOnly && (
         <Checkbox
           checked={selectedOption === 3}
           onChange={() => handleCheckboxChange(3)}
@@ -169,6 +182,17 @@ function CandidateInitializeModal({
           style={{ marginLeft: 10 }}
         >
           Revoke me
+        </Checkbox>
+      )}
+      {allowRevertToPending && (!isRevoked || revertToPendingOnly) && (
+        <Checkbox
+          checked={selectedOption === 4}
+          onChange={() => handleCheckboxChange(4)}
+          disabled={loading}
+          // No sibling checkbox to sit next to when this is the only option.
+          style={{ marginLeft: revertToPendingOnly ? 0 : 10 }}
+        >
+          Move to Pending
         </Checkbox>
       )}
       <TextArea

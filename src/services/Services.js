@@ -1147,10 +1147,16 @@ export const getStoreData = async (id) => {
   }
 }
 
+// GetCandidateList costs ~30ms per returned row outside SQL, so asking for 100000
+// rows makes the call take minutes on a slow environment (dev), and axios has no
+// timeout — the grid just never updates. Overridable per-environment so local/dev
+// can pull a smaller page; PROD BEHAVIOUR IS UNCHANGED when the var is unset.
+const CANDIDATE_LIST_PAGE_SIZE = Number(import.meta.env.VITE_CANDIDATE_LIST_PAGE_SIZE) || 100000
+
 export const getCandidateListData = async () => {
   try {
     const response = await axiosInstance.get(
-      `api/Candidate/GetCandidateList?pageNumber=${1}&pageSize=${100000}`,
+      `api/Candidate/GetCandidateList?pageNumber=${1}&pageSize=${CANDIDATE_LIST_PAGE_SIZE}`,
       {
         headers: {},
       },
