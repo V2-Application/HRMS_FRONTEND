@@ -47,6 +47,7 @@ import {
   getMappedDesignations,
   deleteDocument,
   validateMinwage,
+  getActiveRoles,
 } from '../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../components/payroll/SalarySlips'
@@ -142,6 +143,11 @@ const EmployeeProfile = () => {
   const [isCandidate, setIsCandidate] = useState(false)
   const [ocrData, setOcrData] = useState({})
   const [shiftList, setShiftList] = useState([])
+  // ---- Role (optional) -----------------------------------------------------
+  // The HR-maintained role list (Masters -> Role Master). Stored on the
+  // employee row (tblEmployee.RoleMasterId) and saved with the rest of the
+  // profile. Distinct from the portal/RBAC role.
+  const [roleOptions, setRoleOptions] = useState([])
   const [currentStCode, setCurrentStCode] = useState('')
   const [isMinwageLoading, setIsMinwageLoading] = useState(false)
   const isActive = form.getFieldValue(['user', 'isActive'])
@@ -1464,6 +1470,8 @@ const EmployeeProfile = () => {
         differentlyAbledReason: apiData?.differentlyAbledReason,
         differentlyAbledRemarks: apiData?.differentlyAbledRemarks || '',
         shiftID: apiData?.shiftID || 1,
+        // Optional HR role: no fallback, null keeps the dropdown empty.
+        roleMasterId: apiData?.roleMasterId ?? null,
         isUANRegistered: apiData?.isUANRegistered || false,
 
         // NEW: map reference fields into user object too (optional but neat)
@@ -1853,9 +1861,11 @@ const EmployeeProfile = () => {
       Object.entries(values.user).forEach(([key, value]) => {
         // We will control PFApplicable & ESICApplicable ourselves below
         if (key === 'PFApplicable' || key === 'ESICApplicable') return
-        // Sub-department ids are appended explicitly below (always, so clearing persists).
+        // Sub-department ids and the HR role are appended explicitly below
+        // (always, so clearing persists).
         if (key === 'subDepartmentId1' || key === 'subDepartmentId2' || key === 'subDepartmentId3')
           return
+        if (key === 'roleMasterId') return
 
         if (value !== undefined && value !== null) {
           ef.append(`${key}`, value)
@@ -1867,6 +1877,10 @@ const EmployeeProfile = () => {
     ef.append('subDepartmentId1', values?.user?.subDepartmentId1 ?? '')
     ef.append('subDepartmentId2', values?.user?.subDepartmentId2 ?? '')
     ef.append('subDepartmentId3', values?.user?.subDepartmentId3 ?? '')
+
+    // HR role (optional). Sent even when blank, otherwise clearing the dropdown
+    // would silently leave the old role in place.
+    ef.append('RoleMasterId', values?.user?.roleMasterId ?? '')
 
     // Backend expects PFApplicable & ESICApplicable (camel-case)
     ef.append('PFApplicable', PFApplicablePayload) // always true
@@ -1909,6 +1923,39 @@ const EmployeeProfile = () => {
       await dispatch(set({ loading: false }))
     }
   }
+
+  // HR roles for the optional Role dropdown, active ones only. This is the
+  // HR-maintained list from Masters -> Role Master, NOT the V2 Parivar
+  // portal/RBAC role (that one is managed under Settings and is untouched here).
+  //
+  // The picked value rides along in the normal profile payload as
+  // user.roleMasterId, so it saves with everything else.
+  useEffect(() => {
+    let cancelled = false
+
+    const loadRoles = async () => {
+      try {
+        const res = await getActiveRoles()
+        if (cancelled) return
+
+        const list = Array.isArray(res?.data?.data) ? res.data.data : []
+        setRoleOptions(
+          list
+            .map((r) => ({ value: r?.roleId, label: r?.roleName }))
+            .filter((o) => o.value != null && o.label),
+        )
+      } catch (error) {
+        // The field is optional - an unreachable role API leaves the dropdown
+        // empty rather than blocking the profile.
+        console.error('role dropdown load failed:', error)
+      }
+    }
+
+    loadRoles()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const runUpdateFunction = async (values) => {
     try {
@@ -2677,9 +2724,7 @@ const EmployeeProfile = () => {
                         // Only 3 days back and 3 days ahead of today may be picked.
                         disabledDate={(current) => {
                           const today = dayjs().startOf('day')
-                          return (
-                            current < today.subtract(3, 'day') || current > today.add(3, 'day')
-                          )
+                          return current < today.subtract(3, 'day') || current > today.add(3, 'day')
                         }}
                       />
                     </Form.Item>
@@ -2854,6 +2899,26 @@ const EmployeeProfile = () => {
                       </Select>
                     </Form.Item>
                   )}
+                </Col>
+
+                {/* Role - OPTIONAL, deliberately no `required` rule. Picks from the
+                    HR-maintained Role Master list and saves as part of the profile
+                    (tblEmployee.RoleMasterId). Not the portal/RBAC role. */}
+                <Col xs={24} sm={12} md={6}>
+                  <Form.Item labelCol={{ span: 24 }} name={['user', 'roleMasterId']} label="Role">
+                    <Select
+                      showSearch
+                      allowClear
+                      optionFilterProp="label"
+                      placeholder="Select role (optional)"
+                      options={roleOptions}
+                      notFoundContent={
+                        roleOptions.length
+                          ? 'No match'
+                          : 'No roles created yet (Masters → Role Master)'
+                      }
+                    />
+                  </Form.Item>
                 </Col>
 
                 <Col xs={24} sm={12} md={6}>

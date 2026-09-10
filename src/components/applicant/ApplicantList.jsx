@@ -15,6 +15,9 @@ import {
   Col,
   Form,
   Select,
+  DatePicker,
+  Switch,
+  Alert,
 } from 'antd'
 import {
   ImportOutlined,
@@ -61,7 +64,9 @@ import {
   updateApplicantStatusById,
   interviewerApprovalforApplicantInterview,
   exportApplicantDataByStatus,
-reopenApplicant
+reopenApplicant,
+  getApplicantResumeZipEstimate,
+  downloadApplicantResumeZipPart,
 } from '../../services/Services'
 import ExcelImportModal from '../modals/ExcelimportModal'
 import ApproveModel from '../modals/ApproveModel'
@@ -2600,6 +2605,124 @@ const TableBulkActionIcons = ({
   const [exportStatusId, setExportStatusId] = useState(0)
   const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
 
+  // ---- Resume bulk download -------------------------------------------------
+  // Applicant resumes run to several GB in total, so this never downloads blind:
+  // the estimate is fetched first and the user sees the file count and size before
+  // anything transfers. The set is delivered as ~500 MB parts, each downloaded on
+  // its own, so one dropped connection costs a part instead of the whole lot.
+  const [resumeModalOpen, setResumeModalOpen] = useState(false)
+  const [resumeAllDates, setResumeAllDates] = useState(false)
+  const [resumeRange, setResumeRange] = useState(null) // [dayjs, dayjs]
+  const [resumeEstimate, setResumeEstimate] = useState(null)
+  const [resumeEstimating, setResumeEstimating] = useState(false)
+  // A set, not a single value: parts download CONCURRENTLY. Building a part is
+  // dominated by per-file read latency on the server, so several parts in flight
+  // overlap that waiting and finish far sooner than one after another.
+  const [resumeBusyParts, setResumeBusyParts] = useState({})
+  const [resumeDonePart, setResumeDonePart] = useState({})
+  const [resumeAllRunning, setResumeAllRunning] = useState(false)
+
+  // Concurrency cap. More than this and the parts just queue behind each other on
+  // the server while every one of them holds an open request.
+  const RESUME_PARALLEL = 3
+
+  const resumeOpts = () => ({
+    allDates: resumeAllDates,
+    fromDate: resumeRange?.[0] ? resumeRange[0].format('YYYY-MM-DD') : undefined,
+    toDate: resumeRange?.[1] ? resumeRange[1].format('YYYY-MM-DD') : undefined,
+  })
+
+  const resumeSelectionReady = resumeAllDates || (resumeRange?.[0] && resumeRange?.[1])
+
+  const fetchResumeEstimate = async () => {
+    if (!resumeSelectionReady) {
+      message.warning('Pick an applied-date range, or turn on "All dates".')
+      return
+    }
+    setResumeEstimating(true)
+    setResumeEstimate(null)
+    setResumeDonePart({})
+    try {
+      const data = await getApplicantResumeZipEstimate(resumeOpts())
+      setResumeEstimate(data)
+      if (!data || data.partCount === 0) message.info('No resumes match that selection.')
+    } catch (err) {
+      message.error(
+        err?.response?.data?.message || err?.message || 'Could not work out the download size.',
+      )
+    } finally {
+      setResumeEstimating(false)
+    }
+  }
+
+  const downloadResumePart = async (part) => {
+    setResumeBusyParts((prev) => ({ ...prev, [part.partNumber]: true }))
+    try {
+      const { blob, filesWritten, filesMissing } = await downloadApplicantResumeZipPart(
+        resumeOpts(),
+        part.partNumber,
+      )
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', part.fileName)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      setResumeDonePart((prev) => ({ ...prev, [part.partNumber]: true }))
+      // Surface skipped files rather than letting a short zip look like a bug —
+      // some rows point at a file that is no longer on disk.
+      if (filesMissing > 0) {
+        message.warning(
+          `Part ${part.partNumber}: ${filesWritten} resume(s) downloaded, ${filesMissing} skipped (file missing on disk). See _manifest.csv inside the zip.`,
+        )
+      } else {
+        message.success(`Part ${part.partNumber}: ${filesWritten} resume(s) downloaded.`)
+      }
+      return true
+    } catch (err) {
+      message.error(
+        err?.response?.data?.message || err?.message || `Part ${part.partNumber} failed.`,
+      )
+      return false
+    } finally {
+      setResumeBusyParts((prev) => {
+        const next = { ...prev }
+        delete next[part.partNumber]
+        return next
+      })
+    }
+  }
+
+  // Runs every outstanding part, RESUME_PARALLEL at a time. Each request builds its
+  // own zip server-side, so overlapping them overlaps the per-file read latency that
+  // dominates the build — which is where the time actually goes.
+  const downloadAllResumeParts = async () => {
+    const queue = (resumeEstimate?.parts || []).filter((p) => !resumeDonePart[p.partNumber])
+    if (queue.length === 0) {
+      message.info('Every part has already been downloaded.')
+      return
+    }
+    setResumeAllRunning(true)
+    try {
+      let next = 0
+      const worker = async () => {
+        while (next < queue.length) {
+          const mine = queue[next++]
+          await downloadResumePart(mine)
+        }
+      }
+      await Promise.all(
+        Array.from({ length: Math.min(RESUME_PARALLEL, queue.length) }, () => worker()),
+      )
+      message.success('Finished all parts.')
+    } finally {
+      setResumeAllRunning(false)
+    }
+  }
+
   const handleSuperAdminExport = async () => {
     setSuperAdminExportLoading(true)
     try {
@@ -2768,6 +2891,19 @@ const TableBulkActionIcons = ({
             </Button>
           </Tooltip>
 
+          <Tooltip placement="top" title="Download applicant resumes as ZIP">
+            <Button
+              style={{ marginLeft: 5 }}
+              onClick={() => {
+                setResumeEstimate(null)
+                setResumeDonePart({})
+                setResumeModalOpen(true)
+              }}
+            >
+              <FilePdfOutlined /> Resumes
+            </Button>
+          </Tooltip>
+
           {isSuperAdmin && (
             <Tooltip placement="top" title="Export Reports (SuperAdmin)">
               <Button
@@ -2779,6 +2915,127 @@ const TableBulkActionIcons = ({
               </Button>
             </Tooltip>
           )}
+
+          <Modal
+            title="Download Applicant Resumes"
+            open={resumeModalOpen}
+            onCancel={() => setResumeModalOpen(false)}
+            width={620}
+            destroyOnHidden
+            footer={[
+              <Button key="close" onClick={() => setResumeModalOpen(false)}>
+                Close
+              </Button>,
+              <Button
+                key="check"
+                loading={resumeEstimating}
+                disabled={!resumeSelectionReady || resumeAllRunning}
+                onClick={fetchResumeEstimate}
+              >
+                Check size
+              </Button>,
+              <Button
+                key="all"
+                type="primary"
+                loading={resumeAllRunning}
+                disabled={!resumeEstimate || resumeEstimate.partCount === 0}
+                onClick={downloadAllResumeParts}
+              >
+                Download all parts
+              </Button>,
+            ]}
+          >
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <div>
+                <div style={{ marginBottom: 4, fontWeight: 500 }}>Applied between</div>
+                <DatePicker.RangePicker
+                  style={{ width: '100%' }}
+                  format="DD-MMM-YYYY"
+                  allowClear
+                  disabled={resumeAllDates}
+                  value={resumeRange}
+                  onChange={(v) => {
+                    setResumeRange(v)
+                    setResumeEstimate(null)
+                  }}
+                />
+                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                  Both dates are included in full.
+                </div>
+              </div>
+
+              <div>
+                <Switch
+                  checked={resumeAllDates}
+                  onChange={(v) => {
+                    setResumeAllDates(v)
+                    setResumeEstimate(null)
+                  }}
+                />
+                <span style={{ marginLeft: 8 }}>All dates (every applicant, ignore the range)</span>
+              </div>
+
+              {resumeEstimate && resumeEstimate.partCount > 0 && (
+                <>
+                  <Alert
+                    type="info"
+                    showIcon
+                    message={`${resumeEstimate.applicantsWithResume} resume(s), ${resumeEstimate.totalSizeText}, in ${resumeEstimate.partCount} part(s)`}
+                    description={
+                      <div style={{ fontSize: 12 }}>
+                        {resumeEstimate.applicantsInScope} applicant(s) matched
+                        {resumeEstimate.applicantsWithoutResume > 0 &&
+                          ` — ${resumeEstimate.applicantsWithoutResume} of them have no resume uploaded and cannot be included`}
+                        . Download each part separately; every zip contains a{' '}
+                        <code>_manifest.csv</code> listing exactly what it holds.
+                      </div>
+                    }
+                  />
+                  <div>
+                    {resumeEstimate.parts.map((p) => (
+                      <div
+                        key={p.partNumber}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 0',
+                          borderBottom: '1px solid #f0f0f0',
+                        }}
+                      >
+                        <span>
+                          Part {p.partNumber} of {resumeEstimate.partCount} — {p.fileCount} file(s),{' '}
+                          {p.sizeText}
+                        </span>
+                        <Button
+                          size="small"
+                          type={resumeDonePart[p.partNumber] ? 'default' : 'primary'}
+                          loading={!!resumeBusyParts[p.partNumber]}
+                          onClick={() => downloadResumePart(p)}
+                        >
+                          {resumeDonePart[p.partNumber] ? 'Download again' : 'Download'}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#888' }}>
+                    &quot;Download all parts&quot; runs {RESUME_PARALLEL} at a time, which is
+                    considerably faster than one after another. Your browser may ask permission
+                    to save several files. Leave this window open while it runs.
+                  </div>
+                </>
+              )}
+
+              {resumeEstimate && resumeEstimate.partCount === 0 && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="Nothing to download"
+                  description={`${resumeEstimate.applicantsInScope} applicant(s) matched, but none of them has a resume on file.`}
+                />
+              )}
+            </Space>
+          </Modal>
 
           <Modal
             title="Export Applicants"

@@ -1791,9 +1791,6 @@
 
 // export default RegularizeRequestTable
 
-
-
-
 import React, { useEffect, useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { ToastContainer, toast } from 'react-toastify'
@@ -1926,6 +1923,18 @@ const FilterDropdown = ({ dataIndex, dataList, filterValues, setFilterValues, co
   )
 }
 
+/**
+ * HR (third layer) status tag. Unlike the Manager/LP columns, this one can be
+ * null: the column defaults to nothing rather than 4, and every request raised
+ * before the HR layer existed has no HR entry at all. Null reads as Pending, so
+ * an untouched request is never mislabelled Rejected.
+ */
+const hrStatusTag = (statusId) => {
+  if (statusId === 1) return <Tag color="green">Approved</Tag>
+  if (statusId === 2) return <Tag color="brown">Rejected</Tag>
+  return <Tag color="red">Pending</Tag>
+}
+
 const RegularizeRequestTable = () => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [expandedCards, setExpandedCards] = useState({})
@@ -1960,6 +1969,10 @@ const RegularizeRequestTable = () => {
   const isSuperAdmin = ['superadmin', 'it superadmin', 'master'].includes(
     (role || '').trim().toLowerCase(),
   )
+  // Third approval layer. IT Superadmin only: it is the one role whose approval
+  // finalizes a request (it stamps Manager + LP too, so nothing else is needed).
+  // SuperAdmin / Master / Regularize HR stop at Manager + LP.
+  const isHrApprover = (role || '').trim().toLowerCase() === 'it superadmin'
   // Approved tab (key '2') actions are restricted to SuperAdmin; Pending tab keeps actions for all approvers.
   const showBulkActions = activekey === '1' || (activekey === '2' && isSuperAdmin)
 
@@ -1971,6 +1984,7 @@ const RegularizeRequestTable = () => {
   const [exportStatus, setExportStatus] = useState('')
   const [exportManagerStatus, setExportManagerStatus] = useState('')
   const [exportLpStatus, setExportLpStatus] = useState('')
+  const [exportHrStatus, setExportHrStatus] = useState('')
   const [superAdminExportLoading, setSuperAdminExportLoading] = useState(false)
 
   const handleSuperAdminExport = async () => {
@@ -1987,6 +2001,7 @@ const RegularizeRequestTable = () => {
       if (exportStatus) params.status = exportStatus
       if (exportManagerStatus) params.managerStatus = exportManagerStatus
       if (exportLpStatus) params.lpStatus = exportLpStatus
+      if (exportHrStatus) params.hrStatus = exportHrStatus
 
       const res = await axiosInstance.get(
         'api/AttendanceRegularization/ExportAttendanceRegularization',
@@ -2699,6 +2714,42 @@ const RegularizeRequestTable = () => {
         )
       },
     },
+    // ---- third approval layer (HR / IT Superadmin) ----
+    {
+      title: 'HR Status',
+      dataIndex: 'hrApprovalStatusId',
+      key: 'hrApprovalStatusId',
+      width: 120,
+      render: hrStatusTag,
+    },
+    {
+      title: 'HR Remarks',
+      dataIndex: 'hrRemarks',
+      key: 'hrRemarks',
+      width: 200,
+      render: (text) => {
+        const shortText = text?.length > 15 ? text.slice(0, 15) + '...' : text
+        return (
+          <Tooltip title={text}>
+            <span>{shortText}</span>
+          </Tooltip>
+        )
+      },
+    },
+    {
+      title: 'HR Status Updated By',
+      dataIndex: 'hrEcode',
+      key: 'hrEcode',
+      width: 180,
+      render: (text) => {
+        const shortText = text?.length > 15 ? text.slice(0, 15) + '...' : text
+        return (
+          <Tooltip title={text}>
+            <span>{shortText}</span>
+          </Tooltip>
+        )
+      },
+    },
     {
       title: 'Action',
       key: 'action',
@@ -2721,7 +2772,14 @@ const RegularizeRequestTable = () => {
           {/* Action button only on the Pending tab. Approved / Rejected / History
               tabs show the row state but no action — those are terminal for this user. */}
           {(activekey === '1' || (activekey === '2' && isSuperAdmin)) && (
-            <Tooltip placement="top" title={'Action'}>
+            <Tooltip
+              placement="top"
+              title={
+                isHrApprover
+                  ? 'HR decision — finalizes the request, no other approval needed'
+                  : 'Action'
+              }
+            >
               <StepForwardOutlined
                 style={{ fontSize: 18 }}
                 onClick={() => handleInitiateClick(record)}
@@ -2936,6 +2994,42 @@ const RegularizeRequestTable = () => {
       dataIndex: 'lpRemarks',
       key: 'lpRemarks',
       width: 200,
+      render: (text) => {
+        const shortText = text?.length > 15 ? text.slice(0, 15) + '...' : text
+        return (
+          <Tooltip title={text}>
+            <span>{shortText}</span>
+          </Tooltip>
+        )
+      },
+    },
+    // ---- third approval layer (HR / IT Superadmin) ----
+    {
+      title: 'HR Status',
+      dataIndex: 'hrApprovalStatusId',
+      key: 'hrApprovalStatusId',
+      width: 120,
+      render: hrStatusTag,
+    },
+    {
+      title: 'HR Remarks',
+      dataIndex: 'hrRemarks',
+      key: 'hrRemarks',
+      width: 200,
+      render: (text) => {
+        const shortText = text?.length > 15 ? text.slice(0, 15) + '...' : text
+        return (
+          <Tooltip title={text}>
+            <span>{shortText}</span>
+          </Tooltip>
+        )
+      },
+    },
+    {
+      title: 'HR Status Updated By',
+      dataIndex: 'hrEcode',
+      key: 'hrEcode',
+      width: 180,
       render: (text) => {
         const shortText = text?.length > 15 ? text.slice(0, 15) + '...' : text
         return (
@@ -3621,9 +3715,20 @@ const RegularizeRequestTable = () => {
               options={REGULARIZE_STATUS_OPTIONS}
             />
           </div>
+          <div>
+            <div style={{ marginBottom: 4, fontWeight: 500 }}>HR Status</div>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="All"
+              value={exportHrStatus}
+              onChange={setExportHrStatus}
+              options={REGULARIZE_STATUS_OPTIONS}
+            />
+          </div>
           <div style={{ fontSize: 12, color: '#888' }}>
-            Tip: For &quot;Approved by Manager, Pending by LP&quot; — set Manager Status = Approved
-            and LP Status = Pending.
+            Tip: For &quot;cleared by Manager and LP, waiting on HR&quot; — set Manager Status =
+            Approved, LP Status = Approved and HR Status = Pending. HR Status = Pending also
+            includes requests HR has never looked at.
           </div>
         </Space>
       </Modal>

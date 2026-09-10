@@ -49,6 +49,7 @@ import {
   checkCandidateSeatAvailability,
   validateMinwage,
   getOcrKey,
+  getActiveRoles,
 } from '../services/Services'
 import { useWatch } from 'antd/es/form/Form'
 import SalarySlips from '../components/payroll/SalarySlips'
@@ -145,6 +146,9 @@ const EmployeeAddNew = () => {
   const [isMinwageLoading, setIsMinwageLoading] = useState(false)
   const [ocrData, setOcrData] = useState({})
   const [shiftList, setShiftList] = useState([])
+  // Optional portal role for the candidate. Saved on the candidate row and
+  // applied to tblEmployeeRole when the candidate is converted into an employee.
+  const [roleOptions, setRoleOptions] = useState([])
   const isActive = form.getFieldValue(['user', 'isActive'])
   const isRelativeInCompany = useWatch(['user', 'isRelativeInCompany'], form)
   const esicApplicable = useWatch(['user', 'ESICApplicable'], form)
@@ -1483,6 +1487,30 @@ const EmployeeAddNew = () => {
     fetchShiftData()
   }, [])
 
+  // --- active roles for the optional Role dropdown (inactive roles are not offered)
+  const fetchRoleOptions = async () => {
+    try {
+      const response = await getActiveRoles()
+
+      if (response.status === 200) {
+        const list = Array.isArray(response.data?.data) ? response.data.data : []
+        setRoleOptions(
+          list
+            .map((r) => ({ value: r?.roleId, label: r?.roleName }))
+            .filter((o) => o.value != null && o.label),
+        )
+      }
+    } catch (error) {
+      // The field is optional - an unreachable role API just leaves it empty
+      // rather than blocking the candidate form.
+      console.error('role dropdown load failed:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchRoleOptions()
+  }, [])
+
   useEffect(() => {
     const total =
       (parseFloat(watch_basicSalary) || 0) +
@@ -2568,6 +2596,9 @@ const EmployeeAddNew = () => {
         differentlyAbledReason: apiData?.differentlyAbledReason,
         differentlyAbledRemarks: apiData?.differentlyAbledRemarks,
         shiftID: apiData?.shiftID || 1,
+        // Optional HR role. Null means "not chosen"; nothing is applied at
+        // conversion in that case.
+        roleMasterId: apiData?.roleMasterId ?? null,
         isUANRegistered: apiData?.isUANRegistered || false,
         preferredLocation: apiData?.preferredLocation || '',
       }
@@ -3023,6 +3054,7 @@ const EmployeeAddNew = () => {
       'applicantCode',
       'CompanyId',
       'shiftID',
+      'roleMasterId',
       // 'isUANRegistered',
       'uanNo',
       'aoCode',
@@ -4781,6 +4813,29 @@ const EmployeeAddNew = () => {
                     </Form.Item>
                   )}
                 </Col>
+
+                {/* Role - OPTIONAL, deliberately no `required` rule. Picks from the
+                    HR-maintained Role Master list, is saved on the candidate row and
+                    carried onto the employee at conversion. Not the portal/RBAC role. */}
+                <Col xs={24} sm={12} md={6}>
+                  {!pathname.includes('/candidate-form') && (
+                    <Form.Item labelCol={{ span: 24 }} name={['user', 'roleMasterId']} label="Role">
+                      <Select
+                        showSearch
+                        allowClear
+                        optionFilterProp="label"
+                        placeholder="Select role (optional)"
+                        options={roleOptions}
+                        notFoundContent={
+                          roleOptions.length
+                            ? 'No match'
+                            : 'No roles created yet (Masters → Role Master)'
+                        }
+                      />
+                    </Form.Item>
+                  )}
+                </Col>
+
                 <Col xs={24} sm={12} md={6}>
                   {!pathname.includes('/candidate-form') && (
                     <Form.Item

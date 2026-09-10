@@ -686,6 +686,14 @@ const fullMenuList = [
         name: 'Leave Master',
         to: '/master/leave',
       },
+      {
+        // The name MUST match the RBAC submodule name "Role Master" exactly --
+        // buildMenuFromPermissions matches nav items to permitted submodules by
+        // name, and that submodule is granted to IT Superadmin only.
+        component: CNavItem,
+        name: 'Role Master',
+        to: '/master/role',
+      },
     ],
   },
   {

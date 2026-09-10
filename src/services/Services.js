@@ -1147,6 +1147,53 @@ export const getStoreData = async (id) => {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Applicant resume bulk download.
+//
+// The API answers in two steps on purpose: ask what a download WOULD contain
+// (cheap, database-only), then fetch each part. Applicant resumes total several
+// GB, so the estimate is what lets the user see the size before committing, and
+// the parts are what stop a dropped connection costing the whole transfer.
+// ---------------------------------------------------------------------------
+const resumeZipParams = ({ fromDate, toDate, allDates, statusId, searchTerm }) => {
+  const p = new URLSearchParams()
+  if (allDates) p.set('allDates', 'true')
+  else {
+    if (fromDate) p.set('fromDate', fromDate)
+    if (toDate) p.set('toDate', toDate)
+  }
+  if (statusId) p.set('statusId', String(statusId))
+  if (searchTerm) p.set('searchTerm', searchTerm)
+  return p.toString()
+}
+
+export const getApplicantResumeZipEstimate = async (opts) => {
+  const response = await axiosInstance.get(
+    `api/Applicant/ResumeZipEstimate?${resumeZipParams(opts)}`,
+  )
+  return response?.data?.data ?? response?.data?.Data
+}
+
+export const downloadApplicantResumeZipPart = async (opts, part) => {
+  const response = await axiosInstance.get(
+    `api/Applicant/DownloadResumesZip?${resumeZipParams(opts)}&part=${part}`,
+    {
+      responseType: 'blob',
+      // A ~500 MB part can legitimately take minutes; the default timeout would
+      // abort a transfer that was progressing perfectly well.
+      timeout: 0,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    },
+  )
+  return {
+    blob: response.data,
+    // Set by the API so skipped files can be reported without opening the zip.
+    filesWritten: Number(response.headers?.['x-resume-files-written'] ?? 0),
+    filesMissing: Number(response.headers?.['x-resume-files-missing'] ?? 0),
+  }
+}
+
 // GetCandidateList costs ~30ms per returned row outside SQL, so asking for 100000
 // rows makes the call take minutes on a slow environment (dev), and axios has no
 // timeout — the grid just never updates. Overridable per-environment so local/dev
@@ -3169,6 +3216,97 @@ export const createShift = async (payload) => {
 export const updateShift = async (payload, shiftId) => {
   try {
     const response = await axiosInstance.put(`/api/ShiftMaster/Update/${shiftId}`, payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Role Master (Masters -> Role Master)
+// GetAll returns inactive roles too, which the dropdown feeds deliberately do
+// not (/api/Auth/Roles stays active-only).
+// ---------------------------------------------------------------------------
+export const GetAllRoles = async () => {
+  try {
+    const response = await axiosInstance.get('/api/RoleMaster/GetAll')
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const createRole = async (payload) => {
+  try {
+    const response = await axiosInstance.post('/api/RoleMaster/Create', payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const updateRole = async (payload, roleId) => {
+  try {
+    const response = await axiosInstance.put(`/api/RoleMaster/Update/${roleId}`, payload)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+// Bulk create/update HR roles from a sheet, and the matching template.
+export const bulkUploadRoles = async (formData) => {
+  try {
+    const response = await axiosInstance.post('/api/RoleMaster/BulkUpload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const downloadRoleTemplate = async () => {
+  try {
+    const response = await axiosInstance.get('/api/RoleMaster/Template', {
+      responseType: 'blob',
+    })
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+export const toggleRole = async (roleId) => {
+  try {
+    const response = await axiosInstance.get(`/api/RoleMaster/ToggleStatus/${roleId}`)
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+// Active HR roles - the feed behind the Role dropdown on the employee profile
+// and the candidate page. Served from DropDown (ungated) rather than
+// RoleMaster/GetActive, because the Role Master page itself is IT Superadmin
+// only while HR still has to be able to PICK a role.
+//
+// NOT the V2 Parivar portal/RBAC roles: those come from /api/Auth/Roles and are
+// managed under Settings, not here.
+export const getActiveRoles = async () => {
+  try {
+    const response = await axiosInstance.get('/api/DropDown/GetRoleMaster')
+    return response
+  } catch (error) {
+    throw error
+  }
+}
+
+// Shift as it stands now + every recorded timing, for the Shift Master detail
+// panel (mirrors what getEmployeeShiftHistory does for Emp Shift Alignment).
+export const getShiftTimingHistory = async (shiftID) => {
+  try {
+    const response = await axiosInstance.get(`/api/ShiftMaster/History/${shiftID}`)
     return response
   } catch (error) {
     throw error

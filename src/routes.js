@@ -276,6 +276,7 @@ const AttendanceChangeLogs = React.lazy(
   () => import('./components/AttendanceChangeLog/AttendanceChangeLog'),
 )
 const ShiftMasterCrud = React.lazy(() => import('./ShiftMaster/ShiftMasterCrud'))
+const RoleMasterCrud = React.lazy(() => import('./RoleMaster/RoleMasterCrud'))
 const VendorForm = React.lazy(() => import('./VendorModule/VendorForm'))
 const ManpowerForm = React.lazy(() => import('./VendorModule/ManpowerForm'))
 const VendorList = React.lazy(() => import('./VendorModule/VendorList'))
@@ -635,6 +636,14 @@ const routes = [
     name: 'Shift',
     element: ShiftMaster,
     roles: ['Master'],
+  },
+  {
+    // Visibility is RBAC-driven: the "Role Master" submodule is granted to
+    // IT Superadmin only, so both the nav item and the API page guard follow
+    // RBAC rather than a hardcoded role list here.
+    path: '/master/role',
+    name: 'Role Master',
+    element: RoleMasterCrud,
   },
   {
     path: '/master/machine',
