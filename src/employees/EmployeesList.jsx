@@ -2694,6 +2694,7 @@ import Pageheading from '../components/shared/Pageheading'
 import { IoIosRefresh } from 'react-icons/io'
 import axiosInstance from '../services/axiosInstance'
 import EmployeeInactiveModal from '../components/modals/EmployeeInactiveModal'
+import NocUploadModal from '../components/modals/NocUploadModal'
 import BulkInactivateModal from '../components/modals/BulkInactivateModal'
 import CardInRow from '../components/shared/CardInRow/CardInRow'
 import useColumnSearch from '../components/shared/columnSearch'
@@ -3135,6 +3136,9 @@ const EmployeesList = () => {
   const displayedDatasetRef = useRef(null)
   const inactiveLoadedKeyRef = useRef(null)
   const [importExelModal, setimportExelModal] = useState(false)
+  // NOC attachment modal (Inactive / Abscond tabs)
+  const [nocModalVisible, setNocModalVisible] = useState(false)
+  const [nocEmployee, setNocEmployee] = useState(null)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [search, setSearch] = useState(() => {
     try {
@@ -4346,6 +4350,21 @@ const EmployeesList = () => {
               </Tooltip>
             )}
 
+            {/* NOC — only meaningful once the employee has actually left, so it
+                shows on the Inactive and Abscond tabs only. The API rejects an
+                NOC for an active employee regardless. */}
+            {(activeTab === 'inactive' || activeTab === 'abscond') && (
+              <Tooltip placement="top" title={'NOC attachment'}>
+                <PaperClipOutlined
+                  style={{ fontSize: 18 }}
+                  onClick={() => {
+                    setNocEmployee(record)
+                    setNocModalVisible(true)
+                  }}
+                />
+              </Tooltip>
+            )}
+
             {actionsMap?.edit?.actionStatus && (
               <Tooltip placement="top" title={'Edit'}>
                 <EditOutlined
@@ -4638,6 +4657,17 @@ const EmployeesList = () => {
         loading={inactiveChecklistLoading}
         ecode={currentEcode}
         employeeId={currentEmployeeId}
+      />
+
+      {/* Must live inside EmployeesList: it reads nocModalVisible / nocEmployee,
+          which are this component's state. */}
+      <NocUploadModal
+        visible={nocModalVisible}
+        employee={nocEmployee}
+        onClose={() => {
+          setNocModalVisible(false)
+          setNocEmployee(null)
+        }}
       />
 
       <div className="def" style={{ paddingBottom: 10 }}>

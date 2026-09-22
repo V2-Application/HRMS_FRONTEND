@@ -112,6 +112,15 @@ export default function EmployeesUploadModal({ isVisible, setIsVisible, refreshD
             * Download, fill out, then upload the sample Excel file.
           </Paragraph>
 
+          {/* The sample ships with a trailing "Role" column that only IT Superadmin
+              may upload. Everyone else has to delete that column, so say it here
+              rather than letting them find out via a 403 after filling the sheet. */}
+          <Paragraph type="secondary" style={{ fontSize: 12 }}>
+            * The last column, &quot;Role&quot;, can only be uploaded by IT Superadmin. If you are
+            not IT Superadmin, delete that column before uploading. Leaving a cell blank keeps
+            the employee&apos;s existing Role.
+          </Paragraph>
+
           {mode === 'insert' && (
             <Paragraph type="secondary" style={{ fontSize: 12 }}>
               * For new employees, leave "Employee Code" column empty. It will be auto-generated

@@ -3286,13 +3286,35 @@ export const toggleRole = async (roleId) => {
   }
 }
 
-// Active HR roles - the feed behind the Role dropdown on the employee profile
-// and the candidate page. Served from DropDown (ungated) rather than
-// RoleMaster/GetActive, because the Role Master page itself is IT Superadmin
-// only while HR still has to be able to PICK a role.
+// ---- NOC attachment for inactive employees --------------------------------
+// One current NOC per employee. Fetch returns hasNoc:false (not a 404) when
+// none has been uploaded, so the modal can show an empty state.
+export const getInactiveEmployeeNoc = async (employeeId) => {
+  const response = await axiosInstance.get('/api/EmployeeNew/GetInactiveEmployeeNoc', {
+    params: { employeeId },
+  })
+  return response
+}
+
+// Uploading again REPLACES the current NOC; the previous one is soft-deleted
+// server-side and kept in history, never hard-deleted.
+export const uploadInactiveEmployeeNoc = async (employeeId, file) => {
+  const fd = new FormData()
+  fd.append('employeeId', employeeId)
+  fd.append('file', file)
+  const response = await axiosInstance.post('/api/EmployeeNew/UploadInactiveEmployeeNoc', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response
+}
+
+// V2 Parivar roles (dbo.tblRole) - the feed behind the "V2 Parivar Role"
+// dropdown on the employee profile and the candidate page. Served from DropDown
+// (ungated) so every user can SEE the recorded value; only IT Superadmin can
+// change it, which the form and the backend both enforce.
 //
-// NOT the V2 Parivar portal/RBAC roles: those come from /api/Auth/Roles and are
-// managed under Settings, not here.
+// Selecting a role here records the choice. It does not assign it - the live
+// RBAC assignment stays with Settings -> Role Assignment.
 export const getActiveRoles = async () => {
   try {
     const response = await axiosInstance.get('/api/DropDown/GetRoleMaster')

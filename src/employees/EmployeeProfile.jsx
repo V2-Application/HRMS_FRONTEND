@@ -144,9 +144,12 @@ const EmployeeProfile = () => {
   const [ocrData, setOcrData] = useState({})
   const [shiftList, setShiftList] = useState([])
   // ---- Role (optional) -----------------------------------------------------
-  // The HR-maintained role list (Masters -> Role Master). Stored on the
-  // employee row (tblEmployee.RoleMasterId) and saved with the rest of the
-  // profile. Distinct from the portal/RBAC role.
+  // The HR job-role list from Masters -> Role Master (dbo.tblRoleMaster).
+  // Stored on the employee row (tblEmployee.RoleMasterId) and saved with the
+  // rest of the profile.
+  //
+  // RECORD-ONLY: picking a role here does NOT grant access. The live RBAC
+  // assignment stays with Settings -> Role Assignment.
   const [roleOptions, setRoleOptions] = useState([])
   const [currentStCode, setCurrentStCode] = useState('')
   const [isMinwageLoading, setIsMinwageLoading] = useState(false)
@@ -1470,7 +1473,7 @@ const EmployeeProfile = () => {
         differentlyAbledReason: apiData?.differentlyAbledReason,
         differentlyAbledRemarks: apiData?.differentlyAbledRemarks || '',
         shiftID: apiData?.shiftID || 1,
-        // Optional HR role: no fallback, null keeps the dropdown empty.
+        // Optional V2 Parivar role: no fallback, null keeps the dropdown empty.
         roleMasterId: apiData?.roleMasterId ?? null,
         isUANRegistered: apiData?.isUANRegistered || false,
 
@@ -1861,8 +1864,8 @@ const EmployeeProfile = () => {
       Object.entries(values.user).forEach(([key, value]) => {
         // We will control PFApplicable & ESICApplicable ourselves below
         if (key === 'PFApplicable' || key === 'ESICApplicable') return
-        // Sub-department ids and the HR role are appended explicitly below
-        // (always, so clearing persists).
+        // Sub-department ids and the V2 Parivar role are appended explicitly
+        // below (always, so clearing persists).
         if (key === 'subDepartmentId1' || key === 'subDepartmentId2' || key === 'subDepartmentId3')
           return
         if (key === 'roleMasterId') return
@@ -1878,8 +1881,8 @@ const EmployeeProfile = () => {
     ef.append('subDepartmentId2', values?.user?.subDepartmentId2 ?? '')
     ef.append('subDepartmentId3', values?.user?.subDepartmentId3 ?? '')
 
-    // HR role (optional). Sent even when blank, otherwise clearing the dropdown
-    // would silently leave the old role in place.
+    // Role (optional, HR Role Master). Sent even when blank, otherwise clearing
+    // the dropdown would silently leave the old value in place.
     ef.append('RoleMasterId', values?.user?.roleMasterId ?? '')
 
     // Backend expects PFApplicable & ESICApplicable (camel-case)
@@ -1924,12 +1927,12 @@ const EmployeeProfile = () => {
     }
   }
 
-  // HR roles for the optional Role dropdown, active ones only. This is the
-  // HR-maintained list from Masters -> Role Master, NOT the V2 Parivar
-  // portal/RBAC role (that one is managed under Settings and is untouched here).
+  // HR Role Master list (dbo.tblRoleMaster) for the optional dropdown.
   //
   // The picked value rides along in the normal profile payload as
-  // user.roleMasterId, so it saves with everything else.
+  // user.roleMasterId, so it saves with everything else. Loaded for every
+  // role so non-IT-Superadmin users can still SEE the recorded value; the field
+  // itself is disabled for them and the backend ignores any value they send.
   useEffect(() => {
     let cancelled = false
 
@@ -2901,22 +2904,29 @@ const EmployeeProfile = () => {
                   )}
                 </Col>
 
-                {/* Role - OPTIONAL, deliberately no `required` rule. Picks from the
-                    HR-maintained Role Master list and saves as part of the profile
-                    (tblEmployee.RoleMasterId). Not the portal/RBAC role. */}
+                {/* Role - OPTIONAL, deliberately no `required` rule.
+                    Picks from the HR Role Master list (dbo.tblRoleMaster) and saves
+                    as part of the profile (tblEmployee.RoleMasterId).
+
+                    Record-only: it does NOT grant access - the live RBAC assignment
+                    stays with Settings -> Role Assignment. */}
                 <Col xs={24} sm={12} md={6}>
-                  <Form.Item labelCol={{ span: 24 }} name={['user', 'roleMasterId']} label="Role">
+                  <Form.Item
+                    labelCol={{ span: 24 }}
+                    name={['user', 'roleMasterId']}
+                    label="Role"
+                    tooltip="The HR job role, maintained on Masters → Role Master. Recorded for reporting; it does not change access."
+                  >
                     <Select
                       showSearch
                       allowClear
+                      
                       optionFilterProp="label"
-                      placeholder="Select role (optional)"
-                      options={roleOptions}
-                      notFoundContent={
-                        roleOptions.length
-                          ? 'No match'
-                          : 'No roles created yet (Masters → Role Master)'
+                      placeholder={
+                        'Select role (optional)'
                       }
+                      options={roleOptions}
+                      notFoundContent={roleOptions.length ? 'No match' : 'No roles yet (Masters -> Role Master)'}
                     />
                   </Form.Item>
                 </Col>

@@ -649,13 +649,28 @@ const CandidateList = () => {
     // offering the option would show a button that always fails ("Unauthorized role
     // for this operation").
     if (role === 'SuperAdmin') return true
-    if (role === 'ClusterManager') return cluster === 2
-    if (role === 'Audit') return audit === 2 // Audit is the LP role
-    if (role === 'HR') return hr === 2
     // Store HR has no approval stage of its own, so there is no "own rejection" to
     // check — it may pull back any rejected candidate in its store, which resets
     // every rejected stage at once. It gets NO approve/reject (see revertToPendingOnly).
+    // Checked BEFORE the orphaned-rejection branch below, which is scoped to the
+    // three reviewing roles and would otherwise exclude StoreHR.
     if (role === 'StoreHR') return true
+
+    // Orphaned rejection: the candidate is Rejected overall but NO stage is marked
+    // rejected, so nobody "owns" it and the own-stage rules below would hide the
+    // button from every reviewer. That is the majority of the rejected population
+    // (6,158 of 6,719 on prod when this was written), which is why the button looked
+    // missing across many stores — only StoreHR/SuperAdmin could still see it.
+    //
+    // The backend already permits this: CandidateInitiate derives isRevertToPending
+    // from the SUBMITTED statuses, never from a stored stage rejection.
+    const noStageRejected = cluster !== 2 && audit !== 2 && hr !== 2
+    if (noStageRejected) return ['ClusterManager', 'Audit', 'HR'].includes(role)
+
+    // Stage-owned rejection: only the reviewer who rejected may undo their own stage.
+    if (role === 'ClusterManager') return cluster === 2
+    if (role === 'Audit') return audit === 2 // Audit is the LP role
+    if (role === 'HR') return hr === 2
     return false
   }
 

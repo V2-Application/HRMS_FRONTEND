@@ -4814,23 +4814,30 @@ const EmployeeAddNew = () => {
                   )}
                 </Col>
 
-                {/* Role - OPTIONAL, deliberately no `required` rule. Picks from the
-                    HR-maintained Role Master list, is saved on the candidate row and
-                    carried onto the employee at conversion. Not the portal/RBAC role. */}
+                {/* Role - OPTIONAL, deliberately no `required` rule.
+                    Picks from the V2 Parivar role list (dbo.tblRole), is saved on
+                    the candidate row and carried onto the employee at conversion.
+
+                    Record-only: it does NOT grant access - a new joiner still gets
+                    the default portal role. Editable by IT Superadmin only. */}
                 <Col xs={24} sm={12} md={6}>
                   {!pathname.includes('/candidate-form') && (
-                    <Form.Item labelCol={{ span: 24 }} name={['user', 'roleMasterId']} label="Role">
+                    <Form.Item
+                      labelCol={{ span: 24 }}
+                      name={['user', 'roleMasterId']}
+                      label="Role"
+                      tooltip="The HR job role, maintained on Masters → Role Master. Recorded for reporting; it does not grant access."
+                    >
                       <Select
                         showSearch
                         allowClear
+                        
                         optionFilterProp="label"
-                        placeholder="Select role (optional)"
-                        options={roleOptions}
-                        notFoundContent={
-                          roleOptions.length
-                            ? 'No match'
-                            : 'No roles created yet (Masters → Role Master)'
+                        placeholder={
+                          'Select role (optional)'
                         }
+                        options={roleOptions}
+                        notFoundContent={roleOptions.length ? 'No match' : 'No roles yet (Masters -> Role Master)'}
                       />
                     </Form.Item>
                   )}
